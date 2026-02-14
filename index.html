@@ -24,11 +24,35 @@
             padding: 40px;
             text-align: center;
             cursor: pointer;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             transition: 0.3s;
         }
         .upload-box:hover { background: rgba(255,255,255,0.1); border-color: #a78bfa; }
         
+        /* Filter Bar Styles */
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+            align-items: flex-end;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 8px; }
+        .filter-group label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .filter-bar input {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 6px;
+            outline: none;
+        }
+        .filter-bar input:focus { border-color: #a78bfa; }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -47,12 +71,13 @@
 
         table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate; 
+            border-spacing: 0;
             background: #1e293b;
             border-radius: 12px;
-            overflow: hidden;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
+        
         th {
             background: #334155;
             color: #cbd5e1;
@@ -63,7 +88,11 @@
             text-transform: uppercase;
             border-bottom: 2px solid #475569;
             user-select: none;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
+        
         th:hover { background: #475569; }
         td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
         
@@ -95,6 +124,22 @@
             <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
         </div>
 
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Search Symbol</label>
+                <input type="text" id="searchInput" placeholder="e.g. NVDA or AAPL" oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>From Date</label>
+                <input type="date" id="startDate" onchange="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>To Date</label>
+                <input type="date" id="endDate" onchange="applyFilters()">
+            </div>
+            <button onclick="resetFilters()" style="background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">Reset Filters</button>
+        </div>
+
         <div id="summary" class="stats"></div>
         <table>
             <thead>
@@ -105,7 +150,7 @@
     </div>
 
     <script>
-        let processedData = [];
+        let rawProcessedData = [];
         let sortKey = 'openDate';
         let sortDir = -1;
 
@@ -154,6 +199,33 @@
             return `${mm}/${dd}/${dObj.getFullYear()}`;
         }
 
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const startVal = document.getElementById('startDate').value;
+            const endVal = document.getElementById('endDate').value;
+            
+            const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+            const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+
+            const filtered = rawProcessedData.filter(item => {
+                const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
+                const itemDate = item.openDate;
+                let matchesDate = true;
+                if (startDate && (!itemDate || itemDate < startDate)) matchesDate = false;
+                if (endDate && (!itemDate || itemDate > endDate)) matchesDate = false;
+                return matchesSearch && matchesDate;
+            });
+
+            render(null, filtered);
+        }
+
         function process(rows) {
             const groups = {};
 
@@ -191,7 +263,7 @@
                 }
             });
 
-            processedData = Object.values(groups).map(g => {
+            rawProcessedData = Object.values(groups).map(g => {
                 const isClosed = g.status !== 'Sell to Open';
                 const profit = isClosed ? (g.openingPremium + g.closingPremium) : null;
                 const profitPct = (isClosed && g.openingPremium !== 0) ? (profit / Math.abs(g.openingPremium)) * 100 : null;
@@ -202,16 +274,18 @@
                     profitPct: profitPct
                 };
             });
-            render();
+            applyFilters();
         }
 
-        function render(newSortKey) {
+        function render(newSortKey, dataToRender = null) {
+            const displayData = dataToRender || rawProcessedData;
+
             if (newSortKey) {
                 if (sortKey === newSortKey) sortDir *= -1;
                 else { sortKey = newSortKey; sortDir = 1; }
             }
 
-            processedData.sort((a, b) => {
+            displayData.sort((a, b) => {
                 let v1 = a[sortKey], v2 = b[sortKey];
                 if (v1 === null) v1 = -Infinity;
                 if (v2 === null) v2 = -Infinity;
@@ -220,8 +294,8 @@
                 return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
             });
 
-            const totalPL = processedData.reduce((s, x) => s + (x.profit || 0), 0);
-            const openPositions = processedData.filter(x => x.status === 'Sell to Open');
+            const totalPL = displayData.reduce((s, x) => s + (x.profit || 0), 0);
+            const openPositions = displayData.filter(x => x.status === 'Sell to Open');
             const openCount = openPositions.length;
             const totalOpenPremium = openPositions.reduce((s, x) => s + x.openingPremium, 0);
             const netCombined = totalPL + totalOpenPremium;
@@ -233,7 +307,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Closed Positions</div>
-                    <div class="stat-value">${processedData.length - openCount}</div>
+                    <div class="stat-value">${displayData.length - openCount}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Open Positions</div>
@@ -260,10 +334,10 @@
             ];
 
             document.getElementById('headerRow').innerHTML = cols.map(c => 
-                `<th onclick="render('${c.key}')">${c.lab} ↕</th>`
+                `<th onclick="render('${c.key}', null)">${c.lab} ↕</th>`
             ).join('');
 
-            document.getElementById('tableBody').innerHTML = processedData.map(p => `
+            document.getElementById('tableBody').innerHTML = displayData.map(p => `
                 <tr>
                     <td class="symbol-text">${p.symbol}</td>
                     <td><span class="tag">${p.type}</span><span class="tag" style="background:#1e293b; border: 1px solid #475569">${p.status}</span></td>
