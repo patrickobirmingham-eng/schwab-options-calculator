@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Profit/Loss Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #94a3b8; margin-bottom: 25px; font-size: 0.9rem; }
+        
+        .upload-box {
+            background: rgba(255,255,255,0.05);
+            border: 2px dashed #6d28d9;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: 0.3s;
+        }
+        .upload-box:hover { background: rgba(255,255,255,0.1); border-color: #a78bfa; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+        .stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.2; }
+        .stat-value { font-size: 1.4rem; font-weight: bold; margin-top: 8px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        th {
+            background: #334155;
+            color: #cbd5e1;
+            padding: 15px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            border-bottom: 2px solid #475569;
+            user-select: none;
+        }
+        th:hover { background: #475569; }
+        td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+        
+        .pos { color: #4ade80; font-weight: 600; }
+        .neg { color: #f87171; font-weight: 600; }
+        .neutral { color: #60a5fa; font-weight: 600; }
+        .total-highlight { color: #f59e0b; font-weight: 600; }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            background: #475569;
+            margin-right: 6px;
+            font-weight: 600;
+        }
+        .symbol-text { font-weight: bold; color: #e2e8f0; }
+        em { color: #64748b; font-style: normal; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Options Profit/Loss Calculator</h1>
+        <p class="subtitle">Aggregated Analysis & Realized Profit/Loss</p>
+        
+        <div class="upload-box" id="dropZone">
+            <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions Here</p>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 8px;">(Handles "as of" dates and Excel serial numbers automatically)</p>
+            <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
+        </div>
+
+        <div id="summary" class="stats"></div>
+        <table>
+            <thead>
+                <tr id="headerRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let processedData = [];
+        let sortKey = 'openDate';
+        let sortDir = -1;
+
+        const dropZone = document.getElementById('dropZone');
+        const filePicker = document.getElementById('filePicker');
+
+        dropZone.onclick = () => filePicker.click();
+        filePicker.onchange = (e) => handleFile(e.target.files[0]);
+
+        async function handleFile(file) {
+            if (!file) return;
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            process(json);
+        }
+
+        function parseDateString(dStr) {
+            if (!dStr) return null;
+            if (!isNaN(dStr) && typeof dStr !== 'string') {
+                return new Date((dStr - 25569) * 86400 * 1000);
+            }
+            const parts = String(dStr).trim().split(/\s+/);
+            const actualDateStr = parts[parts.length - 1];
+            const d = new Date(actualDateStr);
+            if (isNaN(d.getTime()) && !isNaN(actualDateStr)) {
+                return new Date((parseFloat(actualDateStr) - 25569) * 86400 * 1000);
+            }
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function cleanNum(val) {
+            if (val === undefined || val === null || val === "") return 0;
+            let str = String(val).replace(/[$\s,]/g, '');
+            if (str.startsWith('(') && str.endsWith(')')) {
+                str = '-' + str.substring(1, str.length - 1);
+            }
+            return parseFloat(str) || 0;
+        }
+
+        function formatDate(dObj) {
+            if (!dObj || isNaN(dObj.getTime())) return "N/A";
+            const mm = (dObj.getMonth() + 1).toString().padStart(2, '0');
+            const dd = dObj.getDate().toString().padStart(2, '0');
+            return `${mm}/${dd}/${dObj.getFullYear()}`;
+        }
+
+        function process(rows) {
+            const groups = {};
+
+            rows.forEach(row => {
+                const sym = row.Symbol;
+                const action = (row.Action || "").toLowerCase();
+                if (!sym || !sym.includes(' ')) return;
+
+                const rowDate = parseDateString(row.Date);
+
+                if (!groups[sym]) {
+                    groups[sym] = {
+                        symbol: sym,
+                        contracts: 0,
+                        openingPremium: 0,
+                        closingPremium: 0,
+                        openDate: rowDate,
+                        status: 'Sell to Open',
+                        type: sym.endsWith('P') ? 'Put' : 'Call'
+                    };
+                }
+
+                const amt = cleanNum(row.Amount);
+                const qty = Math.abs(cleanNum(row.Quantity));
+
+                if (action.includes('to open')) {
+                    groups[sym].contracts += qty;
+                    groups[sym].openingPremium += amt;
+                    if (rowDate && (!groups[sym].openDate || rowDate < groups[sym].openDate)) {
+                        groups[sym].openDate = rowDate;
+                    }
+                } else if (action.includes('to close') || action === 'expired' || action === 'assigned') {
+                    groups[sym].closingPremium += amt;
+                    groups[sym].status = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                }
+            });
+
+            processedData = Object.values(groups).map(g => {
+                const isClosed = g.status !== 'Sell to Open';
+                const profit = isClosed ? (g.openingPremium + g.closingPremium) : null;
+                const profitPct = (isClosed && g.openingPremium !== 0) ? (profit / Math.abs(g.openingPremium)) * 100 : null;
+                
+                return {
+                    ...g,
+                    profit: profit,
+                    profitPct: profitPct
+                };
+            });
+            render();
+        }
+
+        function render(newSortKey) {
+            if (newSortKey) {
+                if (sortKey === newSortKey) sortDir *= -1;
+                else { sortKey = newSortKey; sortDir = 1; }
+            }
+
+            processedData.sort((a, b) => {
+                let v1 = a[sortKey], v2 = b[sortKey];
+                if (v1 === null) v1 = -Infinity;
+                if (v2 === null) v2 = -Infinity;
+                if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
+                if (typeof v1 === 'string') { v1 = v1.toLowerCase(); v2 = v2.toLowerCase(); }
+                return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
+            });
+
+            const totalPL = processedData.reduce((s, x) => s + (x.profit || 0), 0);
+            const openPositions = processedData.filter(x => x.status === 'Sell to Open');
+            const openCount = openPositions.length;
+            const totalOpenPremium = openPositions.reduce((s, x) => s + x.openingPremium, 0);
+            const netCombined = totalPL + totalOpenPremium;
+
+            document.getElementById('summary').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Realized P/L</div>
+                    <div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Closed Positions</div>
+                    <div class="stat-value">${processedData.length - openCount}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Open Positions</div>
+                    <div class="stat-value" style="color: #a78bfa">${openCount}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Open Premium</div>
+                    <div class="stat-value neutral">$${Math.abs(totalOpenPremium).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Realized P/L + <br>Total Open Premium</div>
+                    <div class="stat-value total-highlight">$${netCombined.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                </div>
+            `;
+
+            const cols = [
+                { lab: 'Option Symbol', key: 'symbol' },
+                { lab: 'Type/Status', key: 'status' },
+                { lab: 'Contracts', key: 'contracts' },
+                { lab: 'Transaction Date', key: 'openDate' },
+                { lab: 'Opening Premium', key: 'openingPremium' },
+                { lab: 'Realized Profit/Loss', key: 'profit' },
+                { lab: '% Profit/Loss', key: 'profitPct' }
+            ];
+
+            document.getElementById('headerRow').innerHTML = cols.map(c => 
+                `<th onclick="render('${c.key}')">${c.lab} ↕</th>`
+            ).join('');
+
+            document.getElementById('tableBody').innerHTML = processedData.map(p => `
+                <tr>
+                    <td class="symbol-text">${p.symbol}</td>
+                    <td><span class="tag">${p.type}</span><span class="tag" style="background:#1e293b; border: 1px solid #475569">${p.status}</span></td>
+                    <td style="text-align:center">${p.contracts}</td>
+                    <td>${formatDate(p.openDate)}</td>
+                    <td>$${Math.abs(p.openingPremium).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td class="${p.profit !== null ? (p.profit >= 0 ? 'pos' : 'neg') : ''}">
+                        ${p.profit !== null ? '$' + p.profit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '<em>Pending Close</em>'}
+                    </td>
+                    <td class="${p.profitPct !== null ? (p.profitPct >= 0 ? 'pos' : 'neg') : ''}">
+                        ${p.profitPct !== null ? p.profitPct.toFixed(2) + '%' : '--'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
