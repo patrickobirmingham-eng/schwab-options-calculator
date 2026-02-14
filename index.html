@@ -54,6 +54,26 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     letter-spacing: 0.05em;
 }
 
+/* Checkbox Grid Styling */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    background: #0f172a;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+}
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: #cbd5e1;
+}
+.checkbox-item input { width: auto; cursor: pointer; }
+
 .filter-bar input, .filter-bar select {
     background: #0f172a;
     border: 2px solid #334155;
@@ -71,7 +91,6 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     background: #1e293b;
 }
 
-/* White calendar icon */
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
@@ -160,8 +179,20 @@ td {
 <input type="text" id="searchInput" placeholder="Search Ticker..." oninput="applyFilters()">
 </div>
 
+<div class="filter-group" style="min-width: 350px;">
+<label>2. Status Filter</label>
+<div class="checkbox-grid" id="statusCheckboxes">
+    <label class="checkbox-item"><input type="checkbox" value="Assigned" checked onchange="applyFilters()"> Assigned</label>
+    <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
+    <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
+    <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
+    <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
+    <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
+</div>
+</div>
+
 <div class="filter-group">
-<label>2. Quick Range (Dropdown)</label>
+<label>3. Quick Range</label>
 <select id="quickRange" onchange="setQuickRange()">
 <option value="all">--- Select Range ---</option>
 <option value="today">Today</option>
@@ -176,12 +207,12 @@ td {
 </div>
 
 <div class="filter-group">
-<label>3. From Date</label>
+<label>4. From Date</label>
 <input type="date" id="startDate" onchange="applyFilters()">
 </div>
 
 <div class="filter-group">
-<label>4. To Date</label>
+<label>5. To Date</label>
 <input type="date" id="endDate" onchange="applyFilters()">
 </div>
 
@@ -220,32 +251,23 @@ async function handleFile(file) {
 
 function parseDateString(dStr) {
     if (!dStr) return null;
-    if (!isNaN(dStr) && typeof dStr !== 'string') {
-        return new Date((dStr - 25569) * 86400 * 1000);
-    }
+    if (!isNaN(dStr) && typeof dStr !== 'string') return new Date((dStr - 25569) * 86400 * 1000);
     const parts = String(dStr).trim().split(/\s+/);
     const actualDateStr = parts[parts.length - 1];
     const d = new Date(actualDateStr);
-    if (isNaN(d.getTime()) && !isNaN(actualDateStr)) {
-        return new Date((parseFloat(actualDateStr) - 25569) * 86400 * 1000);
-    }
     return isNaN(d.getTime()) ? null : d;
 }
 
 function cleanNum(val) {
     if (val === undefined || val === null || val === "") return 0;
     let str = String(val).replace(/[$\s,]/g, '');
-    if (str.startsWith('(') && str.endsWith(')')) {
-        str = '-' + str.substring(1, str.length - 1);
-    }
+    if (str.startsWith('(') && str.endsWith(')')) str = '-' + str.substring(1, str.length - 1);
     return parseFloat(str) || 0;
 }
 
 function formatDate(dObj) {
     if (!dObj || isNaN(dObj.getTime())) return "N/A";
-    const mm = (dObj.getMonth() + 1).toString().padStart(2, '0');
-    const dd = dObj.getDate().toString().padStart(2, '0');
-    return `${mm}/${dd}/${dObj.getFullYear()}`;
+    return `${(dObj.getMonth() + 1).toString().padStart(2, '0')}/${dObj.getDate().toString().padStart(2, '0')}/${dObj.getFullYear()}`;
 }
 
 function toISODate(d) {
@@ -254,25 +276,52 @@ function toISODate(d) {
 
 function setQuickRange() {
     const range = document.getElementById('quickRange').value;
-    const startInput = document.getElementById('startDate');
-    const endInput = document.getElementById('endDate');
     const today = new Date();
     let start = null;
-    let end = today;
+    let end = new Date(today.getTime());
 
-    switch(range) {
-        case 'today': start = today; break;
-        case '7days': start = new Date(); start.setDate(today.getDate() - 6); break;
-        case 'currentMonth': start = new Date(today.getFullYear(), today.getMonth(), 1); break;
-        case 'prevMonth': start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
-        case 'last6Months': start = new Date(); start.setMonth(today.getMonth() - 6); break;
-        case 'currentYear': start = new Date(today.getFullYear(), 0, 1); break;
-        case 'prevYear': start = new Date(today.getFullYear() - 1, 0, 1); end = new Date(today.getFullYear() - 1, 11, 31); break;
-        case 'all': start = null; end = null; break;
+    if (range === 'all') {
+        if (rawProcessedData.length > 0) {
+            // Find the actual min and max dates in the data
+            const dates = rawProcessedData.map(d => d.transactionDate.getTime());
+            start = new Date(Math.min(...dates));
+            end = new Date(Math.max(...dates));
+        } else {
+            start = null;
+            end = null;
+        }
+    } else {
+        switch(range) {
+            case 'today':
+                start = new Date(today.setHours(0,0,0,0));
+                break;
+            case '7days':
+                start = new Date();
+                start.setDate(today.getDate() - 6);
+                break;
+            case 'currentMonth':
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                break;
+            case 'prevMonth':
+                start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                end = new Date(today.getFullYear(), today.getMonth(), 0);
+                break;
+            case 'last6Months':
+                start = new Date();
+                start.setMonth(today.getMonth() - 6);
+                break;
+            case 'currentYear':
+                start = new Date(today.getFullYear(), 0, 1);
+                break;
+            case 'prevYear':
+                start = new Date(today.getFullYear() - 1, 0, 1);
+                end = new Date(today.getFullYear() - 1, 11, 31);
+                break;
+        }
     }
 
-    startInput.value = start ? toISODate(start) : '';
-    endInput.value = end ? toISODate(end) : '';
+    document.getElementById('startDate').value = start ? toISODate(start) : '';
+    document.getElementById('endDate').value = end ? toISODate(end) : '';
     applyFilters();
 }
 
@@ -281,6 +330,8 @@ function resetFilters() {
     document.getElementById('quickRange').value = 'all';
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
+    // Reset checkboxes to checked
+    document.querySelectorAll('#statusCheckboxes input').forEach(cb => cb.checked = true);
     applyFilters();
 }
 
@@ -291,13 +342,17 @@ function applyFilters() {
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
 
+    // Get list of checked statuses
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+
     const filtered = rawProcessedData.filter(item => {
         const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
+        const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
         const itemDate = item.transactionDate;
         let matchesDate = true;
         if (startDate && (!itemDate || itemDate < startDate)) matchesDate = false;
         if (endDate && (!itemDate || itemDate > endDate)) matchesDate = false;
-        return matchesSearch && matchesDate;
+        return matchesSearch && matchesStatus && matchesDate;
     });
 
     render(null, filtered);
@@ -305,24 +360,16 @@ function applyFilters() {
 
 function process(rows) {
     const groups = {};
-
     rows.forEach(row => {
         const sym = row.Symbol;
         const action = (row.Action || "").toLowerCase();
         if (!sym || !sym.includes(' ')) return;
-
         const rowDate = parseDateString(row.Date);
 
         if (!groups[sym]) {
             groups[sym] = {
-                symbol: sym,
-                contracts: 0,
-                openingPremium: 0,
-                closingPremium: 0,
-                openDate: rowDate,
-                closeDate: null,
-                status: 'Sell to Open',
-                type: sym.endsWith('P') ? 'Put' : 'Call'
+                symbol: sym, contracts: 0, openingPremium: 0, closingPremium: 0,
+                openDate: rowDate, closeDate: null, status: '', type: sym.endsWith('P') ? 'Put' : 'Call'
             };
         }
 
@@ -332,91 +379,61 @@ function process(rows) {
         if (action.includes('to open')) {
             groups[sym].contracts += qty;
             groups[sym].openingPremium += amt;
-            if (rowDate && (!groups[sym].openDate || rowDate < groups[sym].openDate)) {
-                groups[sym].openDate = rowDate;
-            }
+            if (rowDate && (!groups[sym].openDate || rowDate < groups[sym].openDate)) groups[sym].openDate = rowDate;
+            if (!groups[sym].status) groups[sym].status = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         } else if (action.includes('to close') || action === 'expired' || action === 'assigned') {
             groups[sym].closingPremium += amt;
             groups[sym].status = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            if (rowDate && (!groups[sym].closeDate || rowDate > groups[sym].closeDate)) {
-                groups[sym].closeDate = rowDate;
-            }
+            if (rowDate && (!groups[sym].closeDate || rowDate > groups[sym].closeDate)) groups[sym].closeDate = rowDate;
         }
     });
 
     rawProcessedData = Object.values(groups).map(g => {
-        const isClosed = g.status !== 'Sell to Open';
+        if (!g.status) g.status = "Sell to Open";
+        const isClosed = !g.status.toLowerCase().includes('to open');
         const transactionDate = isClosed && g.closeDate ? g.closeDate : g.openDate;
         const profit = isClosed ? (g.openingPremium + g.closingPremium) : null;
-        const profitPct = (isClosed && g.openingPremium !== 0)
-            ? (profit / Math.abs(g.openingPremium)) * 100
-            : null;
-
+        const profitPct = (isClosed && g.openingPremium !== 0) ? (profit / Math.abs(g.openingPremium)) * 100 : null;
         return { ...g, transactionDate, profit, profitPct };
     });
-
     applyFilters();
 }
 
 function render(newSortKey, dataToRender = null) {
     const displayData = dataToRender || rawProcessedData;
-
     if (newSortKey) {
         if (sortKey === newSortKey) sortDir *= -1;
         else { sortKey = newSortKey; sortDir = 1; }
     }
-
     displayData.sort((a, b) => {
         let v1 = a[sortKey], v2 = b[sortKey];
-        if (v1 === null) v1 = -Infinity;
-        if (v2 === null) v2 = -Infinity;
         if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
         return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
     });
 
     const totalPL = displayData.reduce((s, x) => s + (x.profit || 0), 0);
-    const openPositions = displayData.filter(x => x.status === 'Sell to Open');
-    const openCount = openPositions.length;
+    const openPositions = displayData.filter(x => x.status.toLowerCase().includes('to open'));
     const totalOpenPremium = openPositions.reduce((s, x) => s + x.openingPremium, 0);
-    const netCombined = totalPL + totalOpenPremium;
 
     document.getElementById('summary').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Total Realized P/L</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Closed Positions</div><div class="stat-value">${displayData.length - openCount}</div></div>
-        <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value" style="color: #a78bfa">${openCount}</div></div>
-        <div class="stat-card"><div class="stat-label">Total Open Premium</div><div class="stat-value" style="color: #60a5fa">$${Math.abs(totalOpenPremium).toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Net Combined (P/L + Open)</div><div class="stat-value" style="color: #f59e0b">$${netCombined.toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Realized P/L</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Closed Count</div><div class="stat-value">${displayData.length - openPositions.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Open Count</div><div class="stat-value" style="color: #a78bfa">${openPositions.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Total Open Premium</div><div class="stat-value" style="color: #60a5fa">$${Math.abs(totalOpenPremium).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
     `;
 
-    const cols = [
-        { lab: 'Option Symbol', key: 'symbol' },
-        { lab: 'Status', key: 'status' },
-        { lab: 'Qty', key: 'contracts' },
-        { lab: 'Date', key: 'transactionDate' },
-        { lab: 'Premium', key: 'openingPremium' },
-        { lab: 'Realized P/L', key: 'profit' },
-        { lab: '%', key: 'profitPct' }
-    ];
-
-    document.getElementById('headerRow').innerHTML =
-        cols.map(c => `<th onclick="render('${c.key}', null)">${c.lab} ↕</th>`).join('');
-
-    document.getElementById('tableBody').innerHTML =
-        displayData.map(p => `
+    const cols = [{lab:'Symbol',key:'symbol'},{lab:'Status',key:'status'},{lab:'Qty',key:'contracts'},{lab:'Date',key:'transactionDate'},{lab:'Premium',key:'openingPremium'},{lab:'P/L',key:'profit'},{lab:'%',key:'profitPct'}];
+    document.getElementById('headerRow').innerHTML = cols.map(c => `<th onclick="render('${c.key}', null)">${c.lab} ↕</th>`).join('');
+    document.getElementById('tableBody').innerHTML = displayData.map(p => `
         <tr>
             <td>${p.symbol}</td>
             <td><span class="tag">${p.status}</span></td>
             <td>${p.contracts}</td>
             <td>${formatDate(p.transactionDate)}</td>
-            <td>$${Math.abs(p.openingPremium).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-            <td class="${p.profit !== null ? (p.profit >= 0 ? 'pos' : 'neg') : ''}">
-                ${p.profit !== null ? '$' + p.profit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '--'}
-            </td>
-            <td class="${p.profitPct !== null ? (p.profitPct >= 0 ? 'pos' : 'neg') : ''}">
-                ${p.profitPct !== null ? p.profitPct.toFixed(2) + '%' : '--'}
-            </td>
-        </tr>
-    `).join('');
+            <td>$${Math.abs(p.openingPremium).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${p.profit!==null?(p.profit>=0?'pos':'neg'):''}">$${p.profit!==null?p.profit.toLocaleString(undefined,{minimumFractionDigits:2}):'--'}</td>
+            <td class="${p.profitPct!==null?(p.profitPct>=0?'pos':'neg'):''}">${p.profitPct!==null?p.profitPct.toFixed(2)+'%':'--'}</td>
+        </tr>`).join('');
 }
 </script>
 </body>
