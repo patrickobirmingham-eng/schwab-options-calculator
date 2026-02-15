@@ -7,236 +7,108 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
+/* CSS remains largely the same */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #0f172a;
-    color: #f8fafc;
-    padding: 20px;
-}
-
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
 .container { max-width: 1600px; margin: 0 auto; }
 h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 .subtitle { text-align: center; color: #94a3b8; margin-bottom: 25px; font-size: 0.9rem; }
-
-.upload-box {
-    background: rgba(255,255,255,0.05);
-    border: 2px dashed #6d28d9;
-    border-radius: 12px;
-    padding: 40px;
-    text-align: center;
-    cursor: pointer;
-    margin-bottom: 20px;
-    transition: 0.3s;
-}
-.upload-box:hover { background: rgba(255,255,255,0.1); border-color: #a78bfa; }
-
-.filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    background: #1e293b;
-    padding: 25px;
-    border-radius: 12px;
-    margin-bottom: 25px;
-    border: 1px solid #6d28d9;
-    box-shadow: 0 4px 20px rgba(109, 40, 217, 0.2);
-    align-items: flex-end;
-}
-
+.upload-box { background: rgba(255,255,255,0.05); border: 2px dashed #6d28d9; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; margin-bottom: 20px; }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 20px; background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #6d28d9; align-items: flex-end; }
 .filter-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
-.filter-group label {
-    font-size: 0.75rem;
-    color: #a78bfa;
-    text-transform: uppercase;
-    font-weight: bold;
-    letter-spacing: 0.05em;
-}
+.checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1; }
+.filter-bar input, .filter-bar select { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 12px; border-radius: 8px; outline: none; width: 100%; font-size: 1rem; }
 
-/* Checkbox Grid Styling */
-.checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    background: #0f172a;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #334155;
-}
-.checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    color: #cbd5e1;
-}
-.checkbox-item input { width: auto; cursor: pointer; }
-
-.filter-bar input, .filter-bar select {
-    background: #0f172a;
-    border: 2px solid #334155;
-    color: #f8fafc;
-    padding: 12px;
-    border-radius: 8px;
-    outline: none;
-    width: 100%;
-    font-size: 1rem;
-    cursor: pointer;
-}
-
-.filter-bar input:focus, .filter-bar select:focus {
-    border-color: #a78bfa;
-    background: #1e293b;
-}
-
+/* Calendar icon color fix */
 input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
 }
 
-.stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #334155;
-    text-align: center;
-}
-
-.stat-label {
-    font-size: 0.7rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.stat-value {
-    font-size: 1.4rem;
-    font-weight: bold;
-    margin-top: 8px;
-}
-
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: #1e293b;
-    border-radius: 12px;
-}
-
-th {
-    background: #334155;
-    color: #cbd5e1;
-    padding: 15px;
-    text-align: left;
-    cursor: pointer;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    border-bottom: 2px solid #475569;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-td {
-    padding: 15px;
-    border-bottom: 1px solid #334155;
-    font-size: 0.9rem;
-}
-
-.pos { color: #4ade80; font-weight: 600; }
-.neg { color: #f87171; font-weight: 600; }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: #475569; margin-right: 6px; }
-
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+.stat-card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
+.stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; }
+.stat-value { font-size: 1.4rem; font-weight: bold; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; background: #1e293b; border-radius: 12px; }
+th { background: #334155; color: #cbd5e1; padding: 15px; text-align: left; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #475569; position: sticky; top: 0; }
+td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+.pos { color: #4ade80; } .neg { color: #f87171; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: #475569; }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1>Options Profit/Loss Calculator</h1>
-<p class="subtitle">Aggregated Analysis & Realized Profit/Loss</p>
+    <h1>Options Profit/Loss Calculator</h1>
+    <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
 
-<div class="upload-box" id="dropZone">
-<p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions Here</p>
-<input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
-</div>
+    <div class="upload-box" id="dropZone">
+        <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
+        <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
+    </div>
 
-<div class="filter-bar">
-<div class="filter-group">
-<label>1. Search Symbol</label>
-<input type="text" id="searchInput" placeholder="Search Ticker..." oninput="applyFilters()">
-</div>
+    <div class="filter-bar">
+        <div class="filter-group">
+            <label>1. Search Symbol</label>
+            <input type="text" id="searchInput" placeholder="Search Ticker..." oninput="applyFilters()">
+        </div>
 
-<div class="filter-group" style="min-width: 350px;">
-<label>2. Status Filter</label>
-<div class="checkbox-grid" id="statusCheckboxes">
-    <label class="checkbox-item"><input type="checkbox" value="Assigned" checked onchange="applyFilters()"> Assigned</label>
-    <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
-    <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
-    <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
-    <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
-    <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
-</div>
-</div>
+        <div class="filter-group" style="min-width: 350px;">
+            <label>2. Status Filter</label>
+            <div class="checkbox-grid" id="statusCheckboxes">
+                <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
+                <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
+                <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
+                <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
+                <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
+                <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
+            </div>
+        </div>
 
-<div class="filter-group">
-<label>3. Quick Range</label>
-<select id="quickRange" onchange="setQuickRange()">
-<option value="all">--- Select Range ---</option>
-<option value="today">Today</option>
-<option value="7days">Last 7 Days</option>
-<option value="currentMonth">Current Month</option>
-<option value="prevMonth">Previous Month</option>
-<option value="last6Months">Last 6 Months</option>
-<option value="currentYear">Current Year</option>
-<option value="prevYear">Previous Year</option>
-<option value="all">Show All</option>
-</select>
-</div>
+        <div class="filter-group">
+            <label>3. Quick Range</label>
+            <select id="quickRange" onchange="setQuickRange()">
+                <option value="all" selected>Show All</option>
+                <option value="today">Today</option>
+                <option value="7days">Last 7 Days</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="last3Months">Last 3 Months</option>
+                <option value="last6Months">Last 6 Months</option>
+                <option value="lastYear">Last Year</option>
+                <option value="currentMonth">Current Month</option>
+                <option value="currentYear">Current Year</option>
+            </select>
+        </div>
 
-<div class="filter-group">
-<label>4. From Date</label>
-<input type="date" id="startDate" onchange="applyFilters()">
-</div>
+        <div class="filter-group">
+            <label>4. From Date</label>
+            <input type="date" id="startDate" onchange="applyFilters()">
+        </div>
 
-<div class="filter-group">
-<label>5. To Date</label>
-<input type="date" id="endDate" onchange="applyFilters()">
-</div>
+        <div class="filter-group">
+            <label>5. To Date</label>
+            <input type="date" id="endDate" onchange="applyFilters()">
+        </div>
 
-<button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset</button>
-</div>
+        <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset</button>
+    </div>
 
-<div id="summary" class="stats"></div>
+    <div id="summary" class="stats"></div>
 
-<table>
-<thead>
-<tr id="headerRow"></tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
+    <table>
+        <thead><tr id="headerRow"></tr></thead>
+        <tbody id="tableBody"></tbody>
+    </table>
 </div>
 
 <script>
-let rawProcessedData = [];
-let sortKey = 'transactionDate';
+let finalTrades = []; 
+let sortKey = 'closeDate';
 let sortDir = -1;
 
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
-
 dropZone.onclick = () => filePicker.click();
 filePicker.onchange = (e) => handleFile(e.target.files[0]);
 
@@ -265,59 +137,169 @@ function cleanNum(val) {
     return parseFloat(str) || 0;
 }
 
-function formatDate(dObj) {
-    if (!dObj || isNaN(dObj.getTime())) return "N/A";
-    return `${(dObj.getMonth() + 1).toString().padStart(2, '0')}/${dObj.getDate().toString().padStart(2, '0')}/${dObj.getFullYear()}`;
+function process(rows) {
+    const inventory = {}; 
+    const realized = [];
+
+    const sortedRows = rows
+        .map(r => ({ ...r, parsedDate: parseDateString(r.Date) }))
+        .filter(r => r.Symbol && r.parsedDate)
+        .sort((a, b) => a.parsedDate - b.parsedDate);
+
+    sortedRows.forEach(row => {
+        const sym = row.Symbol;
+        const action = (row.Action || "").toLowerCase();
+        const qty = Math.abs(cleanNum(row.Quantity));
+        const amt = cleanNum(row.Amount);
+        
+        if (!inventory[sym]) inventory[sym] = [];
+
+        if (action.includes('to open')) {
+            inventory[sym].push({
+                date: row.parsedDate,
+                qty: qty,
+                premium: amt,
+                status: action
+            });
+        } 
+        else if (action.includes('to close') || action.includes('expired') || action.includes('assigned')) {
+            let remainingToClose = qty || 0;
+            if (remainingToClose === 0 && inventory[sym].length > 0) {
+                remainingToClose = inventory[sym].reduce((sum, item) => sum + item.qty, 0);
+            }
+
+            let openingPremiumUsed = 0;
+            let firstOpenDate = row.parsedDate;
+
+            while (remainingToClose > 0 && inventory[sym].length > 0) {
+                let earliest = inventory[sym][0];
+                let qtyFromThisOpening = Math.min(remainingToClose, earliest.qty);
+                let sliceOpeningPremium = (earliest.premium / earliest.qty) * qtyFromThisOpening;
+                openingPremiumUsed += sliceOpeningPremium;
+                firstOpenDate = earliest.date;
+                earliest.qty -= qtyFromThisOpening;
+                remainingToClose -= qtyFromThisOpening;
+                if (earliest.qty <= 0) inventory[sym].shift();
+            }
+
+            let actualClosingCost = (action.includes('expired') || action.includes('assigned')) ? 0 : amt;
+
+            realized.push({
+                symbol: sym,
+                contracts: qty || (openingPremiumUsed > 0 ? "All" : 0),
+                openingPremium: openingPremiumUsed,
+                closingPremium: actualClosingCost,
+                profit: openingPremiumUsed + actualClosingCost,
+                openDate: firstOpenDate,
+                closeDate: row.parsedDate,
+                status: action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            });
+        }
+    });
+
+    finalTrades = realized;
+    applyFilters(); 
 }
 
-function toISODate(d) {
-    return d.toISOString().split('T')[0];
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+
+    const filtered = finalTrades.filter(item => {
+        const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
+        const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
+        const dateToFilter = item.closeDate;
+        
+        let matchesDate = true;
+        if (startDate && dateToFilter < startDate) matchesDate = false;
+        if (endDate && dateToFilter > endDate) matchesDate = false;
+        
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+
+    render(null, filtered);
 }
+
+function render(newSortKey, dataToRender) {
+    const displayData = dataToRender || finalTrades;
+    if (newSortKey) {
+        if (sortKey === newSortKey) sortDir *= -1;
+        else { sortKey = newSortKey; sortDir = 1; }
+    }
+    
+    displayData.sort((a, b) => {
+        let v1 = a[sortKey], v2 = b[sortKey];
+        if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
+        return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
+    });
+
+    const totalPL = displayData.reduce((s, x) => s + (x.profit || 0), 0);
+
+    document.getElementById('summary').innerHTML = `
+        <div class="stat-card"><div class="stat-label">Realized P/L (Filtered)</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Trades in Range</div><div class="stat-value">${displayData.length}</div></div>
+    `;
+
+    const cols = [{lab:'Symbol',key:'symbol'},{lab:'Status',key:'status'},{lab:'Date',key:'closeDate'},{lab:'P/L',key:'profit'}];
+    document.getElementById('headerRow').innerHTML = cols.map(c => `<th onclick="render('${c.key}', null)">${c.lab} ↕</th>`).join('');
+    document.getElementById('tableBody').innerHTML = displayData.map(p => `
+        <tr>
+            <td>${p.symbol}</td>
+            <td><span class="tag">${p.status}</span></td>
+            <td>${p.closeDate.toLocaleDateString()}</td>
+            <td class="${p.profit >= 0 ? 'pos' : 'neg'}">$${p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+        </tr>`).join('');
+}
+
+function toISODate(d) { return d.toISOString().split('T')[0]; }
 
 function setQuickRange() {
     const range = document.getElementById('quickRange').value;
     const today = new Date();
-    let start = null;
-    let end = new Date(today.getTime());
+    let start = new Date();
+    let end = new Date();
 
-    if (range === 'all') {
-        if (rawProcessedData.length > 0) {
-            // Find the actual min and max dates in the data
-            const dates = rawProcessedData.map(d => d.transactionDate.getTime());
-            start = new Date(Math.min(...dates));
-            end = new Date(Math.max(...dates));
-        } else {
+    today.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    switch(range) {
+        case 'today':
+            start = new Date(today);
+            break;
+        case '7days':
+            start.setDate(today.getDate() - 6);
+            break;
+        case 'lastMonth':
+            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            end = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        case 'last3Months':
+            start = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+            end = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        case 'last6Months':
+            start = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+            end = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        case 'lastYear':
+            start = new Date(today.getFullYear() - 1, 0, 1);
+            end = new Date(today.getFullYear() - 1, 11, 31);
+            break;
+        case 'currentMonth':
+            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            break;
+        case 'currentYear':
+            start = new Date(today.getFullYear(), 0, 1);
+            break;
+        case 'all':
+        default:
             start = null;
             end = null;
-        }
-    } else {
-        switch(range) {
-            case 'today':
-                start = new Date(today.setHours(0,0,0,0));
-                break;
-            case '7days':
-                start = new Date();
-                start.setDate(today.getDate() - 6);
-                break;
-            case 'currentMonth':
-                start = new Date(today.getFullYear(), today.getMonth(), 1);
-                break;
-            case 'prevMonth':
-                start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                end = new Date(today.getFullYear(), today.getMonth(), 0);
-                break;
-            case 'last6Months':
-                start = new Date();
-                start.setMonth(today.getMonth() - 6);
-                break;
-            case 'currentYear':
-                start = new Date(today.getFullYear(), 0, 1);
-                break;
-            case 'prevYear':
-                start = new Date(today.getFullYear() - 1, 0, 1);
-                end = new Date(today.getFullYear() - 1, 11, 31);
-                break;
-        }
+            break;
     }
 
     document.getElementById('startDate').value = start ? toISODate(start) : '';
@@ -330,110 +312,11 @@ function resetFilters() {
     document.getElementById('quickRange').value = 'all';
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
-    // Reset checkboxes to checked
-    document.querySelectorAll('#statusCheckboxes input').forEach(cb => cb.checked = true);
-    applyFilters();
-}
-
-function applyFilters() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const startVal = document.getElementById('startDate').value;
-    const endVal = document.getElementById('endDate').value;
-    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
-    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
-
-    // Get list of checked statuses
-    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
-
-    const filtered = rawProcessedData.filter(item => {
-        const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
-        const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
-        const itemDate = item.transactionDate;
-        let matchesDate = true;
-        if (startDate && (!itemDate || itemDate < startDate)) matchesDate = false;
-        if (endDate && (!itemDate || itemDate > endDate)) matchesDate = false;
-        return matchesSearch && matchesStatus && matchesDate;
-    });
-
-    render(null, filtered);
-}
-
-function process(rows) {
-    const groups = {};
-    rows.forEach(row => {
-        const sym = row.Symbol;
-        const action = (row.Action || "").toLowerCase();
-        if (!sym || !sym.includes(' ')) return;
-        const rowDate = parseDateString(row.Date);
-
-        if (!groups[sym]) {
-            groups[sym] = {
-                symbol: sym, contracts: 0, openingPremium: 0, closingPremium: 0,
-                openDate: rowDate, closeDate: null, status: '', type: sym.endsWith('P') ? 'Put' : 'Call'
-            };
-        }
-
-        const amt = cleanNum(row.Amount);
-        const qty = Math.abs(cleanNum(row.Quantity));
-
-        if (action.includes('to open')) {
-            groups[sym].contracts += qty;
-            groups[sym].openingPremium += amt;
-            if (rowDate && (!groups[sym].openDate || rowDate < groups[sym].openDate)) groups[sym].openDate = rowDate;
-            if (!groups[sym].status) groups[sym].status = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        } else if (action.includes('to close') || action === 'expired' || action === 'assigned') {
-            groups[sym].closingPremium += amt;
-            groups[sym].status = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            if (rowDate && (!groups[sym].closeDate || rowDate > groups[sym].closeDate)) groups[sym].closeDate = rowDate;
-        }
-    });
-
-    rawProcessedData = Object.values(groups).map(g => {
-        if (!g.status) g.status = "Sell to Open";
-        const isClosed = !g.status.toLowerCase().includes('to open');
-        const transactionDate = isClosed && g.closeDate ? g.closeDate : g.openDate;
-        const profit = isClosed ? (g.openingPremium + g.closingPremium) : null;
-        const profitPct = (isClosed && g.openingPremium !== 0) ? (profit / Math.abs(g.openingPremium)) * 100 : null;
-        return { ...g, transactionDate, profit, profitPct };
+    // Reset Assigned to Unchecked, others to Checked
+    document.querySelectorAll('#statusCheckboxes input').forEach(cb => {
+        cb.checked = (cb.value !== 'Assigned');
     });
     applyFilters();
-}
-
-function render(newSortKey, dataToRender = null) {
-    const displayData = dataToRender || rawProcessedData;
-    if (newSortKey) {
-        if (sortKey === newSortKey) sortDir *= -1;
-        else { sortKey = newSortKey; sortDir = 1; }
-    }
-    displayData.sort((a, b) => {
-        let v1 = a[sortKey], v2 = b[sortKey];
-        if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
-        return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
-    });
-
-    const totalPL = displayData.reduce((s, x) => s + (x.profit || 0), 0);
-    const openPositions = displayData.filter(x => x.status.toLowerCase().includes('to open'));
-    const totalOpenPremium = openPositions.reduce((s, x) => s + x.openingPremium, 0);
-
-    document.getElementById('summary').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Total Realized P/L</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Closed Count</div><div class="stat-value">${displayData.length - openPositions.length}</div></div>
-        <div class="stat-card"><div class="stat-label">Open Count</div><div class="stat-value" style="color: #a78bfa">${openPositions.length}</div></div>
-        <div class="stat-card"><div class="stat-label">Total Open Premium</div><div class="stat-value" style="color: #60a5fa">$${Math.abs(totalOpenPremium).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-    `;
-
-    const cols = [{lab:'Symbol',key:'symbol'},{lab:'Status',key:'status'},{lab:'Qty',key:'contracts'},{lab:'Date',key:'transactionDate'},{lab:'Premium',key:'openingPremium'},{lab:'P/L',key:'profit'},{lab:'%',key:'profitPct'}];
-    document.getElementById('headerRow').innerHTML = cols.map(c => `<th onclick="render('${c.key}', null)">${c.lab} ↕</th>`).join('');
-    document.getElementById('tableBody').innerHTML = displayData.map(p => `
-        <tr>
-            <td>${p.symbol}</td>
-            <td><span class="tag">${p.status}</span></td>
-            <td>${p.contracts}</td>
-            <td>${formatDate(p.transactionDate)}</td>
-            <td>$${Math.abs(p.openingPremium).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-            <td class="${p.profit!==null?(p.profit>=0?'pos':'neg'):''}">$${p.profit!==null?p.profit.toLocaleString(undefined,{minimumFractionDigits:2}):'--'}</td>
-            <td class="${p.profitPct!==null?(p.profitPct>=0?'pos':'neg'):''}">${p.profitPct!==null?p.profitPct.toFixed(2)+'%':'--'}</td>
-        </tr>`).join('');
 }
 </script>
 </body>
