@@ -444,21 +444,17 @@
             <p>Upload your Excel file to sort, filter, and analyze your data</p>
         </div>
 
-
-
         <div class="upload-section" id="uploadSection">
             <div class="upload-box" id="uploadBox">
                 <div class="upload-icon">📁</div>
                 <h3>Click to upload Schwab Transaction Report</h3>
-<br>
-<p>Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
-<br>
+                <br>
+                <p>Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
+                <br>
                 <p>Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,*">
             </div>
         </div>
-
-
 
         <div class="filters-section" id="filtersSection">
             <div class="filters-title">
@@ -1109,12 +1105,14 @@
         function updateActiveFiltersCount() {
             let count = 0;
             
-            // Count action checkboxes
+            // Count each checked action checkbox individually
             const checkedActions = document.querySelectorAll('#actionCheckboxes input[type="checkbox"]:checked');
-            if (checkedActions.length > 0) count++;
+            count += checkedActions.length;
             
-            // Count date filters
-            if (dateFrom.value || dateTo.value || datePreset.value) count++;
+            // Count date filters (count From and To separately if both exist)
+            if (dateFrom.value) count++;
+            if (dateTo.value) count++;
+            if (datePreset.value && !dateFrom.value && !dateTo.value) count++; // Only count preset if manual dates not set
             
             // Count secondary filters
             const secondaryFilters = document.querySelectorAll('#filtersGrid select, #filtersGrid input');
