@@ -1109,10 +1109,10 @@
             const checkedActions = document.querySelectorAll('#actionCheckboxes input[type="checkbox"]:checked');
             count += checkedActions.length;
             
-            // Count date filters (count From and To separately if both exist)
-            if (dateFrom.value) count++;
-            if (dateTo.value) count++;
-            if (datePreset.value && !dateFrom.value && !dateTo.value) count++; // Only count preset if manual dates not set
+            // Count date filter as 1 (whether it's preset or manual date range)
+            if (dateFrom.value || dateTo.value || datePreset.value) {
+                count++;
+            }
             
             // Count secondary filters
             const secondaryFilters = document.querySelectorAll('#filtersGrid select, #filtersGrid input');
