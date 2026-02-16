@@ -115,6 +115,40 @@
             margin-bottom: 15px;
         }
 
+        .action-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+        }
+
+        .action-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .action-checkbox-item label {
+            font-size: 14px;
+            font-weight: normal;
+            color: #333;
+            cursor: pointer;
+            margin: 0;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
         .date-filter-section {
             display: flex;
             flex-direction: column;
@@ -263,6 +297,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
+            table-layout: fixed;
         }
 
         thead {
@@ -281,18 +316,40 @@
             user-select: none;
             position: relative;
             transition: background 0.2s;
+            min-width: 80px;
         }
 
         th:hover {
             background: #5568d3;
         }
 
+        /* Resize handle for columns */
+        th .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 20;
+            background: transparent;
+        }
+
+        th .resize-handle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        th .resize-handle.resizing {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
         th::after {
             content: '⇅';
             position: absolute;
-            right: 8px;
+            right: 15px;
             opacity: 0.5;
             font-size: 12px;
+            pointer-events: none;
         }
 
         th.sort-asc::after {
@@ -324,6 +381,14 @@
 
         td {
             padding: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        td:hover {
+            white-space: normal;
+            word-wrap: break-word;
         }
 
         .no-data {
@@ -394,10 +459,10 @@
                 <div class="primary-filters-grid">
                     <!-- Action Filter -->
                     <div class="filter-group">
-                        <label for="actionFilter">Action</label>
-                        <select id="actionFilter">
-                            <option value="">All Actions</option>
-                        </select>
+                        <label>Action</label>
+                        <div class="action-checkboxes" id="actionCheckboxes">
+                            <!-- Checkboxes will be generated dynamically -->
+                        </div>
                     </div>
                     
                     <!-- Date Filter Section -->
@@ -473,7 +538,7 @@
         const tableSection = document.getElementById('tableSection');
         const resetBtn = document.getElementById('resetBtn');
         const downloadBtn = document.getElementById('downloadBtn');
-        const actionFilter = document.getElementById('actionFilter');
+        const actionCheckboxes = document.getElementById('actionCheckboxes');
         const datePreset = document.getElementById('datePreset');
         const dateFrom = document.getElementById('dateFrom');
         const dateTo = document.getElementById('dateTo');
@@ -510,8 +575,11 @@
             currentData = [...originalData];
             currentSort = { column: null, direction: null };
             
-            // Reset primary filters
-            actionFilter.value = '';
+            // Reset action checkboxes
+            const checkboxes = document.querySelectorAll('#actionCheckboxes input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            
+            // Reset date filters
             datePreset.value = '';
             dateFrom.value = '';
             dateTo.value = '';
@@ -549,12 +617,6 @@
             
             // Download the file
             XLSX.writeFile(wb, filename);
-        });
-
-        // Action filter handler
-        actionFilter.addEventListener('change', () => {
-            applyFilters();
-            updateActiveFiltersCount();
         });
 
         // Date preset handler
@@ -638,7 +700,10 @@
                 // Check if it's a number (but not a date number)
                 const isNumber = sample.every(val => {
                     if (typeof val === 'number') {
-                        // Check if it's likely an Excel date serial (typically between 1 and 50000 for recent dates)
+                        // Negative numbers are always regular numbers, not dates
+                        if (val < 0) return true;
+                        
+                        // Check if it's likely an Excel date serial (typically between 1 and 100000 for dates)
                         if (val > 1 && val < 100000) {
                             const testDate = parseExcelDate(val);
                             if (testDate && testDate.getFullYear() > 1900 && testDate.getFullYear() < 2100) {
@@ -646,6 +711,12 @@
                             }
                         }
                         return true;
+                    }
+                    // Handle currency strings like "$1,234.56" or "(1,234.56)"
+                    if (typeof val === 'string') {
+                        const cleaned = val.replace(/[\$,\(\)]/g, '').trim();
+                        const num = parseFloat(cleaned);
+                        return !isNaN(num) && cleaned !== '';
                     }
                     const num = parseFloat(val);
                     return !isNaN(num) && val !== '';
@@ -716,7 +787,7 @@
         }
 
         function populateActionFilter() {
-            actionFilter.innerHTML = '<option value="">All Actions</option>';
+            actionCheckboxes.innerHTML = '';
             
             if (!actionColumn) return;
             
@@ -727,10 +798,25 @@
             )].sort();
             
             uniqueActions.forEach(action => {
-                const option = document.createElement('option');
-                option.value = action;
-                option.textContent = action;
-                actionFilter.appendChild(option);
+                const item = document.createElement('div');
+                item.className = 'action-checkbox-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `action_${action.replace(/\s+/g, '_')}`;
+                checkbox.value = action;
+                checkbox.addEventListener('change', () => {
+                    applyFilters();
+                    updateActiveFiltersCount();
+                });
+                
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.textContent = action;
+                
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                actionCheckboxes.appendChild(item);
             });
         }
 
@@ -886,49 +972,39 @@
         function applyFilters() {
             let filtered = [...originalData];
             
-            console.log('Starting filters. Original data count:', filtered.length);
-            
-            // Apply Action filter
-            if (actionColumn && actionFilter.value) {
-                console.log('Applying action filter:', actionFilter.value);
-                filtered = filtered.filter(row => row[actionColumn] == actionFilter.value);
-                console.log('After action filter:', filtered.length);
+            // Apply Action filter - get all checked checkboxes
+            if (actionColumn) {
+                const checkedActions = Array.from(
+                    document.querySelectorAll('#actionCheckboxes input[type="checkbox"]:checked')
+                ).map(cb => cb.value);
+                
+                if (checkedActions.length > 0) {
+                    filtered = filtered.filter(row => checkedActions.includes(row[actionColumn]));
+                }
             }
             
             // Apply Date range filter
             if (dateColumn && (dateFrom.value || dateTo.value)) {
-                console.log('Applying date filter on column:', dateColumn);
-                console.log('Date range:', dateFrom.value, 'to', dateTo.value);
-                
                 const fromDate = dateFrom.value ? new Date(dateFrom.value + 'T00:00:00') : null;
                 const toDate = dateTo.value ? new Date(dateTo.value + 'T23:59:59') : null;
                 
-                console.log('Parsed dates:', fromDate, toDate);
-                console.log('Sample date values from data:', filtered.slice(0, 5).map(r => ({
-                    raw: r[dateColumn],
-                    parsed: parseExcelDate(r[dateColumn])
-                })));
-                
                 filtered = filtered.filter(row => {
                     const cellValue = row[dateColumn];
-                    if (!cellValue) {
-                        console.log('No cell value');
-                        return false;
-                    }
+                    if (!cellValue) return false;
                     
                     const cellDate = parseExcelDate(cellValue);
-                    if (!cellDate || isNaN(cellDate)) {
-                        console.log('Invalid date:', cellValue);
-                        return false;
-                    }
+                    if (!cellDate || isNaN(cellDate)) return false;
                     
-                    if (fromDate && cellDate < fromDate) return false;
-                    if (toDate && cellDate > toDate) return false;
+                    // Create comparison dates at midnight for fair comparison
+                    const compareDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
+                    const compareFrom = fromDate ? new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate()) : null;
+                    const compareTo = toDate ? new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate()) : null;
+                    
+                    if (compareFrom && compareDate < compareFrom) return false;
+                    if (compareTo && compareDate > compareTo) return false;
                     
                     return true;
                 });
-                
-                console.log('After date filter:', filtered.length);
             }
             
             // Apply secondary filters
@@ -988,6 +1064,12 @@
             
             // Try parsing as string
             if (typeof value === 'string') {
+                // Handle Schwab's special format: "02/13/2026 as of 02/12/2026"
+                // Extract just the first date before "as of"
+                if (value.includes(' as of ')) {
+                    value = value.split(' as of ')[0].trim();
+                }
+                
                 // Try ISO format first
                 let date = new Date(value);
                 if (!isNaN(date)) return date;
@@ -1016,8 +1098,11 @@
         function updateActiveFiltersCount() {
             let count = 0;
             
-            // Count primary filters
-            if (actionFilter.value) count++;
+            // Count action checkboxes
+            const checkedActions = document.querySelectorAll('#actionCheckboxes input[type="checkbox"]:checked');
+            if (checkedActions.length > 0) count++;
+            
+            // Count date filters
             if (dateFrom.value || dateTo.value || datePreset.value) count++;
             
             // Count secondary filters
@@ -1045,10 +1130,13 @@
             const columns = Object.keys(currentData[0]);
             
             let html = '<table><thead><tr>';
-            columns.forEach(col => {
+            columns.forEach((col, index) => {
                 const sortClass = currentSort.column === col ? 
                     (currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc') : '';
-                html += `<th class="${sortClass}" onclick="sortTable('${col}')">${col}</th>`;
+                html += `<th class="${sortClass}" data-column="${col}" onclick="sortTable('${col}')">
+                    ${col}
+                    <div class="resize-handle" data-col-index="${index}"></div>
+                </th>`;
             });
             html += '</tr></thead><tbody>';
             
@@ -1058,16 +1146,49 @@
                     let value = row[col];
                     if (value == null) value = '';
                     
+                    // Log Amount column specifically
+                    if (col.toLowerCase().includes('amount')) {
+                        console.log('Amount column:', col, 'Type:', columnTypes[col], 'Value:', value, 'Type of value:', typeof value);
+                    }
+                    
                     // Format numbers and dates
-                    if (columnTypes[col] === 'number' && !isNaN(value)) {
-                        value = parseFloat(value).toLocaleString(undefined, { 
-                            minimumFractionDigits: 0, 
-                            maximumFractionDigits: 2 
-                        });
+                    if (columnTypes[col] === 'number') {
+                        // Clean currency strings (remove $, commas, parentheses)
+                        let numValue = value;
+                        if (typeof value === 'string') {
+                            numValue = value.replace(/[\$,\(\)]/g, '').trim();
+                        }
+                        numValue = parseFloat(numValue);
+                        
+                        if (!isNaN(numValue)) {
+                            value = numValue.toLocaleString(undefined, { 
+                                minimumFractionDigits: 2, 
+                                maximumFractionDigits: 2 
+                            });
+                            // Add dollar sign for amount/price/fee columns
+                            const colLower = col.toLowerCase();
+                            console.log('Checking column:', col, 'lowercase:', colLower, 'includes amount:', colLower.includes('amount'));
+                            if (colLower.includes('amount') || colLower.includes('price') || 
+                                colLower.includes('fee') || colLower.includes('comm')) {
+                                value = '$' + value;
+                            }
+                        }
                     } else if (columnTypes[col] === 'date' && value) {
                         const date = parseExcelDate(value);
                         if (date && !isNaN(date)) {
                             value = date.toLocaleDateString();
+                        }
+                    } else {
+                        // Fallback: if column name suggests money and value is a number, format it
+                        const colLower = col.toLowerCase();
+                        if ((colLower.includes('amount') || colLower.includes('price') || 
+                             colLower.includes('fee') || colLower.includes('comm')) && 
+                            typeof value === 'number' && !isNaN(value)) {
+                            value = value.toLocaleString(undefined, { 
+                                minimumFractionDigits: 2, 
+                                maximumFractionDigits: 2 
+                            });
+                            value = '$' + value;
                         }
                     }
                     
@@ -1078,6 +1199,64 @@
             
             html += '</tbody></table>';
             tableContainer.innerHTML = html;
+            initColumnResize(); // Initialize column resizing after table is rendered
+        }
+
+        function initColumnResize() {
+            const table = document.querySelector('#tableContainer table');
+            if (!table) return;
+
+            const resizeHandles = table.querySelectorAll('.resize-handle');
+            let isResizing = false;
+            let currentHandle = null;
+            let currentTh = null;
+            let startX = 0;
+            let startWidth = 0;
+
+            resizeHandles.forEach(handle => {
+                handle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation(); // Prevent sorting when clicking resize handle
+                    e.preventDefault(); // Prevent default action
+                    isResizing = true;
+                    currentHandle = handle;
+                    currentTh = handle.parentElement;
+                    startX = e.pageX;
+                    startWidth = currentTh.offsetWidth;
+                    
+                    currentHandle.classList.add('resizing');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                });
+                
+                // Also prevent click events from bubbling
+                handle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                });
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const diff = e.pageX - startX;
+                const newWidth = Math.max(80, startWidth + diff); // Minimum 80px
+                currentTh.style.width = newWidth + 'px';
+                currentTh.style.minWidth = newWidth + 'px';
+                currentTh.style.maxWidth = newWidth + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    if (currentHandle) {
+                        currentHandle.classList.remove('resizing');
+                    }
+                    currentHandle = null;
+                    currentTh = null;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
         }
 
         function sortTable(column) {
@@ -1102,6 +1281,9 @@
                 if (valB == null) return -1;
                 
                 if (columnTypes[column] === 'number') {
+                    // Clean currency strings before parsing
+                    if (typeof valA === 'string') valA = valA.replace(/[\$,\(\)]/g, '').trim();
+                    if (typeof valB === 'string') valB = valB.replace(/[\$,\(\)]/g, '').trim();
                     valA = parseFloat(valA);
                     valB = parseFloat(valB);
                     return currentSort.direction === 'asc' ? valA - valB : valB - valA;
@@ -1147,7 +1329,11 @@
             let feesSum = 0;
             if (feesCol) {
                 feesSum = currentData.reduce((acc, row) => {
-                    const val = parseFloat(row[feesCol]);
+                    let val = row[feesCol];
+                    if (typeof val === 'string') {
+                        val = val.replace(/[\$,\(\)]/g, '').trim();
+                    }
+                    val = parseFloat(val);
                     return acc + (isNaN(val) ? 0 : val);
                 }, 0);
             }
@@ -1156,7 +1342,7 @@
             feesCard.className = 'summary-card';
             feesCard.innerHTML = `
                 <div class="summary-label">Total Fees & Comm</div>
-                <div class="summary-value">${feesSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div class="summary-value">$${feesSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             `;
             summaryGrid.appendChild(feesCard);
             
@@ -1165,7 +1351,11 @@
             let amountSum = 0;
             if (amountCol) {
                 amountSum = currentData.reduce((acc, row) => {
-                    const val = parseFloat(row[amountCol]);
+                    let val = row[amountCol];
+                    if (typeof val === 'string') {
+                        val = val.replace(/[\$,\(\)]/g, '').trim();
+                    }
+                    val = parseFloat(val);
                     return acc + (isNaN(val) ? 0 : val);
                 }, 0);
             }
@@ -1174,7 +1364,7 @@
             amountCard.className = 'summary-card';
             amountCard.innerHTML = `
                 <div class="summary-label">Total Amount</div>
-                <div class="summary-value">${amountSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div class="summary-value">$${amountSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             `;
             summaryGrid.appendChild(amountCard);
         }
