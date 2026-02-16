@@ -267,6 +267,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
 
         .summary-label {
@@ -275,12 +276,14 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 8px;
+            text-align: center;
         }
 
         .summary-value {
             font-size: 24px;
             font-weight: 700;
             color: #667eea;
+            text-align: center;
         }
 
         .table-section {
@@ -441,14 +444,21 @@
             <p>Upload your Excel file to sort, filter, and analyze your data</p>
         </div>
 
+
+
         <div class="upload-section" id="uploadSection">
             <div class="upload-box" id="uploadBox">
                 <div class="upload-icon">📁</div>
-                <h3>Click to upload or drag and drop</h3>
+                <h3>Click to upload Schwab Transaction Report</h3>
+<br>
+<p>Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
+<br>
                 <p>Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
                 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,*">
             </div>
         </div>
+
+
 
         <div class="filters-section" id="filtersSection">
             <div class="filters-title">
