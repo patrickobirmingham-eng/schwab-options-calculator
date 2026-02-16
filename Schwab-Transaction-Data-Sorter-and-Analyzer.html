@@ -137,6 +137,7 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
+            touch-action: manipulation;
         }
 
         .action-checkbox-item label {
@@ -147,6 +148,8 @@
             margin: 0;
             text-transform: none;
             letter-spacing: normal;
+            padding: 8px 0; /* Increase touch target */
+            touch-action: manipulation;
         }
 
         .date-filter-section {
@@ -206,6 +209,9 @@
             font-size: 14px;
             background: white;
             transition: border-color 0.2s;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .filter-group select:focus,
@@ -230,10 +236,16 @@
             cursor: pointer;
             font-weight: 600;
             transition: background 0.2s;
+            min-height: 44px; /* iOS recommended touch target */
+            touch-action: manipulation; /* Prevents double-tap zoom */
         }
 
         .reset-btn:hover {
             background: #5568d3;
+        }
+
+        .reset-btn:active {
+            transform: scale(0.98);
         }
 
         .active-filters-badge {
@@ -288,12 +300,54 @@
 
         .table-section {
             padding: 30px;
-            overflow-x: auto;
             display: none;
         }
 
         .table-section.active {
             display: block;
+        }
+
+        /* Container for dual scrollbars */
+        .table-scroll-wrapper {
+            position: relative;
+        }
+
+        /* Top scrollbar container */
+        .table-scroll-top {
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 25px;
+            display: none; /* Hidden by default, shown on mobile */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        .table-scroll-top-inner {
+            height: 20px; /* Increased height to ensure scrollbar is visible */
+        }
+
+        /* Bottom scrollbar container (actual table) */
+        .table-scroll-bottom {
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        /* Show top scrollbar on mobile */
+        @media (max-width: 768px) {
+            .scroll-helper {
+                text-align: center;
+                margin-bottom: 5px;
+                padding: 5px;
+            }
+
+            .table-scroll-top {
+                display: block;
+                margin-bottom: 10px;
+                border: 2px solid #667eea;
+                border-radius: 6px;
+                background: #f0f2ff;
+                padding: 2px;
+            }
         }
 
         table {
@@ -418,21 +472,197 @@
             background: #5568d3;
         }
 
+        /* Mobile Optimization */
         @media (max-width: 768px) {
-            .filters-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .summary-grid {
-                grid-template-columns: 1fr;
+            body {
+                padding: 10px;
             }
 
-            table {
+            .container {
+                border-radius: 8px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
                 font-size: 12px;
             }
 
-            th, td {
+            .upload-section {
+                padding: 20px 15px;
+            }
+
+            .upload-box {
+                padding: 30px 15px;
+            }
+
+            .upload-box h3 {
+                font-size: 16px;
+            }
+
+            .upload-box p {
+                font-size: 12px;
+            }
+
+            .filters-section {
+                padding: 15px;
+            }
+
+            .filters-title {
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+
+            .primary-filters {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .primary-filters-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .filter-group label {
+                font-size: 12px;
+            }
+
+            .filter-group select,
+            .filter-group input {
+                font-size: 14px;
                 padding: 8px;
+                width: 100%; /* Ensure full width on mobile */
+            }
+
+            .action-checkboxes {
+                max-height: 150px;
+            }
+
+            .action-checkbox-item {
+                font-size: 13px;
+                padding: 6px;
+            }
+
+            .date-range-inputs {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .date-range-inputs .filter-group {
+                width: 100%;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .secondary-filters-title {
+                font-size: 14px;
+            }
+
+            .filter-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .reset-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .summary-section {
+                padding: 15px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .summary-card {
+                padding: 15px;
+            }
+
+            .summary-label {
+                font-size: 11px;
+            }
+
+            .summary-value {
+                font-size: 20px;
+            }
+
+            .table-section {
+                padding: 15px;
+                overflow-x: auto;
+            }
+
+            table {
+                font-size: 11px;
+                min-width: 600px; /* Allow horizontal scrolling */
+            }
+
+            th {
+                padding: 10px 6px;
+                font-size: 11px;
+            }
+
+            th::after {
+                right: 2px;
+                font-size: 10px;
+            }
+
+            td {
+                padding: 8px 6px;
+                font-size: 11px;
+            }
+
+            /* Make resize handles easier to tap on mobile */
+            th .resize-handle {
+                width: 15px;
+            }
+
+            .active-filters-badge {
+                width: 18px;
+                height: 18px;
+                font-size: 11px;
+            }
+        }
+
+        /* Extra small phones */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .upload-box h3 {
+                font-size: 14px;
+            }
+
+            .upload-box p {
+                font-size: 11px;
+                line-height: 1.4;
+            }
+
+            table {
+                font-size: 10px;
+            }
+
+            th, td {
+                padding: 6px 4px;
+                font-size: 10px;
+            }
+
+            .summary-value {
+                font-size: 18px;
             }
         }
     </style>
@@ -524,7 +754,20 @@
         </div>
 
         <div class="table-section" id="tableSection">
-            <div id="tableContainer"></div>
+            <div class="table-scroll-wrapper">
+                <!-- Top scrollbar label (mobile only) -->
+                <div class="scroll-helper" id="scrollHelper" style="display: none;">
+                    <small style="color: #667eea; font-weight: 600;">← Scroll table →</small>
+                </div>
+                <!-- Top scrollbar (mobile only) -->
+                <div class="table-scroll-top" id="tableScrollTop">
+                    <div class="table-scroll-top-inner" id="tableScrollTopInner"></div>
+                </div>
+                <!-- Bottom scrollbar (actual table) -->
+                <div class="table-scroll-bottom" id="tableScrollBottom">
+                    <div id="tableContainer"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1209,6 +1452,46 @@
             html += '</tbody></table>';
             tableContainer.innerHTML = html;
             initColumnResize(); // Initialize column resizing after table is rendered
+            syncDualScrollbars(); // Sync top and bottom scrollbars
+        }
+
+        function syncDualScrollbars() {
+            const topScroll = document.getElementById('tableScrollTop');
+            const bottomScroll = document.getElementById('tableScrollBottom');
+            const topScrollInner = document.getElementById('tableScrollTopInner');
+            const scrollHelper = document.getElementById('scrollHelper');
+            const table = document.querySelector('#tableContainer table');
+
+            if (!topScroll || !bottomScroll || !table || !topScrollInner) return;
+
+            // Wait a moment for table to fully render
+            setTimeout(() => {
+                const tableWidth = table.scrollWidth; // Use scrollWidth to get full table width
+                const containerWidth = bottomScroll.clientWidth;
+
+                console.log('Table width:', tableWidth, 'Container width:', containerWidth);
+
+                // Set the top scrollbar inner width to match the table width
+                topScrollInner.style.width = tableWidth + 'px';
+
+                // Show helper text on mobile if table is scrollable
+                if (window.innerWidth <= 768 && tableWidth > containerWidth) {
+                    if (scrollHelper) scrollHelper.style.display = 'block';
+                    console.log('Showing top scrollbar');
+                } else {
+                    if (scrollHelper) scrollHelper.style.display = 'none';
+                }
+
+                // Sync bottom scroll to top scroll
+                topScroll.onscroll = function() {
+                    bottomScroll.scrollLeft = topScroll.scrollLeft;
+                };
+
+                // Sync top scroll to bottom scroll
+                bottomScroll.onscroll = function() {
+                    topScroll.scrollLeft = bottomScroll.scrollLeft;
+                };
+            }, 100);
         }
 
         function initColumnResize() {
