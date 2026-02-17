@@ -158,6 +158,14 @@
             gap: 15px;
         }
 
+        .date-range-info {
+            padding: 8px 12px;
+            background: #f0f2ff;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #667eea;
+        }
+
         .date-range-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -300,54 +308,12 @@
 
         .table-section {
             padding: 30px;
+            overflow-x: auto;
             display: none;
         }
 
         .table-section.active {
             display: block;
-        }
-
-        /* Container for dual scrollbars */
-        .table-scroll-wrapper {
-            position: relative;
-        }
-
-        /* Top scrollbar container */
-        .table-scroll-top {
-            overflow-x: auto;
-            overflow-y: hidden;
-            height: 25px;
-            display: none; /* Hidden by default, shown on mobile */
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-        }
-
-        .table-scroll-top-inner {
-            height: 20px; /* Increased height to ensure scrollbar is visible */
-        }
-
-        /* Bottom scrollbar container (actual table) */
-        .table-scroll-bottom {
-            overflow-x: auto;
-            overflow-y: visible;
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-        }
-
-        /* Show top scrollbar on mobile */
-        @media (max-width: 768px) {
-            .scroll-helper {
-                text-align: center;
-                margin-bottom: 5px;
-                padding: 5px;
-            }
-
-            .table-scroll-top {
-                display: block;
-                margin-bottom: 10px;
-                border: 2px solid #667eea;
-                border-radius: 6px;
-                background: #f0f2ff;
-                padding: 2px;
-            }
         }
 
         table {
@@ -707,6 +673,7 @@
                         <div class="filter-group">
                             <label for="datePreset">Date Range Preset</label>
                             <select id="datePreset">
+                                <option value="all">All</option>
                                 <option value="">Custom</option>
                                 <option value="today">Today</option>
                                 <option value="last7">Last 7 Days</option>
@@ -729,6 +696,11 @@
                                 <label for="dateTo">To</label>
                                 <input type="date" id="dateTo">
                             </div>
+                        </div>
+                        
+                        <!-- Date range info display -->
+                        <div class="date-range-info" id="dateRangeInfo" style="display: none;">
+                            <small style="color: #667eea; font-weight: 600;">Available dates: <span id="dateRangeText"></span></small>
                         </div>
                     </div>
                 </div>
@@ -754,20 +726,7 @@
         </div>
 
         <div class="table-section" id="tableSection">
-            <div class="table-scroll-wrapper">
-                <!-- Top scrollbar label (mobile only) -->
-                <div class="scroll-helper" id="scrollHelper" style="display: none;">
-                    <small style="color: #667eea; font-weight: 600;">← Scroll table →</small>
-                </div>
-                <!-- Top scrollbar (mobile only) -->
-                <div class="table-scroll-top" id="tableScrollTop">
-                    <div class="table-scroll-top-inner" id="tableScrollTopInner"></div>
-                </div>
-                <!-- Bottom scrollbar (actual table) -->
-                <div class="table-scroll-bottom" id="tableScrollBottom">
-                    <div id="tableContainer"></div>
-                </div>
-            </div>
+            <div id="tableContainer"></div>
         </div>
     </div>
 
@@ -871,7 +830,12 @@
 
         // Date preset handler
         datePreset.addEventListener('change', () => {
-            if (datePreset.value) {
+            if (datePreset.value === 'all') {
+                // Clear date filters to show all rows
+                dateFrom.value = '';
+                dateTo.value = '';
+                displayAvailableDateRange(); // Show available date range
+            } else if (datePreset.value) {
                 const dateRange = getDateRangeFromPreset(datePreset.value);
                 dateFrom.value = formatDateForInput(dateRange.from);
                 dateTo.value = formatDateForInput(dateRange.to);
@@ -918,6 +882,7 @@
                     identifySpecialColumns();
                     populateActionFilter();
                     generateSecondaryFilters();
+                    displayAvailableDateRange(); // Show available date range
                     renderTable();
                     updateSummary();
                     updateActiveFiltersCount();
@@ -1142,6 +1107,44 @@
             return `${year}-${month}-${day}`;
         }
 
+        function displayAvailableDateRange() {
+            const dateRangeInfo = document.getElementById('dateRangeInfo');
+            const dateRangeText = document.getElementById('dateRangeText');
+            
+            if (!dateColumn || originalData.length === 0) {
+                dateRangeInfo.style.display = 'none';
+                return;
+            }
+            
+            // Find earliest and latest dates in the data
+            let minDate = null;
+            let maxDate = null;
+            
+            originalData.forEach(row => {
+                const dateValue = row[dateColumn];
+                if (dateValue) {
+                    const parsedDate = parseExcelDate(dateValue);
+                    if (parsedDate && !isNaN(parsedDate)) {
+                        if (!minDate || parsedDate < minDate) {
+                            minDate = parsedDate;
+                        }
+                        if (!maxDate || parsedDate > maxDate) {
+                            maxDate = parsedDate;
+                        }
+                    }
+                }
+            });
+            
+            if (minDate && maxDate) {
+                const minDateStr = minDate.toLocaleDateString();
+                const maxDateStr = maxDate.toLocaleDateString();
+                dateRangeText.textContent = `${minDateStr} to ${maxDateStr}`;
+                dateRangeInfo.style.display = 'block';
+            } else {
+                dateRangeInfo.style.display = 'none';
+            }
+        }
+
         function generateSecondaryFilters() {
             const filtersGrid = document.getElementById('filtersGrid');
             filtersGrid.innerHTML = '';
@@ -1154,6 +1157,16 @@
             columns.forEach(col => {
                 // Skip primary filter columns
                 if (excludedColumns.includes(col)) return;
+                
+                // Skip Quantity, Price, Fees & Comm, and Amount columns
+                const colLower = col.toLowerCase();
+                if (colLower.includes('quantity') || 
+                    colLower.includes('price') || 
+                    colLower.includes('fee') || 
+                    colLower.includes('comm') ||
+                    colLower.includes('amount')) {
+                    return;
+                }
                 
                 const filterGroup = document.createElement('div');
                 filterGroup.className = 'filter-group';
@@ -1452,46 +1465,6 @@
             html += '</tbody></table>';
             tableContainer.innerHTML = html;
             initColumnResize(); // Initialize column resizing after table is rendered
-            syncDualScrollbars(); // Sync top and bottom scrollbars
-        }
-
-        function syncDualScrollbars() {
-            const topScroll = document.getElementById('tableScrollTop');
-            const bottomScroll = document.getElementById('tableScrollBottom');
-            const topScrollInner = document.getElementById('tableScrollTopInner');
-            const scrollHelper = document.getElementById('scrollHelper');
-            const table = document.querySelector('#tableContainer table');
-
-            if (!topScroll || !bottomScroll || !table || !topScrollInner) return;
-
-            // Wait a moment for table to fully render
-            setTimeout(() => {
-                const tableWidth = table.scrollWidth; // Use scrollWidth to get full table width
-                const containerWidth = bottomScroll.clientWidth;
-
-                console.log('Table width:', tableWidth, 'Container width:', containerWidth);
-
-                // Set the top scrollbar inner width to match the table width
-                topScrollInner.style.width = tableWidth + 'px';
-
-                // Show helper text on mobile if table is scrollable
-                if (window.innerWidth <= 768 && tableWidth > containerWidth) {
-                    if (scrollHelper) scrollHelper.style.display = 'block';
-                    console.log('Showing top scrollbar');
-                } else {
-                    if (scrollHelper) scrollHelper.style.display = 'none';
-                }
-
-                // Sync bottom scroll to top scroll
-                topScroll.onscroll = function() {
-                    bottomScroll.scrollLeft = topScroll.scrollLeft;
-                };
-
-                // Sync top scroll to bottom scroll
-                bottomScroll.onscroll = function() {
-                    topScroll.scrollLeft = bottomScroll.scrollLeft;
-                };
-            }, 100);
         }
 
         function initColumnResize() {
