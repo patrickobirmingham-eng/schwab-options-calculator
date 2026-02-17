@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Options Profit/Loss Calculator</title>
+<title>Schwab Options Profit/Loss Calculator</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -16,8 +16,37 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 .upload-box { background: rgba(255,255,255,0.05); border: 2px dashed #6d28d9; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; margin-bottom: 20px; }
 .filter-bar { display: flex; flex-wrap: wrap; gap: 20px; background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #6d28d9; align-items: flex-end; }
 .filter-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
-.checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; }
+.checkbox-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; align-items: start; }
 .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1; }
+.checkbox-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    h1 { font-size: 1.5rem; }
+    .subtitle { font-size: 0.8rem; }
+    .upload-box { padding: 20px; }
+    .upload-box p { font-size: 1rem !important; }
+    .filter-bar { flex-direction: column; padding: 15px; gap: 15px; }
+    .filter-group { min-width: 100%; }
+    .checkbox-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-card { padding: 15px; }
+    .stat-label { font-size: 0.65rem; }
+    .stat-value { font-size: 1.2rem; }
+    
+    /* Make table scrollable horizontally on mobile */
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 800px; font-size: 0.8rem; }
+    th, td { padding: 10px 8px; font-size: 0.75rem; }
+    .tag { font-size: 0.65rem; padding: 2px 6px; }
+}
+
+@media (max-width: 480px) {
+    h1 { font-size: 1.2rem; }
+    .stats { grid-template-columns: 1fr; }
+    table { min-width: 600px; }
+}
 .filter-bar input, .filter-bar select { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 12px; border-radius: 8px; outline: none; width: 100%; font-size: 1rem; }
 
 /* Calendar icon color fix */
@@ -30,21 +59,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .stat-card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
 .stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; }
 .stat-value { font-size: 1.4rem; font-weight: bold; }
-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #1e293b; border-radius: 12px; }
-th { background: #334155; color: #cbd5e1; padding: 15px; text-align: left; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #475569; position: sticky; top: 0; }
-td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; background: #1e293b; border-radius: 12px; table-layout: auto; }
+th { background: #334155; color: #cbd5e1; padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #475569; position: sticky; top: 0; resize: horizontal; overflow: auto; }
+th { position: relative; }
+th .resizer { position: absolute; top: 0; right: 0; width: 5px; cursor: col-resize; user-select: none; height: 100%; background: transparent; }
+th .resizer:hover { background: #6d28d9; }
+td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-align: center; }
 .pos { color: #4ade80; } .neg { color: #f87171; }
+.waiting { color: #fbbf24; }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: #475569; }
+.tag-waiting { background: #f59e0b; color: #000; }
 </style>
 </head>
 
 <body>
 <div class="container">
-    <h1>Options Profit/Loss Calculator</h1>
+    <h1>Schwab Options Profit/Loss Calculator</h1>
     <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
 
     <div class="upload-box" id="dropZone">
         <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
+        <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 15px;">Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
+        <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 10px;">Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
     </div>
 
@@ -57,12 +93,12 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
         <div class="filter-group" style="min-width: 350px;">
             <label>2. Status Filter</label>
             <div class="checkbox-grid" id="statusCheckboxes">
-                <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
-                <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
                 <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
+                <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
+                <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
+                <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
                 <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
                 <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
-                <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
             </div>
         </div>
 
@@ -96,16 +132,20 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
 
     <div id="summary" class="stats"></div>
 
-    <table>
-        <thead><tr id="headerRow"></tr></thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+    <div class="table-container">
+        <table>
+            <thead><tr id="headerRow"></tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
 let finalTrades = []; 
+let openPositions = [];
 let sortKey = 'closeDate';
 let sortDir = -1;
+let columnWidths = {}; // Store column widths
 
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
@@ -140,6 +180,7 @@ function cleanNum(val) {
 function process(rows) {
     const inventory = {}; 
     const realized = [];
+    const allTransactions = []; // Track all transactions for filtering
 
     const sortedRows = rows
         .map(r => ({ ...r, parsedDate: parseDateString(r.Date) }))
@@ -161,8 +202,21 @@ function process(rows) {
                 premium: amt,
                 status: action
             });
+            // Track all transactions
+            allTransactions.push({
+                date: row.parsedDate,
+                action: action,
+                amount: amt
+            });
         } 
         else if (action.includes('to close') || action.includes('expired') || action.includes('assigned')) {
+            // Track all transactions
+            allTransactions.push({
+                date: row.parsedDate,
+                action: action,
+                amount: amt
+            });
+            
             let remainingToClose = qty || 0;
             if (remainingToClose === 0 && inventory[sym].length > 0) {
                 remainingToClose = inventory[sym].reduce((sum, item) => sum + item.qty, 0);
@@ -192,12 +246,36 @@ function process(rows) {
                 profit: openingPremiumUsed + actualClosingCost,
                 openDate: firstOpenDate,
                 closeDate: row.parsedDate,
-                status: action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                status: action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+                isOpen: false
             });
         }
     });
 
+    // Extract open positions from inventory
+    const openPos = [];
+    for (const sym in inventory) {
+        inventory[sym].forEach(item => {
+            // Only include "sell to open" positions
+            if (item.status.includes('sell') && item.status.includes('open')) {
+                openPos.push({
+                    symbol: sym,
+                    contracts: item.qty,
+                    openingPremium: item.premium,
+                    closingPremium: 0,
+                    profit: 0, // Not realized yet
+                    openDate: item.date,
+                    closeDate: item.date, // Use open date for sorting purposes
+                    status: 'Sell to Open',
+                    isOpen: true
+                });
+            }
+        });
+    }
+
     finalTrades = realized;
+    openPositions = openPos;
+    window.allTransactions = allTransactions;
     applyFilters(); 
 }
 
@@ -209,10 +287,13 @@ function applyFilters() {
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
     const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
 
-    const filtered = finalTrades.filter(item => {
+    // Combine realized trades and open positions
+    const allItems = [...finalTrades, ...openPositions];
+
+    const filtered = allItems.filter(item => {
         const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
-        const dateToFilter = item.closeDate;
+        const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
         
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
@@ -225,7 +306,7 @@ function applyFilters() {
 }
 
 function render(newSortKey, dataToRender) {
-    const displayData = dataToRender || finalTrades;
+    const displayData = dataToRender || [...finalTrades, ...openPositions];
     if (newSortKey) {
         if (sortKey === newSortKey) sortDir *= -1;
         else { sortKey = newSortKey; sortDir = 1; }
@@ -237,22 +318,102 @@ function render(newSortKey, dataToRender) {
         return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
     });
 
-    const totalPL = displayData.reduce((s, x) => s + (x.profit || 0), 0);
+    // Calculate statistics
+    const totalPL = displayData.filter(x => !x.isOpen).reduce((s, x) => s + (x.profit || 0), 0);
+    const openPremium = displayData.filter(x => x.isOpen).reduce((s, x) => s + (x.openingPremium || 0), 0);
+    const closedTrades = displayData.filter(x => !x.isOpen).length;
+    const openTrades = displayData.filter(x => x.isOpen).length;
+    
+    // Calculate Sell to Open and Buy to Close from filtered transactions
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    
+    let sellToOpen = 0;
+    let buyToClose = 0;
+    
+    if (window.allTransactions) {
+        window.allTransactions.forEach(t => {
+            let matchesDate = true;
+            if (startDate && t.date < startDate) matchesDate = false;
+            if (endDate && t.date > endDate) matchesDate = false;
+            
+            if (matchesDate) {
+                if (t.action.includes('sell') && t.action.includes('to open')) {
+                    sellToOpen += t.amount;
+                }
+                if (t.action.includes('buy') && t.action.includes('to close')) {
+                    buyToClose += t.amount;
+                }
+            }
+        });
+    }
+    
+    const cashFlow = sellToOpen - Math.abs(buyToClose);
 
     document.getElementById('summary').innerHTML = `
+        <div class="stat-card"><div class="stat-label">Sell to Open</div><div class="stat-value pos">$${sellToOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Buy to Close</div><div class="stat-value neg">$${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Cash Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Realized P/L (Filtered)</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Trades in Range</div><div class="stat-value">${displayData.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${openPremium.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Closed Trades</div><div class="stat-value">${closedTrades}</div></div>
+        <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
     `;
 
-    const cols = [{lab:'Symbol',key:'symbol'},{lab:'Status',key:'status'},{lab:'Date',key:'closeDate'},{lab:'P/L',key:'profit'}];
-    document.getElementById('headerRow').innerHTML = cols.map(c => `<th onclick="render('${c.key}', null)">${c.lab} ↕</th>`).join('');
-    document.getElementById('tableBody').innerHTML = displayData.map(p => `
+    const cols = [{lab:'Date',key:'closeDate'},{lab:'Symbol',key:'symbol'},{lab:'Quantity',key:'contracts'},{lab:'Action',key:'status'},{lab:'Premium Received/Paid',key:'openingPremium'},{lab:'P/L',key:'profit'},{lab:'% Return',key:'returnPct'}];
+    document.getElementById('headerRow').innerHTML = cols.map((c, i) => `<th data-col-index="${i}" onclick="render('${c.key}', null)" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`).join('');
+    
+    // Add column resizing functionality
+    document.querySelectorAll('.resizer').forEach((resizer, index) => {
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            const th = resizer.parentElement;
+            startWidth = th.offsetWidth;
+            
+            const onMouseMove = (e) => {
+                const width = startWidth + (e.pageX - startX);
+                th.style.width = width + 'px';
+                th.style.minWidth = width + 'px';
+            };
+            
+            const onMouseUp = () => {
+                const finalWidth = th.offsetWidth;
+                const colIndex = th.getAttribute('data-col-index');
+                columnWidths[colIndex] = finalWidth; // Save the width
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+    
+    document.getElementById('tableBody').innerHTML = displayData.map(p => {
+        // Calculate % Return for Buy to Close
+        let returnPct = '';
+        let returnClass = '';
+        if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
+            const pctValue = (p.profit / (p.profit + Math.abs(p.closingPremium))) * 100;
+            returnPct = pctValue.toFixed(2) + '%';
+            returnClass = pctValue >= 0 ? 'pos' : 'neg';
+        }
+        
+        return `
         <tr>
+            <td>${p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString()}</td>
             <td>${p.symbol}</td>
-            <td><span class="tag">${p.status}</span></td>
-            <td>${p.closeDate.toLocaleDateString()}</td>
-            <td class="${p.profit >= 0 ? 'pos' : 'neg'}">$${p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-        </tr>`).join('');
+            <td>${p.contracts}</td>
+            <td><span class="tag ${p.isOpen ? 'tag-waiting' : ''}">${p.status}</span></td>
+            <td class="${(p.status.toLowerCase().includes('buy') ? p.closingPremium : p.openingPremium) >= 0 ? 'pos' : 'neg'}">$${(p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${p.isOpen ? 'waiting' : (p.profit >= 0 ? 'pos' : 'neg')}">${p.isOpen ? 'Waiting to close' : '$' + p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${returnClass}">${returnPct}</td>
+        </tr>`;
+    }).join('');
 }
 
 function toISODate(d) { return d.toISOString().split('T')[0]; }
