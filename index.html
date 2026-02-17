@@ -189,7 +189,21 @@ function process(rows) {
     const sortedRows = rows
         .map(r => ({ ...r, parsedDate: parseDateString(r.Date) }))
         .filter(r => r.Symbol && r.parsedDate)
-        .sort((a, b) => a.parsedDate - b.parsedDate);
+        .sort((a, b) => {
+            // First sort by date
+            const dateCompare = a.parsedDate - b.parsedDate;
+            if (dateCompare !== 0) return dateCompare;
+            
+            // On same date, process "to open" before "to close"
+            const aAction = (a.Action || "").toLowerCase();
+            const bAction = (b.Action || "").toLowerCase();
+            const aIsOpen = aAction.includes('to open');
+            const bIsOpen = bAction.includes('to open');
+            
+            if (aIsOpen && !bIsOpen) return -1; // a (open) before b (close)
+            if (!aIsOpen && bIsOpen) return 1;  // b (open) before a (close)
+            return 0; // same priority
+        });
 
     // Track date range
     if (sortedRows.length > 0) {
@@ -198,7 +212,7 @@ function process(rows) {
     }
 
     sortedRows.forEach(row => {
-        const sym = row.Symbol;
+        const sym = row.Symbol; // Full symbol including strike/expiration
         const action = (row.Action || "").toLowerCase();
         const qty = Math.abs(cleanNum(row.Quantity));
         const amt = cleanNum(row.Amount);
@@ -262,38 +276,26 @@ function process(rows) {
         }
     });
 
-    // Extract open positions from inventory and combine duplicates
-    const openPosMap = {};
+    // Extract open positions from inventory - NO combining, show each position separately
+    const openPos = [];
     for (const sym in inventory) {
         inventory[sym].forEach(item => {
             // Only include "sell to open" positions
             if (item.status.includes('sell') && item.status.includes('open')) {
-                if (!openPosMap[sym]) {
-                    openPosMap[sym] = {
-                        symbol: sym,
-                        contracts: 0,
-                        openingPremium: 0,
-                        closingPremium: 0,
-                        profit: 0,
-                        openDate: item.date,
-                        closeDate: item.date,
-                        status: 'Sell to Open',
-                        isOpen: true
-                    };
-                }
-                // Combine quantities and premiums
-                openPosMap[sym].contracts += item.qty;
-                openPosMap[sym].openingPremium += item.premium;
-                // Keep the earliest date
-                if (item.date < openPosMap[sym].openDate) {
-                    openPosMap[sym].openDate = item.date;
-                    openPosMap[sym].closeDate = item.date;
-                }
+                openPos.push({
+                    symbol: sym,
+                    contracts: item.qty,
+                    openingPremium: item.premium,
+                    closingPremium: 0,
+                    profit: 0, // Not realized yet
+                    openDate: item.date,
+                    closeDate: item.date, // Use open date for sorting purposes
+                    status: 'Sell to Open',
+                    isOpen: true
+                });
             }
         });
     }
-    
-    const openPos = Object.values(openPosMap);
 
     finalTrades = realized;
     openPositions = openPos;
@@ -335,7 +337,28 @@ function render(newSortKey, dataToRender) {
     }
     
     displayData.sort((a, b) => {
-        let v1 = a[sortKey], v2 = b[sortKey];
+        let v1, v2;
+        
+        // Special handling for Premium Received/Paid column
+        if (sortKey === 'openingPremium') {
+            v1 = a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') ? a.closingPremium : a.openingPremium;
+            v2 = b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') ? b.closingPremium : b.openingPremium;
+        }
+        // Special handling for % Return column
+        else if (sortKey === 'returnPct') {
+            // Calculate % Return for sorting
+            v1 = (a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') && (a.profit + Math.abs(a.closingPremium)) !== 0) 
+                ? (a.profit / (a.profit + Math.abs(a.closingPremium))) * 100 
+                : -Infinity;
+            v2 = (b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') && (b.profit + Math.abs(b.closingPremium)) !== 0) 
+                ? (b.profit / (b.profit + Math.abs(b.closingPremium))) * 100 
+                : -Infinity;
+        }
+        else {
+            v1 = a[sortKey];
+            v2 = b[sortKey];
+        }
+        
         if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
         return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
     });
@@ -425,9 +448,15 @@ function render(newSortKey, dataToRender) {
         let returnPct = '';
         let returnClass = '';
         if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
-            const pctValue = (p.profit / (p.profit + Math.abs(p.closingPremium))) * 100;
-            returnPct = pctValue.toFixed(2) + '%';
-            returnClass = pctValue >= 0 ? 'pos' : 'neg';
+            const denominator = p.profit + Math.abs(p.closingPremium);
+            if (denominator !== 0 && isFinite(denominator)) {
+                const pctValue = (p.profit / denominator) * 100;
+                returnPct = pctValue.toFixed(2) + '%';
+                returnClass = pctValue >= 0 ? 'pos' : 'neg';
+            } else {
+                returnPct = 'N/A';
+                returnClass = '';
+            }
         }
         
         return `
