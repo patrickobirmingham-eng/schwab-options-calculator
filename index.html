@@ -347,12 +347,21 @@ function render(newSortKey, dataToRender) {
         // Special handling for % Return column
         else if (sortKey === 'returnPct') {
             // Calculate % Return for sorting
-            v1 = (a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') && (a.profit + Math.abs(a.closingPremium)) !== 0) 
-                ? (a.profit / (a.profit + Math.abs(a.closingPremium))) * 100 
-                : -Infinity;
-            v2 = (b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') && (b.profit + Math.abs(b.closingPremium)) !== 0) 
-                ? (b.profit / (b.profit + Math.abs(b.closingPremium))) * 100 
-                : -Infinity;
+            if (a.status.toLowerCase().includes('expired')) {
+                v1 = 100;
+            } else if (a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') && (a.profit + Math.abs(a.closingPremium)) !== 0) {
+                v1 = (a.profit / (a.profit + Math.abs(a.closingPremium))) * 100;
+            } else {
+                v1 = -Infinity;
+            }
+            
+            if (b.status.toLowerCase().includes('expired')) {
+                v2 = 100;
+            } else if (b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') && (b.profit + Math.abs(b.closingPremium)) !== 0) {
+                v2 = (b.profit / (b.profit + Math.abs(b.closingPremium))) * 100;
+            } else {
+                v2 = -Infinity;
+            }
         }
         else {
             v1 = a[sortKey];
@@ -444,7 +453,7 @@ function render(newSortKey, dataToRender) {
     });
     
     document.getElementById('tableBody').innerHTML = displayData.map(p => {
-        // Calculate % Return for Buy to Close
+        // Calculate % Return for Buy to Close and Expired
         let returnPct = '';
         let returnClass = '';
         if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
@@ -457,6 +466,9 @@ function render(newSortKey, dataToRender) {
                 returnPct = 'N/A';
                 returnClass = '';
             }
+        } else if (p.status.toLowerCase().includes('expired')) {
+            returnPct = '100.00%';
+            returnClass = 'pos';
         }
         
         return `
