@@ -128,9 +128,12 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
         </div>
 
         <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset</button>
+        <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Download Results</button>
     </div>
 
     <div id="summary" class="stats"></div>
+
+    <div id="dateRange" style="text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;"></div>
 
     <div class="table-container">
         <table>
@@ -146,6 +149,7 @@ let openPositions = [];
 let sortKey = 'closeDate';
 let sortDir = -1;
 let columnWidths = {}; // Store column widths
+let uploadedDateRange = { min: null, max: null }; // Store date range of uploaded data
 
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
@@ -186,6 +190,12 @@ function process(rows) {
         .map(r => ({ ...r, parsedDate: parseDateString(r.Date) }))
         .filter(r => r.Symbol && r.parsedDate)
         .sort((a, b) => a.parsedDate - b.parsedDate);
+
+    // Track date range
+    if (sortedRows.length > 0) {
+        uploadedDateRange.min = sortedRows[0].parsedDate;
+        uploadedDateRange.max = sortedRows[sortedRows.length - 1].parsedDate;
+    }
 
     sortedRows.forEach(row => {
         const sym = row.Symbol;
@@ -252,26 +262,38 @@ function process(rows) {
         }
     });
 
-    // Extract open positions from inventory
-    const openPos = [];
+    // Extract open positions from inventory and combine duplicates
+    const openPosMap = {};
     for (const sym in inventory) {
         inventory[sym].forEach(item => {
             // Only include "sell to open" positions
             if (item.status.includes('sell') && item.status.includes('open')) {
-                openPos.push({
-                    symbol: sym,
-                    contracts: item.qty,
-                    openingPremium: item.premium,
-                    closingPremium: 0,
-                    profit: 0, // Not realized yet
-                    openDate: item.date,
-                    closeDate: item.date, // Use open date for sorting purposes
-                    status: 'Sell to Open',
-                    isOpen: true
-                });
+                if (!openPosMap[sym]) {
+                    openPosMap[sym] = {
+                        symbol: sym,
+                        contracts: 0,
+                        openingPremium: 0,
+                        closingPremium: 0,
+                        profit: 0,
+                        openDate: item.date,
+                        closeDate: item.date,
+                        status: 'Sell to Open',
+                        isOpen: true
+                    };
+                }
+                // Combine quantities and premiums
+                openPosMap[sym].contracts += item.qty;
+                openPosMap[sym].openingPremium += item.premium;
+                // Keep the earliest date
+                if (item.date < openPosMap[sym].openDate) {
+                    openPosMap[sym].openDate = item.date;
+                    openPosMap[sym].closeDate = item.date;
+                }
             }
         });
     }
+    
+    const openPos = Object.values(openPosMap);
 
     finalTrades = realized;
     openPositions = openPos;
@@ -361,6 +383,11 @@ function render(newSortKey, dataToRender) {
         <div class="stat-card"><div class="stat-label">Closed Trades</div><div class="stat-value">${closedTrades}</div></div>
         <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
     `;
+
+    // Display date range
+    if (uploadedDateRange.min && uploadedDateRange.max) {
+        document.getElementById('dateRange').innerHTML = `Available dates: ${uploadedDateRange.min.toLocaleDateString()} to ${uploadedDateRange.max.toLocaleDateString()}`;
+    }
 
     const cols = [{lab:'Date',key:'closeDate'},{lab:'Symbol',key:'symbol'},{lab:'Quantity',key:'contracts'},{lab:'Action',key:'status'},{lab:'Premium Received/Paid',key:'openingPremium'},{lab:'P/L',key:'profit'},{lab:'% Return',key:'returnPct'}];
     document.getElementById('headerRow').innerHTML = cols.map((c, i) => `<th data-col-index="${i}" onclick="render('${c.key}', null)" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`).join('');
@@ -478,6 +505,56 @@ function resetFilters() {
         cb.checked = (cb.value !== 'Assigned');
     });
     applyFilters();
+}
+
+function downloadResults() {
+    // Get currently displayed data
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+
+    const allItems = [...finalTrades, ...openPositions];
+    const filtered = allItems.filter(item => {
+        const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
+        const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
+        const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
+        
+        let matchesDate = true;
+        if (startDate && dateToFilter < startDate) matchesDate = false;
+        if (endDate && dateToFilter > endDate) matchesDate = false;
+        
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+
+    // Create CSV content
+    let csv = 'Date,Symbol,Quantity,Action,Premium Received/Paid,P/L,% Return\n';
+    
+    filtered.forEach(p => {
+        const date = p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString();
+        const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
+        const pl = p.isOpen ? 'Waiting to close' : p.profit.toFixed(2);
+        
+        let returnPct = '';
+        if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
+            returnPct = ((p.profit / (p.profit + Math.abs(p.closingPremium))) * 100).toFixed(2) + '%';
+        }
+        
+        csv += `${date},${p.symbol},${p.contracts},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
+    });
+
+    // Create download link
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `options-results-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 }
 </script>
 </body>
