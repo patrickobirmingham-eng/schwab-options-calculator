@@ -7,7 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
-/* CSS remains largely the same */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
 .container { max-width: 1600px; margin: 0 auto; }
@@ -20,7 +19,6 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1; }
 .checkbox-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; }
 
-/* Mobile responsive styles */
 @media (max-width: 768px) {
     body { padding: 10px; }
     h1 { font-size: 1.5rem; }
@@ -34,8 +32,6 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     .stat-card { padding: 15px; }
     .stat-label { font-size: 0.65rem; }
     .stat-value { font-size: 1.2rem; }
-    
-    /* Make table scrollable horizontally on mobile */
     .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { min-width: 800px; font-size: 0.8rem; }
     th, td { padding: 10px 8px; font-size: 0.75rem; }
@@ -47,21 +43,18 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     .stats { grid-template-columns: 1fr; }
     table { min-width: 600px; }
 }
-.filter-bar input, .filter-bar select { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 12px; border-radius: 8px; outline: none; width: 100%; font-size: 1rem; }
 
-/* Calendar icon color fix */
-input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    cursor: pointer;
-}
+.filter-bar input, .filter-bar select { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 12px; border-radius: 8px; outline: none; width: 100%; font-size: 1rem; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
 .stat-card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
 .stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; }
 .stat-value { font-size: 1.4rem; font-weight: bold; }
-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #1e293b; border-radius: 12px; table-layout: auto; }
-th { background: #334155; color: #cbd5e1; padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #475569; position: sticky; top: 0; resize: horizontal; overflow: auto; }
-th { position: relative; }
+
+table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; table-layout: auto; }
+thead tr { position: sticky; top: 0; z-index: 20; }
+th { background: #334155; color: #cbd5e1; padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #6d28d9; box-shadow: 0 3px 6px rgba(0,0,0,0.6); position: relative; }
 th .resizer { position: absolute; top: 0; right: 0; width: 5px; cursor: col-resize; user-select: none; height: 100%; background: transparent; }
 th .resizer:hover { background: #6d28d9; }
 td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-align: center; }
@@ -81,6 +74,7 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
         <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
         <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 15px;">Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
         <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 10px;">Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
+        <p id="uploadedFileName" style="font-size: 0.9rem; color: #a78bfa; margin-top: 10px; display:none;"></p>
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
     </div>
 
@@ -108,12 +102,13 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
                 <option value="all" selected>Show All</option>
                 <option value="today">Today</option>
                 <option value="7days">Last 7 Days</option>
+                <option value="currentMonth">Current Month</option>
                 <option value="lastMonth">Last Month</option>
+                <option value="currentYear">Current Year</option>
+                <option value="lastYear">Last Year</option>
                 <option value="last3Months">Last 3 Months</option>
                 <option value="last6Months">Last 6 Months</option>
-                <option value="lastYear">Last Year</option>
-                <option value="currentMonth">Current Month</option>
-                <option value="currentYear">Current Year</option>
+                <option value="last12Months">Last 12 Months</option>
             </select>
         </div>
 
@@ -129,10 +124,21 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
 
         <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset</button>
         <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Download Results</button>
+        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">📊 Monthly Summary</button>
+    </div>
+
+    <!-- Monthly Summary Modal -->
+    <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:#1e293b; border:1px solid #6d28d9; border-radius:16px; padding:30px; max-width:95vw; width:1000px; max-height:85vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#a78bfa; font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
+                <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+            </div>
+            <div id="monthlyTableContainer"></div>
+        </div>
     </div>
 
     <div id="summary" class="stats"></div>
-
     <div id="dateRange" style="text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;"></div>
 
     <div class="table-container">
@@ -144,12 +150,13 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
 </div>
 
 <script>
-let finalTrades = []; 
+let finalTrades = [];
 let openPositions = [];
+let currentFilteredData = [];
 let sortKey = 'closeDate';
 let sortDir = -1;
-let columnWidths = {}; // Store column widths
-let uploadedDateRange = { min: null, max: null }; // Store date range of uploaded data
+let columnWidths = {};
+let uploadedDateRange = { min: null, max: null };
 
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
@@ -158,6 +165,9 @@ filePicker.onchange = (e) => handleFile(e.target.files[0]);
 
 async function handleFile(file) {
     if (!file) return;
+    const fnEl = document.getElementById('uploadedFileName');
+    fnEl.textContent = 'Filename: ' + file.name;
+    fnEl.style.display = 'block';
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -182,65 +192,43 @@ function cleanNum(val) {
 }
 
 function process(rows) {
-    const inventory = {}; 
+    const inventory = {};
     const realized = [];
-    const allTransactions = []; // Track all transactions for filtering
+    const allTransactions = [];
 
     const sortedRows = rows
         .map(r => ({ ...r, parsedDate: parseDateString(r.Date) }))
         .filter(r => r.Symbol && r.parsedDate)
         .sort((a, b) => {
-            // First sort by date
             const dateCompare = a.parsedDate - b.parsedDate;
             if (dateCompare !== 0) return dateCompare;
-            
-            // On same date, process "to open" before "to close"
-            const aAction = (a.Action || "").toLowerCase();
-            const bAction = (b.Action || "").toLowerCase();
-            const aIsOpen = aAction.includes('to open');
-            const bIsOpen = bAction.includes('to open');
-            
-            if (aIsOpen && !bIsOpen) return -1; // a (open) before b (close)
-            if (!aIsOpen && bIsOpen) return 1;  // b (open) before a (close)
-            return 0; // same priority
+            const aIsOpen = (a.Action || "").toLowerCase().includes('to open');
+            const bIsOpen = (b.Action || "").toLowerCase().includes('to open');
+            if (aIsOpen && !bIsOpen) return -1;
+            if (!aIsOpen && bIsOpen) return 1;
+            return 0;
         });
 
-    // Track date range
     if (sortedRows.length > 0) {
         uploadedDateRange.min = sortedRows[0].parsedDate;
         uploadedDateRange.max = sortedRows[sortedRows.length - 1].parsedDate;
     }
 
     sortedRows.forEach(row => {
-        const sym = row.Symbol; // Full symbol including strike/expiration
+        const sym = row.Symbol;
         const action = (row.Action || "").toLowerCase();
         const qty = Math.abs(cleanNum(row.Quantity));
         const amt = cleanNum(row.Amount);
-        
+
         if (!inventory[sym]) inventory[sym] = [];
 
         if (action.includes('to open')) {
-            inventory[sym].push({
-                date: row.parsedDate,
-                qty: qty,
-                premium: amt,
-                status: action
-            });
-            // Track all transactions
-            allTransactions.push({
-                date: row.parsedDate,
-                action: action,
-                amount: amt
-            });
-        } 
+            inventory[sym].push({ date: row.parsedDate, qty, premium: amt, status: action });
+            allTransactions.push({ date: row.parsedDate, action, amount: amt });
+        }
         else if (action.includes('to close') || action.includes('expired') || action.includes('assigned')) {
-            // Track all transactions
-            allTransactions.push({
-                date: row.parsedDate,
-                action: action,
-                amount: amt
-            });
-            
+            allTransactions.push({ date: row.parsedDate, action, amount: amt });
+
             let remainingToClose = qty || 0;
             if (remainingToClose === 0 && inventory[sym].length > 0) {
                 remainingToClose = inventory[sym].reduce((sum, item) => sum + item.qty, 0);
@@ -276,20 +264,18 @@ function process(rows) {
         }
     });
 
-    // Extract open positions from inventory - NO combining, show each position separately
     const openPos = [];
     for (const sym in inventory) {
         inventory[sym].forEach(item => {
-            // Only include "sell to open" positions
             if (item.status.includes('sell') && item.status.includes('open')) {
                 openPos.push({
                     symbol: sym,
                     contracts: item.qty,
                     openingPremium: item.premium,
                     closingPremium: 0,
-                    profit: 0, // Not realized yet
+                    profit: 0,
                     openDate: item.date,
-                    closeDate: item.date, // Use open date for sorting purposes
+                    closeDate: item.date,
                     status: 'Sell to Open',
                     isOpen: true
                 });
@@ -300,7 +286,7 @@ function process(rows) {
     finalTrades = realized;
     openPositions = openPos;
     window.allTransactions = allTransactions;
-    applyFilters(); 
+    applyFilters();
 }
 
 function applyFilters() {
@@ -311,99 +297,101 @@ function applyFilters() {
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
     const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
 
-    // Combine realized trades and open positions
     const allItems = [...finalTrades, ...openPositions];
-
     const filtered = allItems.filter(item => {
         const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
         const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
-        
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
         if (endDate && dateToFilter > endDate) matchesDate = false;
-        
         return matchesSearch && matchesStatus && matchesDate;
     });
 
+    currentFilteredData = filtered;
     render(null, filtered);
 }
 
+function calcDTE(symbol) {
+    const match = symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (!match) return '';
+    const exp = new Date(match[1]);
+    exp.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((exp - today) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : '';
+}
+
+function sortBy(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = 1; }
+    render(null, null);
+}
+
 function render(newSortKey, dataToRender) {
-    const displayData = dataToRender || [...finalTrades, ...openPositions];
-    if (newSortKey) {
-        if (sortKey === newSortKey) sortDir *= -1;
-        else { sortKey = newSortKey; sortDir = 1; }
-    }
-    
+    const displayData = dataToRender ? [...dataToRender] : [...currentFilteredData];
+
     displayData.sort((a, b) => {
         let v1, v2;
-        
-        // Special handling for Premium Received/Paid column
-        if (sortKey === 'openingPremium') {
+
+        if (sortKey === 'dte') {
+            const getDTE = sym => {
+                const m = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+                if (!m) return null;
+                const diff = Math.round((new Date(m[1]) - new Date()) / (1000 * 60 * 60 * 24));
+                return diff > 0 ? diff : null;
+            };
+            const d1 = a.isOpen ? getDTE(a.symbol) : null;
+            const d2 = b.isOpen ? getDTE(b.symbol) : null;
+            if (d1 === null && d2 === null) return 0;
+            if (d1 === null) return 1;
+            if (d2 === null) return -1;
+            return (d1 - d2) * sortDir;
+        }
+        else if (sortKey === 'openingPremium') {
             v1 = a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') ? a.closingPremium : a.openingPremium;
             v2 = b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') ? b.closingPremium : b.openingPremium;
         }
-        // Special handling for % Return column
         else if (sortKey === 'returnPct') {
-            // Calculate % Return for sorting
-            if (a.status.toLowerCase().includes('expired')) {
-                v1 = 100;
-            } else if (a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') && (a.profit + Math.abs(a.closingPremium)) !== 0) {
-                v1 = (a.profit / (a.profit + Math.abs(a.closingPremium))) * 100;
-            } else {
-                v1 = -Infinity;
-            }
-            
-            if (b.status.toLowerCase().includes('expired')) {
-                v2 = 100;
-            } else if (b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') && (b.profit + Math.abs(b.closingPremium)) !== 0) {
-                v2 = (b.profit / (b.profit + Math.abs(b.closingPremium))) * 100;
-            } else {
-                v2 = -Infinity;
-            }
+            v1 = a.status.toLowerCase().includes('expired') ? 100
+                : (a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') && (a.profit + Math.abs(a.closingPremium)) !== 0)
+                ? (a.profit / (a.profit + Math.abs(a.closingPremium))) * 100 : -Infinity;
+            v2 = b.status.toLowerCase().includes('expired') ? 100
+                : (b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') && (b.profit + Math.abs(b.closingPremium)) !== 0)
+                ? (b.profit / (b.profit + Math.abs(b.closingPremium))) * 100 : -Infinity;
         }
         else {
             v1 = a[sortKey];
             v2 = b[sortKey];
         }
-        
+
         if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
         return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
     });
 
-    // Calculate statistics
     const totalPL = displayData.filter(x => !x.isOpen).reduce((s, x) => s + (x.profit || 0), 0);
     const openPremium = displayData.filter(x => x.isOpen).reduce((s, x) => s + (x.openingPremium || 0), 0);
     const closedTrades = displayData.filter(x => !x.isOpen).length;
     const openTrades = displayData.filter(x => x.isOpen).length;
-    
-    // Calculate Sell to Open and Buy to Close from filtered transactions
+
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
-    
-    let sellToOpen = 0;
-    let buyToClose = 0;
-    
+
+    let sellToOpen = 0, buyToClose = 0;
     if (window.allTransactions) {
         window.allTransactions.forEach(t => {
             let matchesDate = true;
             if (startDate && t.date < startDate) matchesDate = false;
             if (endDate && t.date > endDate) matchesDate = false;
-            
             if (matchesDate) {
-                if (t.action.includes('sell') && t.action.includes('to open')) {
-                    sellToOpen += t.amount;
-                }
-                if (t.action.includes('buy') && t.action.includes('to close')) {
-                    buyToClose += t.amount;
-                }
+                if (t.action.includes('sell') && t.action.includes('to open')) sellToOpen += t.amount;
+                if (t.action.includes('buy') && t.action.includes('to close')) buyToClose += t.amount;
             }
         });
     }
-    
     const cashFlow = sellToOpen - Math.abs(buyToClose);
 
     document.getElementById('summary').innerHTML = `
@@ -416,68 +404,67 @@ function render(newSortKey, dataToRender) {
         <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
     `;
 
-    // Display date range
     if (uploadedDateRange.min && uploadedDateRange.max) {
         document.getElementById('dateRange').innerHTML = `Available dates: ${uploadedDateRange.min.toLocaleDateString()} to ${uploadedDateRange.max.toLocaleDateString()}`;
     }
 
-    const cols = [{lab:'Date',key:'closeDate'},{lab:'Symbol',key:'symbol'},{lab:'Quantity',key:'contracts'},{lab:'Action',key:'status'},{lab:'Premium Received/Paid',key:'openingPremium'},{lab:'P/L',key:'profit'},{lab:'% Return',key:'returnPct'}];
-    document.getElementById('headerRow').innerHTML = cols.map((c, i) => `<th data-col-index="${i}" onclick="render('${c.key}', null)" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`).join('');
-    
-    // Add column resizing functionality
-    document.querySelectorAll('.resizer').forEach((resizer, index) => {
+    const cols = [
+        {lab:'Date',key:'closeDate'},
+        {lab:'Symbol',key:'symbol'},
+        {lab:'Quantity',key:'contracts'},
+        {lab:'DTE',key:'dte'},
+        {lab:'Action',key:'status'},
+        {lab:'Premium Received / Paid',key:'openingPremium'},
+        {lab:'Profit / Loss',key:'profit'},
+        {lab:'% Return',key:'returnPct'}
+    ];
+
+    document.getElementById('headerRow').innerHTML = cols.map((c, i) =>
+        `<th data-col-index="${i}" onclick="sortBy('${c.key}')" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`
+    ).join('');
+
+    document.querySelectorAll('.resizer').forEach((resizer) => {
         let startX, startWidth;
         resizer.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             startX = e.pageX;
             const th = resizer.parentElement;
             startWidth = th.offsetWidth;
-            
-            const onMouseMove = (e) => {
-                const width = startWidth + (e.pageX - startX);
-                th.style.width = width + 'px';
-                th.style.minWidth = width + 'px';
-            };
-            
+            const onMouseMove = (e) => { th.style.width = (startWidth + e.pageX - startX) + 'px'; th.style.minWidth = th.style.width; };
             const onMouseUp = () => {
-                const finalWidth = th.offsetWidth;
-                const colIndex = th.getAttribute('data-col-index');
-                columnWidths[colIndex] = finalWidth; // Save the width
+                columnWidths[th.getAttribute('data-col-index')] = th.offsetWidth;
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             };
-            
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
     });
-    
+
     document.getElementById('tableBody').innerHTML = displayData.map(p => {
-        // Calculate % Return for Buy to Close and Expired
-        let returnPct = '';
-        let returnClass = '';
+        let returnPct = '', returnClass = '';
         if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
-            const denominator = p.profit + Math.abs(p.closingPremium);
-            if (denominator !== 0 && isFinite(denominator)) {
-                const pctValue = (p.profit / denominator) * 100;
-                returnPct = pctValue.toFixed(2) + '%';
-                returnClass = pctValue >= 0 ? 'pos' : 'neg';
-            } else {
-                returnPct = 'N/A';
-                returnClass = '';
-            }
+            const denom = p.profit + Math.abs(p.closingPremium);
+            if (denom !== 0 && isFinite(denom)) {
+                const pct = (p.profit / denom) * 100;
+                returnPct = pct.toFixed(2) + '%';
+                returnClass = pct >= 0 ? 'pos' : 'neg';
+            } else { returnPct = 'N/A'; }
         } else if (p.status.toLowerCase().includes('expired')) {
-            returnPct = '100.00%';
-            returnClass = 'pos';
+            returnPct = '100.00%'; returnClass = 'pos';
         }
-        
+
+        const premVal = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
+        const premClass = premVal >= 0 ? 'pos' : 'neg';
+
         return `
         <tr>
             <td>${p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString()}</td>
             <td>${p.symbol}</td>
             <td>${p.contracts}</td>
+            <td>${p.isOpen ? calcDTE(p.symbol) : ''}</td>
             <td><span class="tag ${p.isOpen ? 'tag-waiting' : ''}">${p.status}</span></td>
-            <td class="${(p.status.toLowerCase().includes('buy') ? p.closingPremium : p.openingPremium) >= 0 ? 'pos' : 'neg'}">$${(p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${premClass}">$${premVal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="${p.isOpen ? 'waiting' : (p.profit >= 0 ? 'pos' : 'neg')}">${p.isOpen ? 'Waiting to close' : '$' + p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="${returnClass}">${returnPct}</td>
         </tr>`;
@@ -489,46 +476,21 @@ function toISODate(d) { return d.toISOString().split('T')[0]; }
 function setQuickRange() {
     const range = document.getElementById('quickRange').value;
     const today = new Date();
-    let start = new Date();
-    let end = new Date();
-
     today.setHours(0, 0, 0, 0);
+    let start = new Date(today), end = new Date();
     end.setHours(23, 59, 59, 999);
 
     switch(range) {
-        case 'today':
-            start = new Date(today);
-            break;
-        case '7days':
-            start.setDate(today.getDate() - 6);
-            break;
-        case 'lastMonth':
-            start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            end = new Date(today.getFullYear(), today.getMonth(), 0);
-            break;
-        case 'last3Months':
-            start = new Date(today.getFullYear(), today.getMonth() - 3, 1);
-            end = new Date(today.getFullYear(), today.getMonth(), 0);
-            break;
-        case 'last6Months':
-            start = new Date(today.getFullYear(), today.getMonth() - 6, 1);
-            end = new Date(today.getFullYear(), today.getMonth(), 0);
-            break;
-        case 'lastYear':
-            start = new Date(today.getFullYear() - 1, 0, 1);
-            end = new Date(today.getFullYear() - 1, 11, 31);
-            break;
-        case 'currentMonth':
-            start = new Date(today.getFullYear(), today.getMonth(), 1);
-            break;
-        case 'currentYear':
-            start = new Date(today.getFullYear(), 0, 1);
-            break;
-        case 'all':
-        default:
-            start = null;
-            end = null;
-            break;
+        case 'today': break;
+        case '7days': start.setDate(today.getDate() - 6); break;
+        case 'lastMonth': start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last3Months': start = new Date(today.getFullYear(), today.getMonth() - 3, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last6Months': start = new Date(today.getFullYear(), today.getMonth() - 6, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last12Months': start = new Date(today.getFullYear(), today.getMonth() - 12, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'lastYear': start = new Date(today.getFullYear() - 1, 0, 1); end = new Date(today.getFullYear() - 1, 11, 31); break;
+        case 'currentMonth': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'currentYear': start = new Date(today.getFullYear(), 0, 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'all': default: start = null; end = null; break;
     }
 
     document.getElementById('startDate').value = start ? toISODate(start) : '';
@@ -541,15 +503,11 @@ function resetFilters() {
     document.getElementById('quickRange').value = 'all';
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
-    // Reset Assigned to Unchecked, others to Checked
-    document.querySelectorAll('#statusCheckboxes input').forEach(cb => {
-        cb.checked = (cb.value !== 'Assigned');
-    });
+    document.querySelectorAll('#statusCheckboxes input').forEach(cb => { cb.checked = (cb.value !== 'Assigned'); });
     applyFilters();
 }
 
 function downloadResults() {
-    // Get currently displayed data
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
@@ -557,36 +515,30 @@ function downloadResults() {
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
     const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
 
-    const allItems = [...finalTrades, ...openPositions];
-    const filtered = allItems.filter(item => {
+    const filtered = [...finalTrades, ...openPositions].filter(item => {
         const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
         const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
-        
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
         if (endDate && dateToFilter > endDate) matchesDate = false;
-        
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    // Create CSV content
-    let csv = 'Date,Symbol,Quantity,Action,Premium Received/Paid,P/L,% Return\n';
-    
+    let csv = 'Date,Symbol,Quantity,DTE,Action,Premium Received / Paid,Profit / Loss,% Return\n';
     filtered.forEach(p => {
         const date = p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString();
         const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
         const pl = p.isOpen ? 'Waiting to close' : p.profit.toFixed(2);
-        
+        const dte = p.isOpen ? calcDTE(p.symbol) : '';
         let returnPct = '';
         if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
-            returnPct = ((p.profit / (p.profit + Math.abs(p.closingPremium))) * 100).toFixed(2) + '%';
-        }
-        
-        csv += `${date},${p.symbol},${p.contracts},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
+            const denom = p.profit + Math.abs(p.closingPremium);
+            if (denom !== 0) returnPct = ((p.profit / denom) * 100).toFixed(2) + '%';
+        } else if (p.status.toLowerCase().includes('expired')) { returnPct = '100.00%'; }
+        csv += `${date},${p.symbol},${p.contracts},${dte},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
     });
 
-    // Create download link
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -596,6 +548,176 @@ function downloadResults() {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+}
+
+function closeMonthlySummary() {
+    document.getElementById('monthlyModal').style.display = 'none';
+}
+
+function showMonthlySummary() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    // Build months from Jan 2025 to current month
+    const startYear = 2025;
+    const now = new Date();
+    const months = [];
+    for (let y = startYear; y <= now.getFullYear(); y++) {
+        const mStart = (y === startYear) ? 0 : 0;
+        const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
+        for (let m = mStart; m <= mEnd; m++) {
+            months.push({ year: y, month: m });
+        }
+    }
+
+    // Build per-month data from all transactions + finaltrades
+    const fmt = (n) => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtNeg = (n) => n === 0 ? '$0.00' : (n > 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    let totSellOpen = 0, totBuyClose = 0, totProfit = 0, totAssigned = 0;
+
+    const rows = months.map(({year, month}) => {
+        const mStart = new Date(year, month, 1);
+        const mEnd = new Date(year, month + 1, 0, 23, 59, 59);
+        const monthLabel = mStart.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+
+        // Sell to Open & Buy to Close from allTransactions
+        let sellOpen = 0, buyClose = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= mStart && t.date <= mEnd) {
+                if (t.action.includes('sell') && t.action.includes('to open')) sellOpen += t.amount;
+                if (t.action.includes('buy') && t.action.includes('to close')) buyClose += t.amount;
+            }
+        });
+
+        // Profit from closed options (buy to close + expired) & assigned premium paid
+        let profit = 0, assignedPaid = 0;
+        finalTrades.forEach(t => {
+            if (t.closeDate >= mStart && t.closeDate <= mEnd) {
+                const st = t.status.toLowerCase();
+                if (st.includes('buy') && st.includes('close')) profit += t.profit;
+                if (st.includes('expired')) profit += t.profit;
+                if (st.includes('assigned')) assignedPaid += Math.abs(t.openingPremium);
+            }
+        });
+
+        const cashFlow = sellOpen + buyClose; // buyClose is already negative
+        totSellOpen += sellOpen;
+        totBuyClose += buyClose;
+        totProfit += profit;
+        totAssigned += assignedPaid;
+
+        return `<tr>
+            <td style="text-align:center;padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};font-weight:500;">${monthLabel}</td>
+            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:#4ade80;">${fmt(sellOpen)}</td>
+            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:${buyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(buyClose)}</td>
+            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:${cashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(cashFlow)}</td>
+            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:${profit >= 0 ? '#4ade80' : '#f87171'};">${fmt(profit)}</td>
+            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:#fbbf24;">${assignedPaid > 0 ? fmt(assignedPaid) : '$0.00'}</td>
+        </tr>`;
+    });
+
+    const totCashFlow = totSellOpen + totBuyClose;
+    const totalRow = `<tr style="background:#334155;font-weight:bold;">
+        <td style="text-align:center;padding:12px 14px;color:#a78bfa;">Total</td>
+        <td style="padding:12px 14px;color:#4ade80;">${fmt(totSellOpen)}</td>
+        <td style="padding:12px 14px;color:${totBuyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(totBuyClose)}</td>
+        <td style="padding:12px 14px;color:${totCashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(totCashFlow)}</td>
+        <td style="padding:12px 14px;color:${totProfit >= 0 ? '#4ade80' : '#f87171'};">${fmt(totProfit)}</td>
+        <td style="padding:12px 14px;color:#fbbf24;">${totAssigned > 0 ? fmt(totAssigned) : '$0.00'}</td>
+    </tr>`;
+
+    // Build yearly summary
+    const years = [...new Set(months.map(m => m.year))];
+    let grandSellOpen = 0, grandBuyClose = 0, grandProfit = 0, grandAssigned = 0;
+
+    const yearRows = years.map(year => {
+        const yStart = new Date(year, 0, 1);
+        const yEnd = new Date(year, 11, 31, 23, 59, 59);
+
+        let ySellOpen = 0, yBuyClose = 0, yProfit = 0, yAssigned = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= yStart && t.date <= yEnd) {
+                if (t.action.includes('sell') && t.action.includes('to open')) ySellOpen += t.amount;
+                if (t.action.includes('buy') && t.action.includes('to close')) yBuyClose += t.amount;
+            }
+        });
+        finalTrades.forEach(t => {
+            if (t.closeDate >= yStart && t.closeDate <= yEnd) {
+                const st = t.status.toLowerCase();
+                if (st.includes('buy') && st.includes('close')) yProfit += t.profit;
+                if (st.includes('expired')) yProfit += t.profit;
+                if (st.includes('assigned')) yAssigned += Math.abs(t.openingPremium);
+            }
+        });
+        const yCashFlow = ySellOpen + yBuyClose;
+        grandSellOpen += ySellOpen;
+        grandBuyClose += yBuyClose;
+        grandProfit += yProfit;
+        grandAssigned += yAssigned;
+        return `<tr>
+            <td style="text-align:center;padding:10px 14px;border-bottom:1px solid #334155;font-weight:600;">${year}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:#4ade80;">${fmt(ySellOpen)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:${yBuyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(yBuyClose)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:${yCashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(yCashFlow)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:${yProfit >= 0 ? '#4ade80' : '#f87171'};">${fmt(yProfit)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:#fbbf24;">${yAssigned > 0 ? fmt(yAssigned) : '$0.00'}</td>
+        </tr>`;
+    });
+
+    const grandCashFlow = grandSellOpen + grandBuyClose;
+    const yearTotalRow = `<tr style="background:#334155;font-weight:bold;">
+        <td style="text-align:center;padding:12px 14px;color:#a78bfa;">Total</td>
+        <td style="padding:12px 14px;color:#4ade80;">${fmt(grandSellOpen)}</td>
+        <td style="padding:12px 14px;color:${grandBuyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(grandBuyClose)}</td>
+        <td style="padding:12px 14px;color:${grandCashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(grandCashFlow)}</td>
+        <td style="padding:12px 14px;color:${grandProfit >= 0 ? '#4ade80' : '#f87171'};">${fmt(grandProfit)}</td>
+        <td style="padding:12px 14px;color:#fbbf24;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
+    </tr>`;
+
+    const thStyle = 'padding:10px 8px;background:#0f172a;color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;';
+    const tblStyle = 'width:100%;border-collapse:collapse;background:#1e293b;font-size:0.9rem;table-layout:fixed;';
+
+    document.getElementById('monthlyTableContainer').innerHTML = `
+        <h3 style="color:#a78bfa;margin:0 0 14px;font-size:1rem;">Summary by Year</h3>
+        <div style="overflow-x:auto;">
+        <table style="${tblStyle}">
+            <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
+            <thead><tr>
+                <th style="${thStyle}">Year</th>
+                <th style="${thStyle}">Sell to Open</th>
+                <th style="${thStyle}">Buy to Close</th>
+                <th style="${thStyle}">Cash Flow</th>
+                <th style="${thStyle}">Profit from Closed Options</th>
+                <th style="${thStyle}">Paid Premium Assigned</th>
+            </tr></thead>
+            <tbody>${yearRows.join('')}${yearTotalRow}</tbody>
+        </table>
+        </div>
+
+        <h3 style="color:#a78bfa;margin:28px 0 14px;font-size:1rem;">Monthly Breakdown</h3>
+        <div style="overflow-x:auto;">
+        <table style="${tblStyle}">
+            <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
+            <thead><tr>
+                <th style="${thStyle}">Month</th>
+                <th style="${thStyle}">Sell to Open</th>
+                <th style="${thStyle}">Buy to Close</th>
+                <th style="${thStyle}">Cash Flow</th>
+                <th style="${thStyle}">Profit from Closed Options</th>
+                <th style="${thStyle}">Paid Premium Assigned</th>
+            </tr></thead>
+            <tbody>${rows.join('')}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('monthlyModal');
+    modal.style.display = 'flex';
+
+    // Close on backdrop click
+    modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
 }
 </script>
 </body>
