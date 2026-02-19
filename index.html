@@ -174,6 +174,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 [data-theme="dark"] .waiting { color: #fbbf24; }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: var(--tag-bg); color: var(--text-primary); }
 .tag-waiting { background: #f59e0b; color: #000; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
 /* Upload box text */
 .upload-box p { color: var(--text-primary); }
@@ -257,6 +258,31 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset All Filters</button>
         <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">Download Results</button>
         <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">📊 Monthly Summary</button>
+        <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">📋 Open Commitments</button>
+    </div>
+
+    <!-- Open Commitments Modal -->
+    <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div style="border-radius:16px; padding:30px; max-width:95vw; width:1100px; max-height:85vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem;">Open Commitments</h2>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <button id="refreshPricesBtn" onclick="refreshStockPrices()" style="background:#0ea5e9;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
+                    <button onclick="closeOpenCommitments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+            <!-- Finnhub API key setup bar -->
+            <div id="apiKeyBar" style="background:rgba(14,165,233,0.1);border:1px solid #0ea5e9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:0.8rem;color:var(--text-secondary);flex-shrink:0;">🔑 Finnhub API Key:</span>
+                <input id="finnhubKeyInput" type="text" placeholder="Paste your free key from finnhub.io/register" 
+                    style="flex:1;min-width:220px;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-size:0.8rem;outline:none;">
+                <button onclick="saveFinnhubKey()" style="background:#0ea5e9;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">Save Key</button>
+                <button onclick="testFinnhubKey()" style="background:#7c3aed;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">🧪 Test Key</button>
+                <a href="https://finnhub.io/register" target="_blank" style="font-size:0.75rem;color:#0ea5e9;white-space:nowrap;">Get free key ↗</a>
+            </div>
+            <div id="priceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;text-align:right;"></div>
+            <div id="openCommitmentsContainer"></div>
+        </div>
     </div>
 
     <!-- Monthly Summary Modal -->
@@ -565,10 +591,10 @@ function render(newSortKey, dataToRender) {
     }
 
     const cols = [
-        {lab:'Date',key:'closeDate'},
+        {lab:'Transaction Date',key:'closeDate'},
         {lab:'Symbol',key:'symbol'},
         {lab:'Quantity',key:'contracts'},
-        {lab:'DTE',key:'dte'},
+        {lab:'Days Till Expiration',key:'dte'},
         {lab:'Action',key:'status'},
         {lab:'Premium Received / Paid',key:'openingPremium'},
         {lab:'Profit / Loss',key:'profit'},
@@ -681,7 +707,7 @@ function downloadResults() {
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    let csv = 'Date,Symbol,Quantity,DTE,Action,Premium Received / Paid,Profit / Loss,% Return\n';
+    let csv = 'Date,Symbol,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return\n';
     filtered.forEach(p => {
         const date = p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString();
         const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
@@ -708,6 +734,371 @@ function downloadResults() {
 
 function closeMonthlySummary() {
     document.getElementById('monthlyModal').style.display = 'none';
+}
+
+function closeOpenCommitments() {
+    document.getElementById('openCommitmentsModal').style.display = 'none';
+}
+
+// State for Open Commitments sort
+let ocSortKey = 'date';
+let ocSortDir = 1;
+let ocParsedRows = [];
+let ocStockPrices = {};   // { TICKER: { price, change, changePct, loading, error } }
+let ocPriceFetchTime = null;
+
+// Extract root ticker from Schwab option symbol e.g. "AAPL 01/17/2025 185.00 P" -> "AAPL"
+function extractTicker(symbol) {
+    return symbol.trim().split(/\s+/)[0].toUpperCase();
+}
+
+function saveFinnhubKey() {
+    const key = document.getElementById('finnhubKeyInput').value.trim();
+    if (!key) { alert('Please enter a Finnhub API key.'); return; }
+    localStorage.setItem('finnhubApiKey', key);
+    const bar = document.getElementById('apiKeyBar');
+    if (bar) {
+        bar.style.borderColor = '#10b981';
+        bar.style.background = 'rgba(16,185,129,0.1)';
+    }
+    const ts = document.getElementById('priceTimestamp');
+    if (ts) ts.textContent = '✅ Key saved! Click Refresh Prices to load quotes.';
+}
+
+function loadSavedFinnhubKey() {
+    const saved = localStorage.getItem('finnhubApiKey');
+    const input = document.getElementById('finnhubKeyInput');
+    if (saved && input) {
+        input.value = saved;
+        const bar = document.getElementById('apiKeyBar');
+        if (bar) { bar.style.borderColor = '#10b981'; bar.style.background = 'rgba(16,185,129,0.1)'; }
+    }
+}
+
+async function testFinnhubKey() {
+    const input = document.getElementById('finnhubKeyInput');
+    const key = (input?.value || '').trim();
+    const ts = document.getElementById('priceTimestamp');
+    if (!key) { if (ts) ts.textContent = '⚠️ Enter a key first.'; return; }
+    if (ts) ts.textContent = '🧪 Testing key with AAPL…';
+    try {
+        const url = `https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`;
+        const res = await fetch(url);
+        const text = await res.text();
+        let parsed;
+        try { parsed = JSON.parse(text); } catch(e) { parsed = null; }
+        if (!res.ok) {
+            if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ HTTP ${res.status} — Raw response: <code>${text.substring(0,200)}</code></span>`;
+            return;
+        }
+        if (!parsed) {
+            if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ Could not parse JSON. Raw: <code>${text.substring(0,200)}</code></span>`;
+            return;
+        }
+        if (parsed.error) {
+            if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ Finnhub error: "${parsed.error}"</span>`;
+            return;
+        }
+        if (!parsed.c || parsed.c === 0) {
+            if (ts) ts.innerHTML = `<span style="color:#fbbf24;">⚠️ Key accepted but no price data. Raw: <code>${JSON.stringify(parsed)}</code></span>`;
+            return;
+        }
+        // Key works!
+        localStorage.setItem('finnhubApiKey', key);
+        const bar = document.getElementById('apiKeyBar');
+        if (bar) { bar.style.borderColor = '#10b981'; bar.style.background = 'rgba(16,185,129,0.1)'; }
+        if (ts) ts.innerHTML = `<span style="color:#4ade80;">✅ Key works! AAPL = $${parsed.c.toFixed(2)} (change: ${parsed.d >= 0 ? '+' : ''}${parsed.d?.toFixed(2)}, ${parsed.dp?.toFixed(2)}%). Key saved — click Refresh Prices.</span>`;
+    } catch(e) {
+        if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ Network error: ${e.message}. Are you opening this file from your local disk (file://)? Try hosting it locally with a simple server.</span>`;
+    }
+}
+
+async function fetchSinglePrice(ticker) {
+    const key = localStorage.getItem('finnhubApiKey');
+    if (!key) throw new Error('No API key saved');
+
+    const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${encodeURIComponent(key)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${txt.substring(0, 80)}`);
+    }
+    const json = await res.json();
+    if (json.error) throw new Error(`Finnhub: ${json.error}`);
+    if (!json.c || json.c === 0) throw new Error(`No price data (response: ${JSON.stringify(json).substring(0,80)})`);
+    const price = json.c;
+    const change = json.d ?? (price - (json.pc || price));
+    const changePct = json.dp ?? (json.pc ? (change / json.pc) * 100 : 0);
+    return { price, change, changePct };
+}
+
+async function refreshStockPrices() {
+    if (!ocParsedRows.length) return;
+
+    const key = localStorage.getItem('finnhubApiKey');
+    if (!key) {
+        const ts = document.getElementById('priceTimestamp');
+        if (ts) ts.textContent = '⚠️ Please enter and save your Finnhub API key above first.';
+        document.getElementById('finnhubKeyInput')?.focus();
+        return;
+    }
+
+    const tickers = [...new Set(ocParsedRows.map(r => extractTicker(r.symbol)))];
+
+    // Mark all as loading
+    tickers.forEach(t => { ocStockPrices[t] = { loading: true }; });
+    renderOpenCommitmentsTable();
+
+    const ts = document.getElementById('priceTimestamp');
+    if (ts) ts.textContent = `Fetching prices for: ${tickers.join(', ')}…`;
+
+    // Fetch sequentially to respect Finnhub free-tier rate limit (60 req/min)
+    for (const ticker of tickers) {
+        try {
+            const data = await fetchSinglePrice(ticker);
+            ocStockPrices[ticker] = { ...data, loading: false, error: false };
+        } catch(e) {
+            ocStockPrices[ticker] = { loading: false, error: true, errMsg: e.message };
+        }
+        renderOpenCommitmentsTable();
+        if (tickers.length > 1) await new Promise(r => setTimeout(r, 150)); // small delay between calls
+    }
+
+    ocPriceFetchTime = new Date();
+    renderOpenCommitmentsTable();
+}
+
+function showOpenCommitments() {
+    if (!openPositions || openPositions.length === 0) {
+        alert('No open positions found. Please upload a file first.');
+        return;
+    }
+
+    // Parse each open position once
+    ocParsedRows = openPositions.map(p => {
+        const sym = p.symbol.trim();
+        const putMatch = sym.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = sym.match(/([\d.]+)\s+C\s*$/);
+        const isPut = !!putMatch;
+        const isCall = !!callMatch;
+        const strike = isPut ? parseFloat(putMatch[1]) : isCall ? parseFloat(callMatch[1]) : null;
+        const contracts = parseFloat(p.contracts) || 0;
+        const commitment = strike !== null ? strike * contracts * 100 : 0;
+        const putCommitment = isPut ? commitment : 0;
+        const callCommitment = isCall ? commitment : 0;
+        const type = isPut ? 'Put' : isCall ? 'Call' : '—';
+        const strikeDisplay = strike !== null ? '$' + strike.toFixed(2) : '—';
+        const dateObj = p.openDate || null;
+        const date = dateObj ? dateObj.toLocaleDateString() : '—';
+        const dte = calcDTE(p.symbol);
+        return { dateObj, date, symbol: p.symbol, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte };
+    });
+
+    // Reset sort on fresh open
+    ocSortKey = 'date';
+    ocSortDir = 1;
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalInner = document.querySelector('#openCommitmentsModal > div');
+    modalInner.style.background = isDark ? '#1e293b' : '#ffffff';
+    modalInner.style.border = '1px solid #0ea5e9';
+
+    renderOpenCommitmentsTable();
+
+    const modal = document.getElementById('openCommitmentsModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
+    setTimeout(loadSavedFinnhubKey, 50); // restore saved key into input
+}
+
+function sortOpenCommitments(key) {
+    if (ocSortKey === key) ocSortDir *= -1;
+    else { ocSortKey = key; ocSortDir = 1; }
+    renderOpenCommitmentsTable();
+}
+
+function renderOpenCommitmentsTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+    const warnColor = isDark ? '#fbbf24' : '#d97706';
+
+    const fmt = (n) => n === 0 ? '' : ('$' + n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
+    const fmtPrice = (n) => '$' + n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    // Helper: render price cell content
+    const priceCell = (ticker) => {
+        const p = ocStockPrices[ticker];
+        if (!p) return '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        if (p.loading) return '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+        if (p.error) return `<span style="color:#f87171;font-size:0.75rem;" title="${p.errMsg||'fetch failed'}">Error ⚠</span>`;
+        const chgColor = p.change >= 0 ? posColor : negColor;
+        const sign = p.change >= 0 ? '+' : '';
+        return `<span style="font-weight:700;font-size:0.9rem;">${fmtPrice(p.price)}</span><br><span style="font-size:0.7rem;color:${chgColor};">${sign}${p.change.toFixed(2)} (${sign}${p.changePct.toFixed(2)}%)</span>`;
+    };
+
+    // Sort
+    const sorted = [...ocParsedRows].sort((a, b) => {
+        let v1, v2;
+        if (ocSortKey === 'date') { v1 = a.dateObj ? a.dateObj.getTime() : 0; v2 = b.dateObj ? b.dateObj.getTime() : 0; }
+        else if (ocSortKey === 'symbol') { v1 = a.symbol.toLowerCase(); v2 = b.symbol.toLowerCase(); }
+        else if (ocSortKey === 'dte') { v1 = a.dte !== '' ? parseInt(a.dte) : 9999; v2 = b.dte !== '' ? parseInt(b.dte) : 9999; }
+        else if (ocSortKey === 'strike') { v1 = a.strike || 0; v2 = b.strike || 0; }
+        else if (ocSortKey === 'type') { v1 = a.type; v2 = b.type; }
+        else if (ocSortKey === 'contracts') { v1 = a.contracts; v2 = b.contracts; }
+        else if (ocSortKey === 'puts') { v1 = a.putCommitment; v2 = b.putCommitment; }
+        else if (ocSortKey === 'calls') { v1 = a.callCommitment; v2 = b.callCommitment; }
+        else if (ocSortKey === 'price') {
+            const pa = ocStockPrices[extractTicker(a.symbol)];
+            const pb = ocStockPrices[extractTicker(b.symbol)];
+            v1 = pa && pa.price ? pa.price : 0; v2 = pb && pb.price ? pb.price : 0;
+        }
+        if (v1 < v2) return -ocSortDir;
+        if (v1 > v2) return ocSortDir;
+        return 0;
+    });
+
+    const totalPuts = sorted.reduce((s, r) => s + r.putCommitment, 0);
+    const totalCalls = sorted.reduce((s, r) => s + r.callCommitment, 0);
+
+    // 9 columns now (added Current Price)
+    const colW = 'width:11.11%;';
+    const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;`;
+    const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+    const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
+
+    const rowsHtml = sorted.map((r, i) => {
+        const ticker = extractTicker(r.symbol);
+        const pd = ocStockPrices[ticker];
+        // Highlight row if put is at-risk (stock price at or below strike)
+        const isAtRisk = r.type === 'Put' && pd && !pd.loading && !pd.error && pd.price <= r.strike;
+        const bg = isAtRisk ? (isDark ? 'rgba(248,113,113,0.12)' : 'rgba(220,38,38,0.07)') : (i % 2 === 0 ? rowBg : rowAltBg);
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:${textColor};">${r.date}</td>
+            <td style="${tdBase}color:${textColor};font-size:0.8rem;">${r.symbol}</td>
+            <td style="${tdBase}color:${warnColor};">${r.dte !== '' ? r.dte : '—'}</td>
+            <td style="${tdBase}color:#a78bfa;font-weight:600;">${r.strikeDisplay}</td>
+            <td style="${tdBase}color:${r.type === 'Put' ? negColor : r.type === 'Call' ? posColor : textColor};font-weight:600;">${r.type}</td>
+            <td style="${tdBase}color:${textColor};">${r.contracts}</td>
+            <td style="${tdBase}color:${negColor};font-weight:500;">${fmt(r.putCommitment)}</td>
+            <td style="${tdBase}color:${posColor};font-weight:500;">${fmt(r.callCommitment)}</td>
+            <td style="${tdBase}line-height:1.5;">${priceCell(ticker)}</td>
+        </tr>`;
+    }).join('');
+
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td colspan="6" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td style="padding:12px 8px;text-align:center;color:${negColor};border-top:2px solid #0ea5e9;">${totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="padding:12px 8px;text-align:center;color:${posColor};border-top:2px solid #0ea5e9;">${totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="padding:12px 8px;border-top:2px solid #0ea5e9;"></td>
+    </tr>`;
+
+    // --- Summary table grouped by expiration date, now with avg price per ticker ---
+    const expGroups = {};
+    ocParsedRows.forEach(r => {
+        const sym = r.symbol.trim();
+        const expMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+        const expDate = expMatch ? expMatch[1] : '—';
+        const ticker = extractTicker(r.symbol);
+        if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: r.dte, totalPuts: 0, totalCalls: 0, tickers: new Set() };
+        expGroups[expDate].totalPuts += r.putCommitment;
+        expGroups[expDate].totalCalls += r.callCommitment;
+        expGroups[expDate].tickers.add(ticker);
+    });
+
+    const groupRows = Object.values(expGroups).sort((a, b) => {
+        const da = a.dte !== '' ? parseInt(a.dte) : 9999;
+        const db = b.dte !== '' ? parseInt(b.dte) : 9999;
+        return da - db;
+    });
+
+    const grandPuts = groupRows.reduce((s, g) => s + g.totalPuts, 0);
+    const grandCalls = groupRows.reduce((s, g) => s + g.totalCalls, 0);
+
+    const sumThStyle = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 8px;word-break:break-word;white-space:normal;`;
+    const sumTdStyle = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
+
+    const summaryRowsHtml = groupRows.map((g, i) => {
+        // Show prices for all tickers in this expiry group
+        const tickerPrices = [...g.tickers].map(t => {
+            const pd = ocStockPrices[t];
+            if (!pd) return `<span style="color:#64748b;font-size:0.75rem;">${t}: —</span>`;
+            if (pd.loading) return `<span style="font-size:0.75rem;color:#64748b;">${t}: Loading…</span>`;
+            if (pd.error) return `<span style="font-size:0.75rem;color:${negColor};">${t}: Error</span>`;
+            const chgColor = pd.change >= 0 ? posColor : negColor;
+            const sign = pd.change >= 0 ? '+' : '';
+            return `<span style="font-size:0.8rem;"><b>${t}</b> ${fmtPrice(pd.price)} <span style="color:${chgColor};">${sign}${pd.changePct.toFixed(2)}%</span></span>`;
+        }).join('<br>');
+
+        return `<tr style="background:${i % 2 === 0 ? rowBg : rowAltBg};">
+            <td style="${sumTdStyle}color:${textColor};">${g.expDate}</td>
+            <td style="${sumTdStyle}color:${warnColor};font-weight:600;">${g.dte !== '' ? g.dte : '—'}</td>
+            <td style="${sumTdStyle}color:${negColor};font-weight:500;">${g.totalPuts > 0 ? '$' + g.totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+            <td style="${sumTdStyle}color:${posColor};font-weight:500;">${g.totalCalls > 0 ? '$' + g.totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+            <td style="${sumTdStyle}line-height:1.8;">${tickerPrices}</td>
+        </tr>`;
+    }).join('');
+
+    const summaryTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td style="${sumTdStyle}color:${negColor};border-top:2px solid #0ea5e9;">${grandPuts > 0 ? '$' + grandPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}color:${posColor};border-top:2px solid #0ea5e9;">${grandCalls > 0 ? '$' + grandCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}border-top:2px solid #0ea5e9;"></td>
+    </tr>`;
+
+    // Update timestamp
+    const tsEl = document.getElementById('priceTimestamp');
+    if (tsEl) {
+        if (ocPriceFetchTime) {
+            tsEl.textContent = 'Prices last updated: ' + ocPriceFetchTime.toLocaleTimeString();
+        } else {
+            tsEl.textContent = 'Click "Refresh Prices" to load real-time stock prices via Yahoo Finance.';
+        }
+    }
+
+    document.getElementById('openCommitmentsContainer').innerHTML = `
+        <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
+        <div style="overflow-x:auto;margin-bottom:28px;">
+        <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
+            <colgroup><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
+            <thead><tr>
+                <th style="${sumThStyle}">Strike Date</th>
+                <th style="${sumThStyle}">Days Till Expiration</th>
+                <th style="${sumThStyle}">Total Commitments (Puts)</th>
+                <th style="${sumThStyle}">Total Commitments (Calls)</th>
+                <th style="${sumThStyle}">Current Stock Price(s)</th>
+            </tr></thead>
+            <tbody>${summaryRowsHtml}${summaryTotalRow}</tbody>
+        </table>
+        </div>
+
+        <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">All Open Positions</h3>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
+            <colgroup>
+                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+            </colgroup>
+            <thead><tr>
+                <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
+            </tr></thead>
+            <tbody>${rowsHtml}${totalRow}</tbody>
+        </table>
+        </div>`;
 }
 
 function showMonthlySummary() {
