@@ -738,6 +738,11 @@ function closeMonthlySummary() {
 
 function closeOpenCommitments() {
     document.getElementById('openCommitmentsModal').style.display = 'none';
+    const modalInner = document.querySelector('#openCommitmentsModal > div');
+    if (modalInner && modalInner._ocScrollHandler) {
+        modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
+        delete modalInner._ocScrollHandler;
+    }
 }
 
 // Finnhub API key (embedded)
@@ -985,7 +990,7 @@ function renderOpenCommitmentsTable() {
 
     // 9 columns now (added Current Price)
     const colW = 'width:8.33%;';
-    const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;`;
+    const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;position:relative;z-index:2;`;
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
 
@@ -1100,7 +1105,7 @@ function renderOpenCommitmentsTable() {
                 <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
                 <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
             </colgroup>
-            <thead><tr>
+            <thead id="ocDetailThead"><tr>
                 <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
@@ -1117,6 +1122,35 @@ function renderOpenCommitmentsTable() {
             <tbody>${rowsHtml}${totalRow}</tbody>
         </table>
         </div>`;
+
+    // Set up scroll-based thead pin after DOM updates
+    setTimeout(() => {
+        const modalInner = document.querySelector('#openCommitmentsModal > div');
+        if (!modalInner) return;
+
+        // Remove any previous listener
+        if (modalInner._ocScrollHandler) {
+            modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
+        }
+
+        modalInner._ocScrollHandler = function() {
+            const thead = document.getElementById('ocDetailThead');
+            if (!thead) return;
+            const theadRect = thead.parentElement.getBoundingClientRect(); // table
+            const modalRect = modalInner.getBoundingClientRect();
+            // How far has the table top scrolled above the modal top?
+            const scrolledPast = modalRect.top - theadRect.top;
+            if (scrolledPast > 0) {
+                thead.style.transform = `translateY(${scrolledPast}px)`;
+                thead.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
+            } else {
+                thead.style.transform = '';
+                thead.style.boxShadow = '';
+            }
+        };
+
+        modalInner.addEventListener('scroll', modalInner._ocScrollHandler);
+    }, 50);
 }
 
 function showMonthlySummary() {
