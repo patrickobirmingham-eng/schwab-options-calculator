@@ -597,7 +597,6 @@ function render(newSortKey, dataToRender) {
         {lab:'Days Till Expiration',key:'dte'},
         {lab:'Action',key:'status'},
         {lab:'Premium Received / Paid',key:'openingPremium'},
-        {lab:'Current Option Value',key:'optionValue'},
         {lab:'Profit / Loss',key:'profit'},
         {lab:'% Return',key:'returnPct'}
     ];
@@ -624,9 +623,6 @@ function render(newSortKey, dataToRender) {
         });
     });
 
-    // Store open positions for option price fetching
-    window._openPositionsForFetch = displayData.filter(p => p.isOpen);
-
     document.getElementById('tableBody').innerHTML = displayData.map(p => {
         let returnPct = '', returnClass = '';
         if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
@@ -651,91 +647,10 @@ function render(newSortKey, dataToRender) {
             <td>${p.isOpen ? calcDTE(p.symbol) : ''}</td>
             <td><span class="tag ${p.isOpen ? 'tag-waiting' : ''}">${p.status}</span></td>
             <td class="${premClass}">$${premVal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-            <td id="optval-${p.symbol.replace(/[^a-zA-Z0-9]/g,'_')}" style="color:#64748b;font-size:0.85rem;">${p.isOpen ? '...' : '—'}</td>
             <td class="${p.isOpen ? 'waiting' : (p.profit >= 0 ? 'pos' : 'neg')}">${p.isOpen ? 'Waiting to close' : '$' + p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="${returnClass}">${returnPct}</td>
         </tr>`;
     }).join('');
-
-    // Fetch option prices for open positions after a short delay
-    setTimeout(fetchOptionPrices, 100);
-}
-
-function parseSchwabSymbol(symbol) {
-    // "AAPL 01/17/2025 185.00 P" -> { ticker, expStr, strike, optType }
-    const parts = symbol.trim().split(/\s+/);
-    if (parts.length < 4) throw new Error('bad symbol');
-    const [ticker, expStr, strikeStr, optType] = parts;
-    const [mo, dy, yr] = expStr.split('/');
-    // Unix timestamp for expiration date
-    const expTimestamp = Math.floor(new Date(`${yr}-${mo}-${dy}T00:00:00Z`).getTime() / 1000);
-    return { ticker: ticker.toUpperCase(), expTimestamp, strike: parseFloat(strikeStr), optType: optType.toUpperCase() };
-}
-
-async function yahooFetch(url) {
-    // Route through allorigins CORS proxy
-    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const res = await fetch(proxy);
-    if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
-    const outer = await res.json();
-    return JSON.parse(outer.contents);
-}
-
-async function fetchOptionPrice(symbol) {
-    const { ticker, expTimestamp, strike, optType } = parseSchwabSymbol(symbol);
-
-    // Step 1: get expiration dates
-    const j1 = await yahooFetch(`https://query2.finance.yahoo.com/v7/finance/options/${ticker}`);
-    const result1 = j1?.optionChain?.result?.[0];
-    if (!result1) throw new Error('No option chain — raw: ' + JSON.stringify(j1).substring(0, 200));
-
-    const exps = result1.expirationDates || [];
-    if (!exps.length) throw new Error('No expirations');
-    const closestExp = exps.reduce((best, ts) =>
-        Math.abs(ts - expTimestamp) < Math.abs(best - expTimestamp) ? ts : best, exps[0]);
-
-    // Step 2: fetch chain for that expiration
-    const j2 = await yahooFetch(`https://query2.finance.yahoo.com/v7/finance/options/${ticker}?date=${closestExp}`);
-    const chain = j2?.optionChain?.result?.[0]?.options?.[0];
-    if (!chain) throw new Error('No chain data');
-
-    const list = optType === 'P' ? chain.puts : chain.calls;
-    if (!list || !list.length) throw new Error('No contracts');
-
-    let match = list.find(c => Math.abs(c.strike - strike) < 0.01);
-    if (!match) match = list.reduce((best, c) =>
-        Math.abs(c.strike - strike) < Math.abs(best.strike - strike) ? c : best, list[0]);
-
-    const price = match.lastPrice || match.ask || match.bid || 0;
-    if (!price) throw new Error(`Strike ${strike} found but price=0`);
-    return price;
-}
-
-async function fetchOptionPrices() {
-    const positions = window._openPositionsForFetch || [];
-    for (const p of positions) {
-        const elId = 'optval-' + p.symbol.replace(/[^a-zA-Z0-9]/g, '_');
-        const el = document.getElementById(elId);
-        if (!el) continue;
-        try {
-            const price = await fetchOptionPrice(p.symbol);
-            const contracts = parseFloat(p.contracts) || 0;
-            const value = price * contracts * 100;
-            if (value > 0) {
-                el.textContent = '$' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                el.className = 'pos';
-                el.title = `Option price: $${price.toFixed(2)} × ${contracts} contracts × 100`;
-            } else {
-                el.textContent = '—';
-                el.style.color = '#64748b';
-            }
-        } catch(e) {
-            el.textContent = 'N/A';
-            el.style.color = '#94a3b8';
-            el.title = e.message;
-        }
-        await new Promise(r => setTimeout(r, 500));
-    }
 }
 
 function toISODate(d) { return d.toISOString().split('T')[0]; }
