@@ -272,10 +272,10 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                 </div>
             </div>
             <!-- Finnhub API key setup bar -->
-            <div id="apiKeyBar" style="background:rgba(14,165,233,0.1);border:1px solid #0ea5e9;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div id="apiKeyBar" style="background:rgba(16,185,129,0.08);border:1px solid #10b981;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 <span style="font-size:0.8rem;color:var(--text-secondary);flex-shrink:0;">🔑 Finnhub API Key:</span>
-                <input id="finnhubKeyInput" type="text" placeholder="Paste your free key from finnhub.io/register" 
-                    style="flex:1;min-width:220px;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-size:0.8rem;outline:none;">
+                <input id="finnhubKeyInput" type="text" value="d6bjguhr01qp4lhvmct0d6bjguhr01qp4lhvmctg" readonly
+                    style="flex:1;min-width:220px;background:var(--bg-input);border:1px solid #10b981;color:var(--text-secondary);padding:6px 10px;border-radius:6px;font-size:0.8rem;outline:none;cursor:default;">
                 <button onclick="saveFinnhubKey()" style="background:#0ea5e9;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">Save Key</button>
                 <button onclick="testFinnhubKey()" style="background:#7c3aed;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">🧪 Test Key</button>
                 <a href="https://finnhub.io/register" target="_blank" style="font-size:0.75rem;color:#0ea5e9;white-space:nowrap;">Get free key ↗</a>
@@ -740,6 +740,9 @@ function closeOpenCommitments() {
     document.getElementById('openCommitmentsModal').style.display = 'none';
 }
 
+// Finnhub API key (embedded)
+const FINNHUB_API_KEY = "d6bjguhr01qp4lhvmct0d6bjguhr01qp4lhvmctg";
+
 // State for Open Commitments sort
 let ocSortKey = 'date';
 let ocSortDir = 1;
@@ -755,7 +758,7 @@ function extractTicker(symbol) {
 function saveFinnhubKey() {
     const key = document.getElementById('finnhubKeyInput').value.trim();
     if (!key) { alert('Please enter a Finnhub API key.'); return; }
-    localStorage.setItem('finnhubApiKey', key);
+    // key embedded in code
     const bar = document.getElementById('apiKeyBar');
     if (bar) {
         bar.style.borderColor = '#10b981';
@@ -766,7 +769,7 @@ function saveFinnhubKey() {
 }
 
 function loadSavedFinnhubKey() {
-    const saved = localStorage.getItem('finnhubApiKey');
+    const saved = FINNHUB_API_KEY;
     const input = document.getElementById('finnhubKeyInput');
     if (saved && input) {
         input.value = saved;
@@ -804,7 +807,7 @@ async function testFinnhubKey() {
             return;
         }
         // Key works!
-        localStorage.setItem('finnhubApiKey', key);
+        // key embedded in code
         const bar = document.getElementById('apiKeyBar');
         if (bar) { bar.style.borderColor = '#10b981'; bar.style.background = 'rgba(16,185,129,0.1)'; }
         if (ts) ts.innerHTML = `<span style="color:#4ade80;">✅ Key works! AAPL = $${parsed.c.toFixed(2)} (change: ${parsed.d >= 0 ? '+' : ''}${parsed.d?.toFixed(2)}, ${parsed.dp?.toFixed(2)}%). Key saved — click Refresh Prices.</span>`;
@@ -814,7 +817,7 @@ async function testFinnhubKey() {
 }
 
 async function fetchSinglePrice(ticker) {
-    const key = localStorage.getItem('finnhubApiKey');
+    const key = FINNHUB_API_KEY;
     if (!key) throw new Error('No API key saved');
 
     const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${encodeURIComponent(key)}`;
@@ -835,7 +838,7 @@ async function fetchSinglePrice(ticker) {
 async function refreshStockPrices() {
     if (!ocParsedRows.length) return;
 
-    const key = localStorage.getItem('finnhubApiKey');
+    const key = FINNHUB_API_KEY;
     if (!key) {
         const ts = document.getElementById('priceTimestamp');
         if (ts) ts.textContent = '⚠️ Please enter and save your Finnhub API key above first.';
@@ -984,19 +987,20 @@ function renderOpenCommitmentsTable() {
             <td style="${tdBase}color:${textColor};font-size:0.8rem;">${r.symbol}</td>
             <td style="${tdBase}color:${warnColor};">${r.dte !== '' ? r.dte : '—'}</td>
             <td style="${tdBase}color:#a78bfa;font-weight:600;">${r.strikeDisplay}</td>
+            <td style="${tdBase}line-height:1.5;">${priceCell(ticker)}</td>
             <td style="${tdBase}color:${r.type === 'Put' ? negColor : r.type === 'Call' ? posColor : textColor};font-weight:600;">${r.type}</td>
             <td style="${tdBase}color:${textColor};">${r.contracts}</td>
             <td style="${tdBase}color:${negColor};font-weight:500;">${fmt(r.putCommitment)}</td>
             <td style="${tdBase}color:${posColor};font-weight:500;">${fmt(r.callCommitment)}</td>
-            <td style="${tdBase}line-height:1.5;">${priceCell(ticker)}</td>
         </tr>`;
     }).join('');
 
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="6" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td colspan="5" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td style="padding:12px 8px;border-top:2px solid #0ea5e9;"></td>
+        <td style="padding:12px 8px;border-top:2px solid #0ea5e9;"></td>
         <td style="padding:12px 8px;text-align:center;color:${negColor};border-top:2px solid #0ea5e9;">${totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${posColor};border-top:2px solid #0ea5e9;">${totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-        <td style="padding:12px 8px;border-top:2px solid #0ea5e9;"></td>
     </tr>`;
 
     // --- Summary table grouped by expiration date, now with avg price per ticker ---
@@ -1041,7 +1045,6 @@ function renderOpenCommitmentsTable() {
             <td style="${sumTdStyle}color:${warnColor};font-weight:600;">${g.dte !== '' ? g.dte : '—'}</td>
             <td style="${sumTdStyle}color:${negColor};font-weight:500;">${g.totalPuts > 0 ? '$' + g.totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
             <td style="${sumTdStyle}color:${posColor};font-weight:500;">${g.totalCalls > 0 ? '$' + g.totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-            <td style="${sumTdStyle}line-height:1.8;">${tickerPrices}</td>
         </tr>`;
     }).join('');
 
@@ -1049,7 +1052,6 @@ function renderOpenCommitmentsTable() {
         <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
         <td style="${sumTdStyle}color:${negColor};border-top:2px solid #0ea5e9;">${grandPuts > 0 ? '$' + grandPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="${sumTdStyle}color:${posColor};border-top:2px solid #0ea5e9;">${grandCalls > 0 ? '$' + grandCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-        <td style="${sumTdStyle}border-top:2px solid #0ea5e9;"></td>
     </tr>`;
 
     // Update timestamp
@@ -1066,13 +1068,12 @@ function renderOpenCommitmentsTable() {
         <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
         <div style="overflow-x:auto;margin-bottom:28px;">
         <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
-            <colgroup><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
+            <colgroup><col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%"></colgroup>
             <thead><tr>
                 <th style="${sumThStyle}">Strike Date</th>
                 <th style="${sumThStyle}">Days Till Expiration</th>
                 <th style="${sumThStyle}">Total Commitments (Puts)</th>
                 <th style="${sumThStyle}">Total Commitments (Calls)</th>
-                <th style="${sumThStyle}">Current Stock Price(s)</th>
             </tr></thead>
             <tbody>${summaryRowsHtml}${summaryTotalRow}</tbody>
         </table>
@@ -1090,11 +1091,11 @@ function renderOpenCommitmentsTable() {
                 <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
             </tr></thead>
             <tbody>${rowsHtml}${totalRow}</tbody>
         </table>
