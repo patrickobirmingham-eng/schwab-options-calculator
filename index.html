@@ -407,7 +407,7 @@ function render(newSortKey, dataToRender) {
         <div class="stat-card"><div class="stat-label">Sell to Open</div><div class="stat-value pos">$${sellToOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Buy to Close</div><div class="stat-value neg">$${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Cash Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Realized P/L (Filtered)</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Realized Profit / Loss</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${openPremium.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Closed Trades</div><div class="stat-value">${closedTrades}</div></div>
         <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
