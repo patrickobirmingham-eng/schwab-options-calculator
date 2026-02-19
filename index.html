@@ -263,7 +263,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <!-- Open Commitments Modal -->
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div style="border-radius:16px; padding:30px; max-width:95vw; width:1100px; max-height:85vh; overflow-y:auto; position:relative;">
+        <div style="border-radius:16px; padding:30px; max-width:90vw; width:90vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem;">Open Commitments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -894,7 +894,8 @@ function showOpenCommitments() {
         const dateObj = p.openDate || null;
         const date = dateObj ? dateObj.toLocaleDateString() : '—';
         const dte = calcDTE(p.symbol);
-        return { dateObj, date, symbol: p.symbol, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte };
+        const premiumReceived = Math.abs(p.openingPremium || 0);
+        return { dateObj, date, symbol: p.symbol, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte, premiumReceived };
     });
 
     // Reset sort on fresh open
@@ -962,6 +963,18 @@ function renderOpenCommitmentsTable() {
             const pb = ocStockPrices[extractTicker(b.symbol)];
             v1 = pa && pa.price ? pa.price : 0; v2 = pb && pb.price ? pb.price : 0;
         }
+        else if (ocSortKey === 'assignPrice') {
+            v1 = a.type === 'Put' && a.contracts > 0 ? (a.putCommitment - a.premiumReceived) / (a.contracts * 100) : 0;
+            v2 = b.type === 'Put' && b.contracts > 0 ? (b.putCommitment - b.premiumReceived) / (b.contracts * 100) : 0;
+        }
+        else if (ocSortKey === 'pctFromStrike') {
+            const getPct = (r) => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return -Infinity; if (r.type === 'Put') { const ap = r.contracts > 0 ? (r.putCommitment - r.premiumReceived) / (r.contracts * 100) : null; return ap !== null ? (1 - ap / p.price) * 100 : -Infinity; } if (r.type === 'Call') return r.strike ? (r.strike / p.price - 1) * 100 : -Infinity; return -Infinity; };
+            v1 = getPct(a); v2 = getPct(b);
+        }
+        else if (ocSortKey === 'otmitm') {
+            const getOtm = (r) => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return -1; if (r.type === 'Put') return p.price > r.strike ? 1 : 0; if (r.type === 'Call') return p.price < r.strike ? 1 : 0; return -1; };
+            v1 = getOtm(a); v2 = getOtm(b);
+        }
         if (v1 < v2) return -ocSortDir;
         if (v1 > v2) return ocSortDir;
         return 0;
@@ -971,7 +984,7 @@ function renderOpenCommitmentsTable() {
     const totalCalls = sorted.reduce((s, r) => s + r.callCommitment, 0);
 
     // 9 columns now (added Current Price)
-    const colW = 'width:11.11%;';
+    const colW = 'width:8.33%;';
     const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;`;
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
@@ -988,6 +1001,9 @@ function renderOpenCommitmentsTable() {
             <td style="${tdBase}color:${warnColor};">${r.dte !== '' ? r.dte : '—'}</td>
             <td style="${tdBase}color:#a78bfa;font-weight:600;">${r.strikeDisplay}</td>
             <td style="${tdBase}line-height:1.5;">${priceCell(ticker)}</td>
+            <td style="${tdBase}color:#e879f9;font-weight:600;">${r.type === 'Put' && r.contracts > 0 ? '$' + ((r.putCommitment - r.premiumReceived) / (r.contracts * 100)).toFixed(2) : '—'}</td>
+            <td style="${tdBase}font-weight:700;">${(() => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return '<span style="color:#64748b;">—</span>'; let pct = null; if (r.type === 'Put') { const ap = r.contracts > 0 ? (r.putCommitment - r.premiumReceived) / (r.contracts * 100) : null; if (ap !== null) pct = (1 - ap / p.price) * 100; } else if (r.type === 'Call') { if (r.strike) pct = (r.strike / p.price - 1) * 100; } if (pct === null) return '<span style="color:#64748b;">—</span>'; const color = pct >= 0 ? posColor : negColor; return '<span style="color:' + color + ';font-weight:700;">' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%</span>'; })()}</td>
+            <td style="${tdBase}font-weight:700;">${(() => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return '<span style="color:#64748b;">—</span>'; if (r.type === 'Put') { const otm = p.price > r.strike; return otm ? '<span style="color:' + posColor + '">OTM</span>' : '<span style="color:' + negColor + '">ITM</span>'; } if (r.type === 'Call') { const otm = p.price < r.strike; return otm ? '<span style="color:' + posColor + '">OTM</span>' : '<span style="color:' + negColor + '">ITM</span>'; } return '<span style="color:#64748b;">—</span>'; })()}</td>
             <td style="${tdBase}color:${r.type === 'Put' ? negColor : r.type === 'Call' ? posColor : textColor};font-weight:600;">${r.type}</td>
             <td style="${tdBase}color:${textColor};">${r.contracts}</td>
             <td style="${tdBase}color:${negColor};font-weight:500;">${fmt(r.putCommitment)}</td>
@@ -996,9 +1012,7 @@ function renderOpenCommitmentsTable() {
     }).join('');
 
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="5" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
-        <td style="padding:12px 8px;border-top:2px solid #0ea5e9;"></td>
-        <td style="padding:12px 8px;border-top:2px solid #0ea5e9;"></td>
+        <td colspan="10" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
         <td style="padding:12px 8px;text-align:center;color:${negColor};border-top:2px solid #0ea5e9;">${totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${posColor};border-top:2px solid #0ea5e9;">${totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
     </tr>`;
@@ -1083,8 +1097,8 @@ function renderOpenCommitmentsTable() {
         <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
             <colgroup>
-                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
-                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
             </colgroup>
             <thead><tr>
                 <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
@@ -1092,6 +1106,9 @@ function renderOpenCommitmentsTable() {
                 <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('assignPrice')">Assignment Price${arrow('assignPrice')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('pctFromStrike')">% From Strike Price${arrow('pctFromStrike')}</th>
+                <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
                 <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
