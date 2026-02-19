@@ -42,7 +42,7 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); padding: 20px; transition: background 0.3s ease, color 0.3s ease; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); padding: 20px; transition: background 0.3s ease, color 0.3s ease; position: relative; }
 .container { max-width: 1600px; margin: 0 auto; }
 h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 .subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 25px; font-size: 0.9rem; }
@@ -57,7 +57,7 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 
 /* Theme Toggle Button */
 #themeToggle {
-    position: fixed;
+    position: absolute;
     top: 16px;
     right: 16px;
     z-index: 9999;
@@ -68,7 +68,7 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     color: var(--text-primary);
     border: 2px solid var(--border-accent);
     border-radius: 50px;
-    padding: 8px 16px 8px 12px;
+    padding: 8px 14px 8px 10px;
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 600;
@@ -194,7 +194,6 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <div class="toggle-track">
         <div class="toggle-thumb"></div>
     </div>
-    <span class="toggle-label" id="toggleLabel">Light Mode</span>
 </button>
 
 <div class="container">
@@ -297,7 +296,6 @@ function toggleTheme() {
     const isDark = html.getAttribute('data-theme') === 'dark';
     html.setAttribute('data-theme', isDark ? 'light' : 'dark');
     document.getElementById('toggleEmoji').textContent = isDark ? '🌙' : '☀️';
-    document.getElementById('toggleLabel').textContent = isDark ? 'Dark Mode' : 'Light Mode';
     localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
 
@@ -307,7 +305,6 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', saved);
     if (saved === 'light') {
         document.getElementById('toggleEmoji').textContent = '🌙';
-        document.getElementById('toggleLabel').textContent = 'Dark Mode';
     }
 })();
 
