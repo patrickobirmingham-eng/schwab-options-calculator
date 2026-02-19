@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,19 +7,114 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
+:root[data-theme="dark"] {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-input: #0f172a;
+    --border-color: #334155;
+    --border-accent: #6d28d9;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #cbd5e1;
+    --tag-bg: #475569;
+    --shadow: rgba(0,0,0,0.6);
+    --toggle-bg: #334155;
+    --toggle-icon: '☀️';
+    --toggle-label: 'Light Mode';
+}
+
+:root[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e2e8f0;
+    --bg-input: #f1f5f9;
+    --border-color: #cbd5e1;
+    --border-accent: #7c3aed;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #334155;
+    --tag-bg: #94a3b8;
+    --shadow: rgba(0,0,0,0.15);
+    --toggle-bg: #e2e8f0;
+    --toggle-icon: '🌙';
+    --toggle-label: 'Dark Mode';
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); padding: 20px; transition: background 0.3s ease, color 0.3s ease; }
 .container { max-width: 1600px; margin: 0 auto; }
 h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
-.subtitle { text-align: center; color: #94a3b8; margin-bottom: 25px; font-size: 0.9rem; }
-.upload-box { background: rgba(255,255,255,0.05); border: 2px dashed #6d28d9; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; margin-bottom: 20px; }
-.filter-bar { display: flex; flex-wrap: wrap; gap: 20px; background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #6d28d9; align-items: flex-end; }
+.subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 25px; font-size: 0.9rem; }
+.upload-box { background: rgba(109,40,217,0.08); border: 2px dashed #6d28d9; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: background 0.3s; }
+[data-theme="light"] .upload-box { background: rgba(109,40,217,0.05); }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 20px; background: var(--bg-secondary); padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border-accent); align-items: flex-end; transition: background 0.3s, border-color 0.3s; }
 .filter-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
-.checkbox-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; align-items: start; }
-.checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1; }
-.checkbox-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; }
+.filter-group label { color: var(--text-primary); font-size: 0.85rem; font-weight: 600; }
+.checkbox-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; background: var(--bg-input); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); align-items: start; transition: background 0.3s; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); }
+.checkbox-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; accent-color: #7c3aed; }
+
+/* Theme Toggle Button */
+#themeToggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-accent);
+    border-radius: 50px;
+    padding: 8px 16px 8px 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 16px var(--shadow);
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+#themeToggle:hover {
+    background: var(--border-accent);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(109,40,217,0.4);
+}
+#themeToggle .toggle-track {
+    width: 36px;
+    height: 20px;
+    background: var(--toggle-bg);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+}
+#themeToggle .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #7c3aed;
+    border-radius: 50%;
+    transition: transform 0.25s ease, background 0.25s;
+}
+[data-theme="light"] #themeToggle .toggle-thumb {
+    transform: translateX(16px);
+    background: #f59e0b;
+}
+#themeToggle .toggle-emoji {
+    font-size: 0.95rem;
+    line-height: 1;
+}
 
 @media (max-width: 768px) {
+    #themeToggle { padding: 8px 12px 8px 10px; font-size: 0.75rem; top: 10px; right: 10px; }
+    #themeToggle .toggle-label { display: none; }
     body { padding: 10px; }
     h1 { font-size: 1.5rem; }
     .subtitle { font-size: 0.8rem; }
@@ -44,36 +139,72 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     table { min-width: 600px; }
 }
 
-.filter-bar input, .filter-bar select { background: #0f172a; border: 2px solid #334155; color: #f8fafc; padding: 12px; border-radius: 8px; outline: none; width: 100%; font-size: 1rem; }
-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+.filter-bar input, .filter-bar select {
+    background: var(--bg-input);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 12px;
+    border-radius: 8px;
+    outline: none;
+    width: 100%;
+    font-size: 1rem;
+    transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+.filter-bar input::placeholder { color: var(--text-secondary); }
+.filter-bar select option { background: var(--bg-secondary); color: var(--text-primary); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-filter, invert(1)); cursor: pointer; }
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0); }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
-.stat-card { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
-.stat-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; }
+.stat-card { background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
+.stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; }
 .stat-value { font-size: 1.4rem; font-weight: bold; }
 
-table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; table-layout: auto; }
+table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); border-radius: 12px; table-layout: auto; transition: background 0.3s; }
 thead tr { position: sticky; top: 0; z-index: 20; }
-th { background: #334155; color: #cbd5e1; padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #6d28d9; box-shadow: 0 3px 6px rgba(0,0,0,0.6); position: relative; }
+th { background: var(--bg-tertiary); color: var(--text-muted); padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #6d28d9; box-shadow: 0 3px 6px var(--shadow); position: relative; transition: background 0.3s; }
 th .resizer { position: absolute; top: 0; right: 0; width: 5px; cursor: col-resize; user-select: none; height: 100%; background: transparent; }
 th .resizer:hover { background: #6d28d9; }
-td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-align: center; }
-.pos { color: #4ade80; } .neg { color: #f87171; }
-.waiting { color: #fbbf24; }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: #475569; }
+td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; text-align: center; color: var(--text-primary); transition: border-color 0.3s, color 0.3s; }
+.pos { color: #16a34a; } 
+[data-theme="dark"] .pos { color: #4ade80; }
+.neg { color: #dc2626; }
+[data-theme="dark"] .neg { color: #f87171; }
+.waiting { color: #d97706; }
+[data-theme="dark"] .waiting { color: #fbbf24; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: var(--tag-bg); color: var(--text-primary); }
 .tag-waiting { background: #f59e0b; color: #000; }
+
+/* Upload box text */
+.upload-box p { color: var(--text-primary); }
+.upload-box p:not(:first-child) { color: var(--text-secondary); }
+
+/* Date range text */
+#dateRange { color: var(--text-secondary); }
+
+/* Modal */
+#monthlyModal > div { background: var(--bg-secondary); border: 1px solid var(--border-accent); }
 </style>
 </head>
 
 <body>
+<!-- Dark/Light Mode Toggle -->
+<button id="themeToggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+    <span class="toggle-emoji" id="toggleEmoji">☀️</span>
+    <div class="toggle-track">
+        <div class="toggle-thumb"></div>
+    </div>
+    <span class="toggle-label" id="toggleLabel">Light Mode</span>
+</button>
+
 <div class="container">
     <h1>Schwab Options Profit/Loss Calculator</h1>
     <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
 
     <div class="upload-box" id="dropZone">
         <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
-        <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 15px;">Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
-        <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 10px;">Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
+        <p style="font-size: 0.9rem; margin-top: 15px;">Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
+        <p style="font-size: 0.9rem; margin-top: 10px;">Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
         <p id="uploadedFileName" style="font-size: 0.9rem; color: #a78bfa; margin-top: 10px; display:none;"></p>
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
     </div>
@@ -131,9 +262,9 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
 
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:#1e293b; border:1px solid #6d28d9; border-radius:16px; padding:30px; max-width:95vw; width:1000px; max-height:85vh; overflow-y:auto; position:relative;">
+        <div style="border-radius:16px; padding:30px; max-width:95vw; width:1000px; max-height:85vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:#f8fafc; font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
+                <h2 style="color: var(--text-primary); font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
                 <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
             <div id="monthlyTableContainer"></div>
@@ -141,7 +272,7 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
     </div>
 
     <div id="summary" class="stats" style="display:none;"></div>
-    <div id="dateRange" style="display:none; text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;"></div>
+    <div id="dateRange" style="display:none; text-align: center; font-size: 1.1rem; margin-bottom: 20px;"></div>
 
     <div class="table-container" id="tableContainer" style="display:none;">
         <table>
@@ -160,6 +291,26 @@ let sortDir = -1;
 let columnWidths = {};
 let uploadedDateRange = { min: null, max: null };
 
+// Theme toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('toggleEmoji').textContent = isDark ? '🌙' : '☀️';
+    document.getElementById('toggleLabel').textContent = isDark ? 'Dark Mode' : 'Light Mode';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+
+// Restore saved theme on load
+(function() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    if (saved === 'light') {
+        document.getElementById('toggleEmoji').textContent = '🌙';
+        document.getElementById('toggleLabel').textContent = 'Dark Mode';
+    }
+})();
+
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
 dropZone.onclick = () => filePicker.click();
@@ -171,7 +322,6 @@ async function handleFile(file) {
     fnEl.textContent = 'Filename: ' + file.name;
     fnEl.style.display = 'block';
 
-    // Show all UI elements
     document.getElementById('filterBar').style.display = 'flex';
     document.getElementById('actionButtons').style.display = 'flex';
     document.getElementById('summary').style.display = 'grid';
@@ -569,19 +719,30 @@ function showMonthlySummary() {
         return;
     }
 
-    // Build months from Jan 2025 to current month
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg = isDark ? '#1e293b' : '#ffffff';
+    const modalBorder = '#6d28d9';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+
+    // Update modal div style dynamically
+    const modalInner = document.querySelector('#monthlyModal > div');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = `1px solid ${modalBorder}`;
+
     const startYear = 2025;
     const now = new Date();
     const months = [];
     for (let y = startYear; y <= now.getFullYear(); y++) {
-        const mStart = (y === startYear) ? 0 : 0;
         const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
-        for (let m = mStart; m <= mEnd; m++) {
+        for (let m = 0; m <= mEnd; m++) {
             months.push({ year: y, month: m });
         }
     }
 
-    // Build per-month data from all transactions + finaltrades
     const fmt = (n) => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     const fmtNeg = (n) => n === 0 ? '$0.00' : (n > 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 
@@ -592,7 +753,6 @@ function showMonthlySummary() {
         const mEnd = new Date(year, month + 1, 0, 23, 59, 59);
         const monthLabel = mStart.toLocaleDateString('en-US', {month:'short', year:'numeric'});
 
-        // Sell to Open & Buy to Close from allTransactions
         let sellOpen = 0, buyClose = 0;
         window.allTransactions.forEach(t => {
             if (t.date >= mStart && t.date <= mEnd) {
@@ -601,7 +761,6 @@ function showMonthlySummary() {
             }
         });
 
-        // Profit from closed options (buy to close + expired) & assigned premium paid
         let profit = 0, assignedPaid = 0;
         finalTrades.forEach(t => {
             if (t.closeDate >= mStart && t.closeDate <= mEnd) {
@@ -612,33 +771,33 @@ function showMonthlySummary() {
             }
         });
 
-        const cashFlow = sellOpen + buyClose; // buyClose is already negative
+        const cashFlow = sellOpen + buyClose;
         totSellOpen += sellOpen;
         totBuyClose += buyClose;
         totProfit += profit;
         totAssigned += assignedPaid;
 
-        return `<tr>
-            <td style="text-align:center;padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};font-weight:500;">${monthLabel}</td>
-            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:#4ade80;">${fmt(sellOpen)}</td>
-            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:${buyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(buyClose)}</td>
-            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:${cashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(cashFlow)}</td>
-            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:${profit >= 0 ? '#4ade80' : '#f87171'};">${fmt(profit)}</td>
-            <td style="padding:10px 14px;border-bottom:${month === 11 ? '3px solid #6d28d9' : '1px solid #334155'};color:#fbbf24;">${assignedPaid > 0 ? fmt(assignedPaid) : '$0.00'}</td>
+        const borderStyle = month === 11 ? `3px solid #6d28d9` : `1px solid ${borderColor}`;
+        return `<tr style="background:${rowBg};">
+            <td style="color:${textColor};text-align:center;padding:10px 14px;border-bottom:${borderStyle};font-weight:500;">${monthLabel}</td>
+            <td style="padding:10px 14px;border-bottom:${borderStyle};color:#16a34a;">${fmt(sellOpen)}</td>
+            <td style="padding:10px 14px;border-bottom:${borderStyle};color:${buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(buyClose)}</td>
+            <td style="padding:10px 14px;border-bottom:${borderStyle};color:${cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(cashFlow)}</td>
+            <td style="padding:10px 14px;border-bottom:${borderStyle};color:${profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(profit)}</td>
+            <td style="padding:10px 14px;border-bottom:${borderStyle};color:#d97706;">${assignedPaid > 0 ? fmt(assignedPaid) : '$0.00'}</td>
         </tr>`;
     });
 
     const totCashFlow = totSellOpen + totBuyClose;
-    const totalRow = `<tr style="background:#334155;font-weight:bold;">
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td style="text-align:center;padding:12px 14px;color:#a78bfa;">Total</td>
-        <td style="padding:12px 14px;color:#4ade80;">${fmt(totSellOpen)}</td>
-        <td style="padding:12px 14px;color:${totBuyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(totBuyClose)}</td>
-        <td style="padding:12px 14px;color:${totCashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(totCashFlow)}</td>
-        <td style="padding:12px 14px;color:${totProfit >= 0 ? '#4ade80' : '#f87171'};">${fmt(totProfit)}</td>
-        <td style="padding:12px 14px;color:#fbbf24;">${totAssigned > 0 ? fmt(totAssigned) : '$0.00'}</td>
+        <td style="padding:12px 14px;color:#16a34a;">${fmt(totSellOpen)}</td>
+        <td style="padding:12px 14px;color:${totBuyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(totBuyClose)}</td>
+        <td style="padding:12px 14px;color:${totCashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(totCashFlow)}</td>
+        <td style="padding:12px 14px;color:${totProfit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(totProfit)}</td>
+        <td style="padding:12px 14px;color:#d97706;">${totAssigned > 0 ? fmt(totAssigned) : '$0.00'}</td>
     </tr>`;
 
-    // Build yearly summary
     const years = [...new Set(months.map(m => m.year))];
     let grandSellOpen = 0, grandBuyClose = 0, grandProfit = 0, grandAssigned = 0;
 
@@ -666,28 +825,28 @@ function showMonthlySummary() {
         grandBuyClose += yBuyClose;
         grandProfit += yProfit;
         grandAssigned += yAssigned;
-        return `<tr>
-            <td style="text-align:center;padding:10px 14px;border-bottom:1px solid #334155;font-weight:600;">${year}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:#4ade80;">${fmt(ySellOpen)}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:${yBuyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(yBuyClose)}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:${yCashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(yCashFlow)}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:${yProfit >= 0 ? '#4ade80' : '#f87171'};">${fmt(yProfit)}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #334155;color:#fbbf24;">${yAssigned > 0 ? fmt(yAssigned) : '$0.00'}</td>
+        return `<tr style="background:${rowBg};">
+            <td style="color:${textColor};text-align:center;padding:10px 14px;border-bottom:1px solid ${borderColor};font-weight:600;">${year}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid ${borderColor};color:#16a34a;">${fmt(ySellOpen)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid ${borderColor};color:${yBuyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(yBuyClose)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid ${borderColor};color:${yCashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(yCashFlow)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid ${borderColor};color:${yProfit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(yProfit)}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid ${borderColor};color:#d97706;">${yAssigned > 0 ? fmt(yAssigned) : '$0.00'}</td>
         </tr>`;
     });
 
     const grandCashFlow = grandSellOpen + grandBuyClose;
-    const yearTotalRow = `<tr style="background:#334155;font-weight:bold;">
+    const yearTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td style="text-align:center;padding:12px 14px;color:#a78bfa;">Total</td>
-        <td style="padding:12px 14px;color:#4ade80;">${fmt(grandSellOpen)}</td>
-        <td style="padding:12px 14px;color:${grandBuyClose < 0 ? '#f87171' : '#f8fafc'};">${fmtNeg(grandBuyClose)}</td>
-        <td style="padding:12px 14px;color:${grandCashFlow >= 0 ? '#4ade80' : '#f87171'};">${fmt(grandCashFlow)}</td>
-        <td style="padding:12px 14px;color:${grandProfit >= 0 ? '#4ade80' : '#f87171'};">${fmt(grandProfit)}</td>
-        <td style="padding:12px 14px;color:#fbbf24;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
+        <td style="padding:12px 14px;color:#16a34a;">${fmt(grandSellOpen)}</td>
+        <td style="padding:12px 14px;color:${grandBuyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(grandBuyClose)}</td>
+        <td style="padding:12px 14px;color:${grandCashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(grandCashFlow)}</td>
+        <td style="padding:12px 14px;color:${grandProfit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(grandProfit)}</td>
+        <td style="padding:12px 14px;color:#d97706;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
     </tr>`;
 
-    const thStyle = 'padding:10px 8px;background:#0f172a;color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;';
-    const tblStyle = 'width:100%;border-collapse:collapse;background:#1e293b;font-size:0.9rem;table-layout:fixed;';
+    const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
+    const tblStyle = `width:100%;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
 
     document.getElementById('monthlyTableContainer').innerHTML = `
         <h3 style="color:#a78bfa;margin:0 0 14px;font-size:1rem;">Summary by Year</h3>
@@ -724,8 +883,6 @@ function showMonthlySummary() {
 
     const modal = document.getElementById('monthlyModal');
     modal.style.display = 'flex';
-
-    // Close on backdrop click
     modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
 }
 </script>
