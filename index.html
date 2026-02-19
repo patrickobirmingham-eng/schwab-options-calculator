@@ -287,7 +287,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div style="border-radius:16px; padding:30px; max-width:95vw; width:1000px; max-height:85vh; overflow-y:auto; position:relative;">
+        <div style="border-radius:16px; padding:30px; max-width:95vw; width:1200px; max-height:85vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
                 <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
@@ -432,8 +432,13 @@ function process(rows) {
 
             let actualClosingCost = (action.includes('expired') || action.includes('assigned')) ? 0 : amt;
 
+            const symPutMatch = sym.match(/[\d.]+\s+P\s*$/);
+            const symCallMatch = sym.match(/[\d.]+\s+C\s*$/);
+            const putOrCall = symPutMatch ? 'Put' : symCallMatch ? 'Call' : '—';
+
             realized.push({
                 symbol: sym,
+                putOrCall,
                 contracts: qty || (openingPremiumUsed > 0 ? "All" : 0),
                 openingPremium: openingPremiumUsed,
                 closingPremium: actualClosingCost,
@@ -450,8 +455,11 @@ function process(rows) {
     for (const sym in inventory) {
         inventory[sym].forEach(item => {
             if (item.status.includes('sell') && item.status.includes('open')) {
+                const opPutMatch = sym.match(/[\d.]+\s+P\s*$/);
+                const opCallMatch = sym.match(/[\d.]+\s+C\s*$/);
                 openPos.push({
                     symbol: sym,
+                    putOrCall: opPutMatch ? 'Put' : opCallMatch ? 'Call' : '—',
                     contracts: item.qty,
                     openingPremium: item.premium,
                     closingPremium: 0,
@@ -593,7 +601,8 @@ function render(newSortKey, dataToRender) {
     const cols = [
         {lab:'Transaction Date',key:'closeDate'},
         {lab:'Symbol',key:'symbol'},
-        {lab:'Quantity',key:'contracts'},
+        {lab:'Put Or Call',key:'putOrCall'},
+        {lab:'# Of Contracts',key:'contracts'},
         {lab:'Days Till Expiration',key:'dte'},
         {lab:'Action',key:'status'},
         {lab:'Premium Received / Paid',key:'openingPremium'},
@@ -643,6 +652,7 @@ function render(newSortKey, dataToRender) {
         <tr>
             <td>${p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString()}</td>
             <td>${p.symbol}</td>
+            <td style="color:${p.putOrCall === 'Put' ? '#f87171' : p.putOrCall === 'Call' ? '#4ade80' : 'inherit'};font-weight:600;">${p.putOrCall}</td>
             <td>${p.contracts}</td>
             <td>${p.isOpen ? calcDTE(p.symbol) : ''}</td>
             <td><span class="tag ${p.isOpen ? 'tag-waiting' : ''}">${p.status}</span></td>
@@ -707,7 +717,7 @@ function downloadResults() {
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    let csv = 'Date,Symbol,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return\n';
+    let csv = 'Date,Symbol,Put or Call,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return\n';
     filtered.forEach(p => {
         const date = p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString();
         const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
@@ -718,7 +728,7 @@ function downloadResults() {
             const denom = p.profit + Math.abs(p.closingPremium);
             if (denom !== 0) returnPct = ((p.profit / denom) * 100).toFixed(2) + '%';
         } else if (p.status.toLowerCase().includes('expired')) { returnPct = '100.00%'; }
-        csv += `${date},${p.symbol},${p.contracts},${dte},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
+        csv += `${date},${p.symbol},${p.putOrCall},${p.contracts},${dte},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -990,7 +1000,7 @@ function renderOpenCommitmentsTable() {
 
     // 9 columns now (added Current Price)
     const colW = 'width:8.33%;';
-    const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;position:relative;z-index:2;`;
+    const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;position:relative;z-index:2;`;
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
 
@@ -1044,7 +1054,7 @@ function renderOpenCommitmentsTable() {
     const grandPuts = groupRows.reduce((s, g) => s + g.totalPuts, 0);
     const grandCalls = groupRows.reduce((s, g) => s + g.totalCalls, 0);
 
-    const sumThStyle = `background:${thBg};color:#0ea5e9;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 8px;word-break:break-word;white-space:normal;`;
+    const sumThStyle = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 8px;word-break:break-word;white-space:normal;`;
     const sumTdStyle = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
 
     const summaryRowsHtml = groupRows.map((g, i) => {
@@ -1285,7 +1295,7 @@ function showMonthlySummary() {
         <td style="padding:12px 14px;color:#d97706;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
     </tr>`;
 
-    const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
+    const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
     const tblStyle = `width:100%;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
 
     document.getElementById('monthlyTableContainer').innerHTML = `
