@@ -78,7 +78,7 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
     </div>
 
-    <div class="filter-bar">
+    <div class="filter-bar" id="filterBar" style="display:none;">
         <div class="filter-group">
             <label>1. Search Symbol</label>
             <input type="text" id="searchInput" placeholder="Search Ticker..." oninput="applyFilters()">
@@ -123,7 +123,7 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
         </div>
 
     </div>
-    <div style="display:flex; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
+    <div id="actionButtons" style="display:none; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
         <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset All Filters</button>
         <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">Download Results</button>
         <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">📊 Monthly Summary</button>
@@ -140,10 +140,10 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
         </div>
     </div>
 
-    <div id="summary" class="stats"></div>
-    <div id="dateRange" style="text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;"></div>
+    <div id="summary" class="stats" style="display:none;"></div>
+    <div id="dateRange" style="display:none; text-align: center; color: #94a3b8; font-size: 1.1rem; margin-bottom: 20px;"></div>
 
-    <div class="table-container">
+    <div class="table-container" id="tableContainer" style="display:none;">
         <table>
             <thead><tr id="headerRow"></tr></thead>
             <tbody id="tableBody"></tbody>
@@ -170,6 +170,13 @@ async function handleFile(file) {
     const fnEl = document.getElementById('uploadedFileName');
     fnEl.textContent = 'Filename: ' + file.name;
     fnEl.style.display = 'block';
+
+    // Show all UI elements
+    document.getElementById('filterBar').style.display = 'flex';
+    document.getElementById('actionButtons').style.display = 'flex';
+    document.getElementById('summary').style.display = 'grid';
+    document.getElementById('dateRange').style.display = 'block';
+    document.getElementById('tableContainer').style.display = 'block';
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
