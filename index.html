@@ -122,16 +122,18 @@ td { padding: 15px; border-bottom: 1px solid #334155; font-size: 0.9rem; text-al
             <input type="date" id="endDate" onchange="applyFilters()">
         </div>
 
-        <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset</button>
-        <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">Download Results</button>
-        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;">📊 Monthly Summary</button>
+    </div>
+    <div style="display:flex; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
+        <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">Reset All Filters</button>
+        <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">Download Results</button>
+        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:12px 28px;border-radius:8px;cursor:pointer;font-weight:bold;">📊 Monthly Summary</button>
     </div>
 
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div style="background:#1e293b; border:1px solid #6d28d9; border-radius:16px; padding:30px; max-width:95vw; width:1000px; max-height:85vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:#a78bfa; font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
+                <h2 style="color:#f8fafc; font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
                 <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
             <div id="monthlyTableContainer"></div>
@@ -697,7 +699,7 @@ function showMonthlySummary() {
         </table>
         </div>
 
-        <h3 style="color:#a78bfa;margin:28px 0 14px;font-size:1rem;">Monthly Breakdown</h3>
+        <h3 style="color:#f8fafc;margin:28px 0 14px;font-size:1rem;">Monthly Breakdown</h3>
         <div style="overflow-x:auto;">
         <table style="${tblStyle}">
             <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
