@@ -155,10 +155,10 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-filter, invert(1)); cursor: pointer; }
 [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0); }
 
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
-.stat-card { background: var(--bg-secondary); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
-.stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; }
-.stat-value { font-size: 1.4rem; font-weight: bold; }
+.stats { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 30px; }
+.stat-card { background: var(--bg-secondary); padding: 10px 6px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
+.stat-label { font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-size: 1.05rem; font-weight: bold; }
 
 table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); border-radius: 12px; table-layout: auto; transition: background 0.3s; }
 thead tr { position: sticky; top: 0; z-index: 20; }
@@ -299,7 +299,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem;">Assignments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <input id="assignmentSearch" type="text" placeholder="Enter search request..." oninput="renderAssignmentsTable()"
+                    <input id="assignmentSearch" type="text" placeholder="Search table..." oninput="renderAssignmentsTable()"
                         style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
                     <button id="refreshAssignmentPricesBtn" onclick="refreshAssignmentPrices()" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
                     <button onclick="closeAssignments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
@@ -312,7 +312,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <div id="summary" class="stats" style="display:none;"></div>
     <div id="tableTopBar" style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-        <input type="text" id="searchInput" placeholder="Enter search request..." oninput="applyFilters()"
+        <input type="text" id="searchInput" placeholder="Search table..." oninput="applyFilters()"
             style="width:220px; padding:7px 12px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem; outline:none;">
         <div style="display:flex; align-items:center; gap:16px;">
             <div id="dateRange" style="font-size:1rem; color:var(--text-secondary); font-weight:500;"></div>
@@ -1355,7 +1355,7 @@ function renderOpenCommitmentsTable() {
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;">
                 <h3 style="color:#0ea5e9;margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">All Open Positions</h3>
-                <input id="commitmentSearch" type="text" placeholder="Enter search request..." oninput="renderOpenCommitmentsTable()"
+                <input id="commitmentSearch" type="text" placeholder="Search table..." oninput="renderOpenCommitmentsTable()"
                     style="background:var(--bg-input);border:2px solid #0ea5e9;color:var(--text-primary);padding:6px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
             </div>
             <div style="overflow-x:auto;">
