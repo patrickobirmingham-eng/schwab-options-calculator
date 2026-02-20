@@ -209,17 +209,15 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
     </div>
 
-    <div class="filter-bar" id="filterBar" style="display:none;">
-        <div class="filter-group">
-            <label>1. Search Symbol</label>
-            <input type="text" id="searchInput" placeholder="Search Ticker..." oninput="applyFilters()">
-        </div>
+    <div class="filter-bar" id="filterBar" style="display:none; position:relative;">
+        <button onclick="resetFilters()" style="position:absolute;top:12px;right:12px;background:#ef4444;color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.8rem;display:inline-flex;align-items:center;gap:6px;z-index:1;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v5h-5M3 21v-5h5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Reset All Filters</button>
 
         <div class="filter-group" style="min-width: 350px;">
-            <label>2. Status Filter</label>
+            <label>1. Status Filter</label>
             <div class="checkbox-grid" id="statusCheckboxes">
                 <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
                 <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
+                <label class="checkbox-item"><input type="checkbox" value="Called Away" checked onchange="applyFilters()"> Called Away</label>
                 <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
                 <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
                 <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
@@ -228,7 +226,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         </div>
 
         <div class="filter-group">
-            <label>3. Quick Range</label>
+            <label>2. Quick Range</label>
             <select id="quickRange" onchange="setQuickRange()">
                 <option value="all" selected>Show All</option>
                 <option value="today">Today</option>
@@ -244,21 +242,20 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         </div>
 
         <div class="filter-group">
-            <label>4. From Date</label>
+            <label>3. From Date</label>
             <input type="date" id="startDate" onchange="applyFilters()">
         </div>
 
         <div class="filter-group">
-            <label>5. To Date</label>
+            <label>4. To Date</label>
             <input type="date" id="endDate" onchange="applyFilters()">
         </div>
 
     </div>
     <div id="actionButtons" style="display:none; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
-        <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.27em" height="2.27em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v5h-5M3 21v-5h5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Reset All Filters</button>
-        <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="3.6em" height="3.6em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Results</button>
-        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="3.6em" height="3.6em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly Summary</button>
-        <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="3.06em" height="3.06em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
+        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly Summary</button>
+        <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
+        <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
     </div>
 
     <!-- Open Commitments Modal -->
@@ -280,7 +277,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                 <button onclick="testFinnhubKey()" style="background:#7c3aed;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">🧪 Test Key</button>
                 <a href="https://finnhub.io/register" target="_blank" style="font-size:0.75rem;color:#0ea5e9;white-space:nowrap;">Get free key ↗</a>
             </div>
-            <div id="priceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;text-align:right;"></div>
+            <div id="priceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:8px;text-align:right;"></div>
             <div id="openCommitmentsContainer"></div>
         </div>
     </div>
@@ -296,8 +293,36 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         </div>
     </div>
 
+    <!-- Assignments Modal -->
+    <div id="assignmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div style="border-radius:16px; padding:20px; max-width:1700px; width:97vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem;">Assignments</h2>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <input id="assignmentSearch" type="text" placeholder="Enter search request..." oninput="renderAssignmentsTable()"
+                        style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
+                    <button id="refreshAssignmentPricesBtn" onclick="refreshAssignmentPrices()" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
+                    <button onclick="closeAssignments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+            <div id="assignmentPriceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;text-align:right;"></div>
+            <div id="assignmentsContainer"></div>
+        </div>
+    </div>
+
     <div id="summary" class="stats" style="display:none;"></div>
-    <div id="dateRange" style="display:none; text-align: center; font-size: 1.1rem; margin-bottom: 20px;"></div>
+    <div id="tableTopBar" style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+        <input type="text" id="searchInput" placeholder="Enter search request..." oninput="applyFilters()"
+            style="width:220px; padding:7px 12px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem; outline:none;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div id="dateRange" style="font-size:1rem; color:var(--text-secondary); font-weight:500;"></div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:1rem; color:var(--text-secondary); user-select:none; font-weight:500;">
+                <input type="checkbox" id="showEntireTable" onchange="applyFilters()" style="width:15px;height:15px;cursor:pointer;accent-color:#10b981;">
+                Show Entire Table
+            </label>
+        </div>
+        <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Results</button>
+    </div>
 
     <div class="table-container" id="tableContainer" style="display:none;">
         <table>
@@ -348,8 +373,8 @@ async function handleFile(file) {
     document.getElementById('filterBar').style.display = 'flex';
     document.getElementById('actionButtons').style.display = 'flex';
     document.getElementById('summary').style.display = 'grid';
-    document.getElementById('dateRange').style.display = 'block';
     document.getElementById('tableContainer').style.display = 'block';
+    document.getElementById('tableTopBar').style.display = 'flex';
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -359,11 +384,59 @@ async function handleFile(file) {
 
 function parseDateString(dStr) {
     if (!dStr) return null;
-    if (!isNaN(dStr) && typeof dStr !== 'string') return new Date((dStr - 25569) * 86400 * 1000);
+    if (!isNaN(dStr) && typeof dStr !== 'string') {
+        // Excel serial: days since 1900-01-01, convert to local midnight
+        const serial = Number(dStr);
+        const utcMs = (serial - 25569) * 86400 * 1000;
+        const utcDate = new Date(utcMs);
+        // Reconstruct as local midnight to avoid timezone shift
+        return new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+    }
     const parts = String(dStr).trim().split(/\s+/);
     const actualDateStr = parts[parts.length - 1];
+    const match = actualDateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/) ||
+                  actualDateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (match) {
+        let y, m, d;
+        if (actualDateStr.includes('-')) {
+            [, y, m, d] = match;
+        } else {
+            [, m, d, y] = match;
+        }
+        return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    }
     const d = new Date(actualDateStr);
     return isNaN(d.getTime()) ? null : d;
+}
+
+// US market holidays (YYYY-MM-DD). Extend this list as needed.
+const US_MARKET_HOLIDAYS = new Set([
+    // 2024
+    '2024-01-01','2024-01-15','2024-02-19','2024-03-29','2024-05-27',
+    '2024-06-19','2024-07-04','2024-09-02','2024-11-28','2024-12-25',
+    // 2025
+    '2025-01-01','2025-01-09','2025-01-20','2025-02-17','2025-04-18',
+    '2025-05-26','2025-06-19','2025-07-04','2025-09-01','2025-11-27',
+    '2025-12-25',
+    // 2026
+    '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
+    '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25',
+]);
+
+function isMarketHoliday(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return US_MARKET_HOLIDAYS.has(`${yyyy}-${mm}-${dd}`);
+}
+
+function nextSettlementDate(date) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6 || isMarketHoliday(d)) {
+        d.setDate(d.getDate() + 1);
+    }
+    return d;
 }
 
 function cleanNum(val) {
@@ -379,7 +452,11 @@ function process(rows) {
     const allTransactions = [];
 
     const sortedRows = rows
-        .map(r => ({ ...r, parsedDate: parseDateString(r.Date) }))
+        .map(r => {
+            const raw = parseDateString(r.Date);
+            const parsedDate = raw ? nextSettlementDate(raw) : null;
+            return { ...r, parsedDate };
+        })
         .filter(r => r.Symbol && r.parsedDate)
         .sort((a, b) => {
             const dateCompare = a.parsedDate - b.parsedDate;
@@ -436,6 +513,10 @@ function process(rows) {
             const symCallMatch = sym.match(/[\d.]+\s+C\s*$/);
             const putOrCall = symPutMatch ? 'Put' : symCallMatch ? 'Call' : '—';
 
+            // For calls that are "assigned" (shares called away), use "Called Away" to distinguish from put assignments
+            let rawStatus = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            if (action.includes('assigned') && symCallMatch) rawStatus = 'Called Away';
+
             realized.push({
                 symbol: sym,
                 putOrCall,
@@ -445,7 +526,7 @@ function process(rows) {
                 profit: openingPremiumUsed + actualClosingCost,
                 openDate: firstOpenDate,
                 closeDate: row.parsedDate,
-                status: action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+                status: rawStatus,
                 isOpen: false
             });
         }
@@ -476,10 +557,17 @@ function process(rows) {
     finalTrades = realized;
     openPositions = openPos;
     window.allTransactions = allTransactions;
+    window.rawRows = sortedRows;
     applyFilters();
 }
 
 function applyFilters() {
+    const showAll = document.getElementById('showEntireTable')?.checked;
+    if (showAll) {
+        renderRawTable();
+        return;
+    }
+
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
@@ -489,17 +577,126 @@ function applyFilters() {
 
     const allItems = [...finalTrades, ...openPositions];
     const filtered = allItems.filter(item => {
-        const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
+        if (searchTerm) {
+            const dateStr = (item.isOpen ? item.openDate : item.closeDate)?.toLocaleDateString() || '';
+            const matchesSearch =
+                item.symbol.toLowerCase().includes(searchTerm) ||
+                item.status.toLowerCase().includes(searchTerm) ||
+                (item.putOrCall || '').toLowerCase().includes(searchTerm) ||
+                String(item.contracts).includes(searchTerm) ||
+                dateStr.includes(searchTerm) ||
+                String(item.openingPremium?.toFixed(2) || '').includes(searchTerm) ||
+                String(item.profit?.toFixed(2) || '').includes(searchTerm);
+            if (!matchesSearch) return false;
+        }
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
         const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
         if (endDate && dateToFilter > endDate) matchesDate = false;
-        return matchesSearch && matchesStatus && matchesDate;
+        return matchesStatus && matchesDate;
     });
 
     currentFilteredData = filtered;
     render(null, filtered);
+}
+
+let rawSortKey = 'date';
+let rawSortDir = -1;
+
+function sortRawTable(key) {
+    if (rawSortKey === key) rawSortDir *= -1;
+    else { rawSortKey = key; rawSortDir = 1; }
+    renderRawTable();
+}
+
+function renderRawTable() {
+    if (!window.rawRows) return;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    let rows = window.rawRows.filter(r => {
+        if (!searchTerm) return true;
+        const sym = (r.Symbol || '').toLowerCase();
+        const action = (r.Action || '').toLowerCase();
+        const desc = (r.Description || '').toLowerCase();
+        return sym.includes(searchTerm) || action.includes(searchTerm) || desc.includes(searchTerm);
+    });
+
+    // Sort
+    rows = [...rows].sort((a, b) => {
+        let v1, v2;
+        switch (rawSortKey) {
+            case 'date':     v1 = a.parsedDate ? a.parsedDate.getTime() : 0; v2 = b.parsedDate ? b.parsedDate.getTime() : 0; break;
+            case 'symbol':   v1 = (a.Symbol || '').toLowerCase(); v2 = (b.Symbol || '').toLowerCase(); break;
+            case 'action':   v1 = (a.Action || '').toLowerCase(); v2 = (b.Action || '').toLowerCase(); break;
+            case 'amount':   v1 = cleanNum(a.Amount); v2 = cleanNum(b.Amount); break;
+            case 'quantity': v1 = parseFloat(a.Quantity) || 0; v2 = parseFloat(b.Quantity) || 0; break;
+            case 'price':    v1 = parseFloat(a.Price) || 0; v2 = parseFloat(b.Price) || 0; break;
+            case 'desc':     v1 = (a.Description || '').toLowerCase(); v2 = (b.Description || '').toLowerCase(); break;
+            default: v1 = 0; v2 = 0;
+        }
+        if (v1 < v2) return -rawSortDir;
+        if (v1 > v2) return rawSortDir;
+        return 0;
+    });
+
+    const arrow = (key) => rawSortKey === key ? (rawSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+
+    // Reuse existing table with remapped columns
+    const cols = [
+        { lab: 'Transaction Date', key: 'date' },
+        { lab: 'Action',           key: 'action' },
+        { lab: 'Symbol',           key: 'symbol' },
+        { lab: 'Description',      key: 'desc' },
+        { lab: 'Quantity',         key: 'quantity' },
+        { lab: 'Price',            key: 'price' },
+        { lab: 'Amount',           key: 'amount' },
+        { lab: '',                 key: '' },
+        { lab: '',                 key: '' },
+    ];
+
+    document.getElementById('headerRow').innerHTML = cols.map((c, i) =>
+        `<th data-col-index="${i}" ${c.key ? `onclick="sortRawTable('${c.key}')"` : ''} style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}cursor:${c.key ? 'pointer' : 'default'};">${c.lab}${c.key ? arrow(c.key) : ''}<div class="resizer"></div></th>`
+    ).join('');
+
+    document.querySelectorAll('.resizer').forEach((resizer) => {
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            const th = resizer.parentElement;
+            startWidth = th.offsetWidth;
+            const onMouseMove = (e) => { th.style.width = (startWidth + e.pageX - startX) + 'px'; th.style.minWidth = th.style.width; };
+            const onMouseUp = () => {
+                columnWidths[th.getAttribute('data-col-index')] = th.offsetWidth;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const amtPosColor = isDark ? '#4ade80' : '#16a34a';
+    const amtNegColor = isDark ? '#f87171' : '#dc2626';
+
+    document.getElementById('tableBody').innerHTML = rows.map(r => {
+        const amt = cleanNum(r.Amount);
+        const amtColor = amt >= 0 ? amtPosColor : amtNegColor;
+        const amtDisplay = r.Amount ? (amt >= 0 ? '$' : '-$') + Math.abs(amt).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+        const priceDisplay = r.Price ? '$' + parseFloat(r.Price).toFixed(2) : '';
+        return `<tr>
+            <td>${r.parsedDate ? r.parsedDate.toLocaleDateString() : (r.Date || '')}</td>
+            <td><span class="tag">${r.Action || ''}</span></td>
+            <td>${r.Symbol || ''}</td>
+            <td>${r.Description || ''}</td>
+            <td>${r.Quantity || ''}</td>
+            <td>${priceDisplay}</td>
+            <td class="${amt >= 0 ? 'pos' : 'neg'}">${amtDisplay}</td>
+            <td></td>
+            <td></td>
+        </tr>`;
+    }).join('');
 }
 
 function calcDTE(symbol) {
@@ -560,8 +757,6 @@ function render(newSortKey, dataToRender) {
         return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
     });
 
-    const totalPL = displayData.filter(x => !x.isOpen).reduce((s, x) => s + (x.profit || 0), 0);
-    const openPremium = displayData.filter(x => x.isOpen).reduce((s, x) => s + (x.openingPremium || 0), 0);
     const closedTrades = displayData.filter(x => !x.isOpen).length;
     const openTrades = displayData.filter(x => x.isOpen).length;
 
@@ -569,33 +764,76 @@ function render(newSortKey, dataToRender) {
     const endVal = document.getElementById('endDate').value;
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
 
+    // Cash Flow: STO received and BTC paid within date range (by transaction date)
     let sellToOpen = 0, buyToClose = 0;
-    if (window.allTransactions) {
-        window.allTransactions.forEach(t => {
-            let matchesDate = true;
-            if (startDate && t.date < startDate) matchesDate = false;
-            if (endDate && t.date > endDate) matchesDate = false;
-            if (matchesDate) {
-                if (t.action.includes('sell') && t.action.includes('to open')) sellToOpen += t.amount;
-                if (t.action.includes('buy') && t.action.includes('to close')) buyToClose += t.amount;
-            }
+    if (window.rawRows) {
+        window.rawRows.forEach(r => {
+            const sym = (r.Symbol || '').toLowerCase();
+            if (searchTerm && !sym.includes(searchTerm)) return;
+            const action = (r.Action || '').toLowerCase();
+            const d = r.parsedDate;
+            if (!d) return;
+            if (startDate && d < startDate) return;
+            if (endDate && d > endDate) return;
+            const amt = cleanNum(r.Amount);
+            if (action.includes('sell') && action.includes('to open')) sellToOpen += amt;
+            if (action.includes('buy') && action.includes('to close')) buyToClose += amt;
         });
     }
     const cashFlow = sellToOpen - Math.abs(buyToClose);
+
+    // Realized P/L: profit on closed non-assigned trades, by close date, respecting status filters
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+    let reconPL = 0;
+    finalTrades.forEach(x => {
+        const sym = x.symbol.toLowerCase();
+        if (searchTerm && !sym.includes(searchTerm)) return;
+        const st = x.status.toLowerCase();
+        if (st.includes('assigned')) return;
+        if (!activeStatuses.includes(st)) return;
+        const d = x.closeDate;
+        if (startDate && d < startDate) return;
+        if (endDate && d > endDate) return;
+        reconPL += x.profit || 0;
+    });
+
+    // Assigned Premium: opening premiums on assigned puts, by assignment (close) date
+    let reconAssigned = 0;
+    finalTrades.forEach(x => {
+        const sym = x.symbol.toLowerCase();
+        if (searchTerm && !sym.includes(searchTerm)) return;
+        if (!x.status.toLowerCase().includes('assigned')) return;
+        const d = x.closeDate;
+        if (startDate && d < startDate) return;
+        if (endDate && d > endDate) return;
+        reconAssigned += Math.abs(x.openingPremium || 0);
+    });
+
+    // Open Premium: premiums on currently open positions (always unfiltered by date — these are live)
+    let reconOpen = 0;
+    openPositions.forEach(x => {
+        const sym = x.symbol.toLowerCase();
+        if (searchTerm && !sym.includes(searchTerm)) return;
+        reconOpen += x.openingPremium || 0;
+    });
+
+    const assignedPremium = reconAssigned;
 
     document.getElementById('summary').innerHTML = `
         <div class="stat-card"><div class="stat-label">Sell to Open</div><div class="stat-value pos">$${sellToOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Buy to Close</div><div class="stat-value neg">$${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Cash Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Realized Profit / Loss</div><div class="stat-value ${totalPL >= 0 ? 'pos' : 'neg'}">$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${openPremium.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Realized Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Assigned Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Closed Trades</div><div class="stat-value">${closedTrades}</div></div>
         <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
     `;
 
     if (uploadedDateRange.min && uploadedDateRange.max) {
-        document.getElementById('dateRange').innerHTML = `Available dates: ${uploadedDateRange.min.toLocaleDateString()} to ${uploadedDateRange.max.toLocaleDateString()}`;
+        document.getElementById('dateRange').innerHTML = `Available Dates: ${uploadedDateRange.min.toLocaleDateString()} to ${uploadedDateRange.max.toLocaleDateString()}`;
     }
 
     const cols = [
@@ -917,6 +1155,8 @@ function showOpenCommitments() {
     ocSortKey = 'date';
     ocSortDir = 1;
 
+    document.getElementById('openCommitmentsContainer').innerHTML = '';
+
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const modalInner = document.querySelector('#openCommitmentsModal > div');
     modalInner.style.background = isDark ? '#1e293b' : '#ffffff';
@@ -995,8 +1235,11 @@ function renderOpenCommitmentsTable() {
         return 0;
     });
 
-    const totalPuts = sorted.reduce((s, r) => s + r.putCommitment, 0);
-    const totalCalls = sorted.reduce((s, r) => s + r.callCommitment, 0);
+    const search = (document.getElementById('commitmentSearch')?.value || '').toLowerCase().trim();
+    const filtered = search ? sorted.filter(r => extractTicker(r.symbol).toLowerCase().includes(search) || r.symbol.toLowerCase().includes(search)) : sorted;
+
+    const totalPuts = filtered.reduce((s, r) => s + r.putCommitment, 0);
+    const totalCalls = filtered.reduce((s, r) => s + r.callCommitment, 0);
 
     // 9 columns now (added Current Price)
     const colW = 'width:8.33%;';
@@ -1004,7 +1247,7 @@ function renderOpenCommitmentsTable() {
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
 
-    const rowsHtml = sorted.map((r, i) => {
+    const rowsHtml = filtered.map((r, i) => {
         const ticker = extractTicker(r.symbol);
         const pd = ocStockPrices[ticker];
         // Highlight row if put is at-risk (stock price at or below strike)
@@ -1093,45 +1336,69 @@ function renderOpenCommitmentsTable() {
         }
     }
 
-    document.getElementById('openCommitmentsContainer').innerHTML = `
-        <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
-        <div style="overflow-x:auto;margin-bottom:28px;">
-        <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
-            <colgroup><col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%"></colgroup>
-            <thead><tr>
-                <th style="${sumThStyle}">Strike Date</th>
-                <th style="${sumThStyle}">Days Till Expiration</th>
-                <th style="${sumThStyle}">Total Commitments (Puts)</th>
-                <th style="${sumThStyle}">Total Commitments (Calls)</th>
-            </tr></thead>
-            <tbody>${summaryRowsHtml}${summaryTotalRow}</tbody>
-        </table>
-        </div>
+    const isFirstRender = !document.getElementById('ocPositionsTable');
 
-        <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">All Open Positions</h3>
-        <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
-            <colgroup>
-                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
-                <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
-            </colgroup>
-            <thead id="ocDetailThead"><tr>
-                <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('assignPrice')">Assignment Price${arrow('assignPrice')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('pctFromStrike')">% From Strike Price${arrow('pctFromStrike')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
-                <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
-            </tr></thead>
-            <tbody>${rowsHtml}${totalRow}</tbody>
-        </table>
-        </div>`;
+    if (isFirstRender) {
+        document.getElementById('openCommitmentsContainer').innerHTML = `
+            <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
+            <div style="overflow-x:auto;margin-bottom:28px;">
+            <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
+                <colgroup><col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%"></colgroup>
+                <thead><tr>
+                    <th style="${sumThStyle}">Strike Date</th>
+                    <th style="${sumThStyle}">Days Till Expiration</th>
+                    <th style="${sumThStyle}">Total Commitments (Puts)</th>
+                    <th style="${sumThStyle}">Total Commitments (Calls)</th>
+                </tr></thead>
+                <tbody>${summaryRowsHtml}${summaryTotalRow}</tbody>
+            </table>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;">
+                <h3 style="color:#0ea5e9;margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">All Open Positions</h3>
+                <input id="commitmentSearch" type="text" placeholder="Enter search request..." oninput="renderOpenCommitmentsTable()"
+                    style="background:var(--bg-input);border:2px solid #0ea5e9;color:var(--text-primary);padding:6px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
+            </div>
+            <div style="overflow-x:auto;">
+            <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
+                <colgroup>
+                    <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                    <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                </colgroup>
+                <thead id="ocDetailThead"><tr>
+                    <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('assignPrice')">Assignment Price${arrow('assignPrice')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('pctFromStrike')">% From Strike Price${arrow('pctFromStrike')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
+                </tr></thead>
+                <tbody id="ocPositionsBody"></tbody>
+            </table>
+            </div>`;
+    } else {
+        // Just update the thead arrows (sort indicators) without destroying the input
+        document.getElementById('ocDetailThead').querySelector('tr').innerHTML = `
+            <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('assignPrice')">Assignment Price${arrow('assignPrice')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('pctFromStrike')">% From Strike Price${arrow('pctFromStrike')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>`;
+    }
+
+    document.getElementById('ocPositionsBody').innerHTML = rowsHtml + totalRow;
 
     // Set up scroll-based thead pin after DOM updates
     setTimeout(() => {
@@ -1161,6 +1428,325 @@ function renderOpenCommitmentsTable() {
 
         modalInner.addEventListener('scroll', modalInner._ocScrollHandler);
     }, 50);
+}
+
+// ============================================================
+// ASSIGNMENTS
+// ============================================================
+let assignmentStockPrices = {};
+let assignmentPriceFetchTime = null;
+let assignSortKey = 'date';
+let assignSortDir = 1;
+
+function closeAssignments() {
+    document.getElementById('assignmentsModal').style.display = 'none';
+}
+
+function getAssignedTrades() {
+    const search = (document.getElementById('assignmentSearch')?.value || '').toLowerCase().trim();
+    return finalTrades.filter(t => {
+        if (!t.status.toLowerCase().includes('assigned')) return false;
+        const isPut = /[\d.]+\s+P\s*$/.test(t.symbol);
+        if (!isPut) return false;
+        if (search && !extractTicker(t.symbol).toLowerCase().includes(search)) return false;
+        return true;
+    });
+}
+
+// Find if the assigned stock ticker was later sold (sell to close stock)
+// We look in allTransactions for a "Sell" of the base ticker (not an option)
+function findStockSalePrice(ticker, assignDate) {
+    if (!window.allTransactions) return null;
+    // Stock sales in Schwab appear as action containing "sell" but NOT "to open" or "to close" option actions
+    // and the symbol would just be the ticker. We also check finalTrades for sell-to-close on stock.
+    // Look for transactions with symbol === ticker and action = "sell"
+    // Since allTransactions doesn't store symbol separately, scan the raw data.
+    // Instead, check window.rawRows if available.
+    if (window.rawRows) {
+        const tickerUpper = ticker.toUpperCase();
+        const sales = window.rawRows.filter(r => {
+            const sym = (r.Symbol || '').trim().toUpperCase();
+            const action = (r.Action || '').toLowerCase();
+            const d = parseDateString(r.Date);
+            return sym === tickerUpper && action.includes('sell') && d && d >= assignDate;
+        });
+        if (sales.length > 0) {
+            // Return price of earliest sale after assignment
+            sales.sort((a, b) => parseDateString(a.Date) - parseDateString(b.Date));
+            const price = cleanNum(sales[0].Price);
+            return price > 0 ? price : null;
+        }
+    }
+    return null;
+}
+
+// Sum calls sold against shares (closed + active) for a given ticker after an assignment date
+function getCallsSoldAgainstShares(ticker, assignDate) {
+    // Look in finalTrades for calls sold on this ticker after assignDate
+    let total = 0;
+    finalTrades.forEach(t => {
+        const tTicker = extractTicker(t.symbol);
+        if (tTicker !== ticker) return;
+        const st = t.status.toLowerCase();
+        const isCall = t.symbol.match(/[\d.]+\s+C\s*$/);
+        if (!isCall) return;
+        const tradeDate = t.openDate || t.closeDate;
+        if (tradeDate && tradeDate >= assignDate) {
+            // opening premium (sell to open a call)
+            if (st.includes('buy') && st.includes('close')) {
+                // closed call: profit = openingPremium + closingPremium (closingPremium is negative)
+                total += t.openingPremium; // just credit received when opened
+            } else if (st.includes('expired') || st.includes('sell') && st.includes('close')) {
+                total += t.openingPremium;
+            } else {
+                total += t.openingPremium;
+            }
+        }
+    });
+    // Also check openPositions for open calls on this ticker
+    openPositions.forEach(p => {
+        const pTicker = extractTicker(p.symbol);
+        if (pTicker !== ticker) return;
+        const isCall = p.symbol.match(/[\d.]+\s+C\s*$/);
+        if (!isCall) return;
+        if (p.openDate && p.openDate >= assignDate) {
+            total += p.openingPremium;
+        }
+    });
+    return total;
+}
+
+async function refreshAssignmentPrices() {
+    const assigned = getAssignedTrades();
+    if (!assigned.length) return;
+    const tickers = [...new Set(assigned.map(t => extractTicker(t.symbol)))];
+    tickers.forEach(t => { assignmentStockPrices[t] = { loading: true }; });
+    renderAssignmentsTable();
+
+    const tsEl = document.getElementById('assignmentPriceTimestamp');
+    if (tsEl) tsEl.textContent = `Fetching prices for: ${tickers.join(', ')}…`;
+
+    for (const ticker of tickers) {
+        try {
+            const data = await fetchSinglePrice(ticker);
+            assignmentStockPrices[ticker] = { ...data, loading: false, error: false };
+        } catch(e) {
+            assignmentStockPrices[ticker] = { loading: false, error: true, errMsg: e.message };
+        }
+        renderAssignmentsTable();
+        if (tickers.length > 1) await new Promise(r => setTimeout(r, 150));
+    }
+    assignmentPriceFetchTime = new Date();
+    renderAssignmentsTable();
+}
+
+function sortAssignments(key) {
+    if (assignSortKey === key) assignSortDir *= -1;
+    else { assignSortKey = key; assignSortDir = 1; }
+    renderAssignmentsTable();
+}
+
+function renderAssignmentsTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+    const warnColor = isDark ? '#fbbf24' : '#d97706';
+
+    const fmtD = (n) => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtU = (n) => '$' + n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    const assigned = getAssignedTrades();
+
+    const tsEl = document.getElementById('assignmentPriceTimestamp');
+    if (tsEl) {
+        if (assignmentPriceFetchTime) tsEl.textContent = 'Prices last updated: ' + assignmentPriceFetchTime.toLocaleTimeString();
+        else tsEl.textContent = 'Click "Refresh Prices" to load real-time stock prices via Finnhub.';
+    }
+
+    if (!assigned.length) {
+        document.getElementById('assignmentsContainer').innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:40px;">No assigned options found in the uploaded data.</p>';
+        return;
+    }
+
+    // Build enriched rows first so we can sort on computed values
+    const enriched = assigned.map(t => {
+        const ticker = extractTicker(t.symbol);
+        const putMatch = t.symbol.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = t.symbol.match(/([\d.]+)\s+C\s*$/);
+        const strike = putMatch ? parseFloat(putMatch[1]) : callMatch ? parseFloat(callMatch[1]) : 0;
+        const isCall = !!callMatch;
+        const contracts = parseFloat(t.contracts) || 0;
+        const sharesAssigned = contracts * 100;
+        const premiumPaid = Math.abs(t.openingPremium);
+        const purchasePrice = sharesAssigned > 0
+            ? isCall
+                ? ((sharesAssigned * strike) + premiumPaid) / sharesAssigned
+                : ((sharesAssigned * strike) - premiumPaid) / sharesAssigned
+            : 0;
+        const assignDate = t.closeDate || t.openDate;
+        const soldPrice = findStockSalePrice(ticker, assignDate);
+        const pd = assignmentStockPrices[ticker];
+        const currentPriceVal = (pd && !pd.loading && !pd.error) ? pd.price : null;
+        const costBasis = purchasePrice * sharesAssigned;
+        const priceForMV = soldPrice !== null ? soldPrice : currentPriceVal;
+        const marketValue = priceForMV !== null ? priceForMV * sharesAssigned : null;
+        const callsSold = getCallsSoldAgainstShares(ticker, assignDate);
+        const pl = marketValue !== null ? (marketValue - costBasis) : null;
+        return { t, ticker, strike, isCall, contracts, sharesAssigned, premiumPaid, purchasePrice,
+                 assignDate, soldPrice, pd, currentPriceVal, costBasis, marketValue, callsSold, pl };
+    });
+
+    // Sort
+    const arrow = (key) => assignSortKey === key ? (assignSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+
+    enriched.sort((a, b) => {
+        let v1, v2;
+        switch(assignSortKey) {
+            case 'date':       v1 = a.assignDate ? a.assignDate.getTime() : 0; v2 = b.assignDate ? b.assignDate.getTime() : 0; break;
+            case 'symbol':     v1 = a.t.symbol.toLowerCase(); v2 = b.t.symbol.toLowerCase(); break;
+            case 'strike':     v1 = a.strike; v2 = b.strike; break;
+            case 'contracts':  v1 = a.contracts; v2 = b.contracts; break;
+            case 'shares':     v1 = a.sharesAssigned; v2 = b.sharesAssigned; break;
+            case 'premium':    v1 = a.premiumPaid; v2 = b.premiumPaid; break;
+            case 'purchase':   v1 = a.purchasePrice; v2 = b.purchasePrice; break;
+            case 'sold':       v1 = a.soldPrice !== null ? a.soldPrice : -Infinity; v2 = b.soldPrice !== null ? b.soldPrice : -Infinity; break;
+            case 'current':    v1 = a.currentPriceVal !== null ? a.currentPriceVal : -Infinity; v2 = b.currentPriceVal !== null ? b.currentPriceVal : -Infinity; break;
+            case 'costbasis':  v1 = a.costBasis; v2 = b.costBasis; break;
+            case 'mktvalue':   v1 = a.marketValue !== null ? a.marketValue : -Infinity; v2 = b.marketValue !== null ? b.marketValue : -Infinity; break;
+            case 'calls':      v1 = a.callsSold; v2 = b.callsSold; break;
+            case 'pl':         v1 = a.pl !== null ? a.pl : -Infinity; v2 = b.pl !== null ? b.pl : -Infinity; break;
+            default:           v1 = 0; v2 = 0;
+        }
+        if (v1 < v2) return -assignSortDir;
+        if (v1 > v2) return assignSortDir;
+        return 0;
+    });
+
+    const thStyle = `background:${thBg};color:#f59e0b;font-size:0.7rem;letter-spacing:0.02em;border-bottom:2px solid #f59e0b;text-align:center;vertical-align:middle;padding:8px 5px;word-break:break-word;white-space:normal;cursor:pointer;user-select:none;min-width:70px;position:relative;`;
+    const tdBase = `padding:8px 6px;border-bottom:1px solid ${borderColor};text-align:center;font-size:0.8rem;white-space:nowrap;`;
+
+    const cols = [
+        { label: 'Transaction Date', key: 'date' },
+        { label: 'Symbol',           key: 'symbol' },
+        { label: 'Strike Price',     key: 'strike' },
+        { label: '# of Contracts',  key: 'contracts' },
+        { label: '# of Shares Assigned', key: 'shares' },
+        { label: 'Premium Paid',    key: 'premium' },
+        { label: 'Purchase Price',  key: 'purchase' },
+        { label: 'Sold Price',      key: 'sold' },
+        { label: 'Current Stock Price', key: 'current' },
+        { label: 'Cost Basis',      key: 'costbasis' },
+        { label: 'Market Value',    key: 'mktvalue' },
+        { label: 'Profit / Loss',   key: 'pl' },
+    ];
+
+    let totCostBasis = 0, totMarketValue = 0, totCallsSold = 0, totPL = 0, totPremium = 0;
+    let hasMarketValue = false;
+
+    const rowsHtml = enriched.map(({ t, ticker, strike, contracts, sharesAssigned, premiumPaid,
+                                     purchasePrice, assignDate, soldPrice, pd, currentPriceVal,
+                                     costBasis, marketValue, callsSold, pl }, i) => {
+
+        const soldPriceDisplay = soldPrice !== null ? fmtU(soldPrice) : 'Not sold yet';
+
+        let currentPriceDisplay = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        if (pd) {
+            if (pd.loading) currentPriceDisplay = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+            else if (pd.error) currentPriceDisplay = `<span style="color:${negColor};font-size:0.75rem;" title="${pd.errMsg||''}">Error ⚠</span>`;
+            else {
+                const chgColor = pd.change >= 0 ? posColor : negColor;
+                const sign = pd.change >= 0 ? '+' : '';
+                currentPriceDisplay = `<span style="font-weight:700;">${fmtU(pd.price)}</span><br><span style="font-size:0.7rem;color:${chgColor};">${sign}${pd.change.toFixed(2)} (${sign}${pd.changePct.toFixed(2)}%)</span>`;
+            }
+        }
+
+        totPremium += premiumPaid;
+        if (!isNaN(costBasis)) totCostBasis += costBasis;
+        if (marketValue !== null && !isNaN(marketValue)) { totMarketValue += marketValue; hasMarketValue = true; }
+        if (!isNaN(callsSold)) totCallsSold += callsSold;
+        if (pl !== null && !isNaN(pl)) totPL += pl;
+
+        const bg = i % 2 === 0 ? rowBg : rowAltBg;
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:${textColor};">${assignDate ? assignDate.toLocaleDateString() : '—'}</td>
+            <td style="${tdBase}color:${textColor};font-size:0.78rem;">${t.symbol}</td>
+            <td style="${tdBase}color:#a78bfa;font-weight:600;">${strike > 0 ? fmtU(strike) : '—'}</td>
+            <td style="${tdBase}color:${textColor};">${contracts}</td>
+            <td style="${tdBase}color:${textColor};">${sharesAssigned}</td>
+            <td style="${tdBase}color:${negColor};">${fmtU(premiumPaid)}</td>
+            <td style="${tdBase}color:#e879f9;font-weight:600;">${sharesAssigned > 0 ? fmtU(purchasePrice) : '—'}</td>
+            <td style="${tdBase}color:${soldPrice !== null ? posColor : warnColor};">${soldPriceDisplay}</td>
+            <td style="${tdBase}line-height:1.5;">${currentPriceDisplay}</td>
+            <td style="${tdBase}color:${textColor};font-weight:600;">${fmtU(costBasis)}</td>
+            <td style="${tdBase}color:${marketValue !== null ? textColor : '#64748b'};font-weight:600;">${marketValue !== null ? fmtU(marketValue) : '—'}</td>
+            <td style="${tdBase}color:${pl === null ? '#64748b' : pl >= 0 ? posColor : negColor};font-weight:700;">${pl !== null ? fmtD(pl) : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td colspan="5" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #f59e0b;">Totals</td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${negColor};">${fmtU(totPremium)}</td>
+        <td colspan="3" style="padding:12px 8px;border-top:2px solid #f59e0b;"></td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${textColor};">${fmtU(totCostBasis)}</td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${textColor};">${hasMarketValue ? fmtU(totMarketValue) : '—'}</td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${totPL >= 0 ? posColor : negColor};">${hasMarketValue ? fmtD(totPL) : '—'}</td>
+    </tr>`;
+
+    const colCount = cols.length;
+    const colW = `width:${(100/colCount).toFixed(2)}%;`;
+
+    document.getElementById('assignmentsContainer').innerHTML = `
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.85rem;table-layout:auto;min-width:900px;">
+            <colgroup>${cols.map(() => `<col>`).join('')}</colgroup>
+            <thead><tr>${cols.map(c => `<th style="${thStyle}" onclick="sortAssignments('${c.key}')">${c.label}${arrow(c.key)}<div class="resizer"></div></th>`).join('')}</tr></thead>
+            <tbody>${rowsHtml}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    // Wire up column resizers
+    document.querySelectorAll('#assignmentsContainer .resizer').forEach(resizer => {
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            const th = resizer.parentElement;
+            startWidth = th.offsetWidth;
+            const onMouseMove = (e) => { th.style.width = (startWidth + e.pageX - startX) + 'px'; th.style.minWidth = th.style.width; };
+            const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+}
+
+function showAssignments() {
+    document.getElementById('assignmentSearch').value = '';
+    const assigned = getAssignedTrades();
+    if (!assigned.length) {
+        alert('No assigned options found. Please upload a file that contains assigned trades.');
+        return;
+    }
+
+    assignSortKey = 'date';
+    assignSortDir = 1;
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalInner = document.querySelector('#assignmentsModal > div');
+    modalInner.style.background = isDark ? '#1e293b' : '#ffffff';
+    modalInner.style.border = '1px solid #f59e0b';
+
+    renderAssignmentsTable();
+
+    const modal = document.getElementById('assignmentsModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeAssignments(); };
 }
 
 function showMonthlySummary() {
