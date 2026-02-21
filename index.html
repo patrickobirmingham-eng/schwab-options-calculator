@@ -1331,6 +1331,7 @@ function renderOpenCommitmentsTable() {
         else if (ocSortKey === 'strike') { v1 = a.strike || 0; v2 = b.strike || 0; }
         else if (ocSortKey === 'type') { v1 = a.type; v2 = b.type; }
         else if (ocSortKey === 'contracts') { v1 = a.contracts; v2 = b.contracts; }
+        else if (ocSortKey === 'premium') { v1 = a.premiumReceived; v2 = b.premiumReceived; }
         else if (ocSortKey === 'puts') { v1 = a.putCommitment; v2 = b.putCommitment; }
         else if (ocSortKey === 'calls') { v1 = a.callCommitment; v2 = b.callCommitment; }
         else if (ocSortKey === 'price') {
@@ -1384,13 +1385,17 @@ function renderOpenCommitmentsTable() {
             <td style="${tdBase}font-weight:700;">${(() => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return '<span style="color:#64748b;">—</span>'; if (r.type === 'Put') { const otm = p.price > r.strike; return otm ? '<span style="color:' + posColor + '">OTM</span>' : '<span style="color:' + negColor + '">ITM</span>'; } if (r.type === 'Call') { const otm = p.price < r.strike; return otm ? '<span style="color:' + posColor + '">OTM</span>' : '<span style="color:' + negColor + '">ITM</span>'; } return '<span style="color:#64748b;">—</span>'; })()}</td>
             <td style="${tdBase}color:${r.type === 'Put' ? negColor : r.type === 'Call' ? posColor : textColor};font-weight:600;">${r.type}</td>
             <td style="${tdBase}color:${textColor};">${r.contracts}</td>
+            <td style="${tdBase}color:#10b981;font-weight:600;">${r.premiumReceived > 0 ? '$' + r.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
             <td style="${tdBase}color:${negColor};font-weight:500;">${fmt(r.putCommitment)}</td>
             <td style="${tdBase}color:${posColor};font-weight:500;">${fmt(r.callCommitment)}</td>
         </tr>`;
     }).join('');
 
+    const totalPremium = filtered.reduce((s, r) => s + r.premiumReceived, 0);
+
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td colspan="10" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td style="padding:12px 8px;text-align:center;color:#10b981;border-top:2px solid #0ea5e9;">${totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${negColor};border-top:2px solid #0ea5e9;">${totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${posColor};border-top:2px solid #0ea5e9;">${totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
     </tr>`;
@@ -1402,9 +1407,10 @@ function renderOpenCommitmentsTable() {
         const expMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
         const expDate = expMatch ? expMatch[1] : '—';
         const ticker = extractTicker(r.symbol);
-        if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: r.dte, totalPuts: 0, totalCalls: 0, tickers: new Set() };
+        if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: r.dte, totalPuts: 0, totalCalls: 0, totalPremium: 0, tickers: new Set() };
         expGroups[expDate].totalPuts += r.putCommitment;
         expGroups[expDate].totalCalls += r.callCommitment;
+        expGroups[expDate].totalPremium += r.premiumReceived;
         expGroups[expDate].tickers.add(ticker);
     });
 
@@ -1416,6 +1422,7 @@ function renderOpenCommitmentsTable() {
 
     const grandPuts = groupRows.reduce((s, g) => s + g.totalPuts, 0);
     const grandCalls = groupRows.reduce((s, g) => s + g.totalCalls, 0);
+    const grandPremium = groupRows.reduce((s, g) => s + g.totalPremium, 0);
 
     const sumThStyle = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 8px;word-break:break-word;white-space:normal;`;
     const sumTdStyle = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
@@ -1435,6 +1442,7 @@ function renderOpenCommitmentsTable() {
         return `<tr style="background:${i % 2 === 0 ? rowBg : rowAltBg};">
             <td style="${sumTdStyle}color:${textColor};">${g.expDate}</td>
             <td style="${sumTdStyle}color:${warnColor};font-weight:600;">${g.dte !== '' ? g.dte : '—'}</td>
+            <td style="${sumTdStyle}color:#10b981;font-weight:600;">${g.totalPremium > 0 ? '$' + g.totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
             <td style="${sumTdStyle}color:${negColor};font-weight:500;">${g.totalPuts > 0 ? '$' + g.totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
             <td style="${sumTdStyle}color:${posColor};font-weight:500;">${g.totalCalls > 0 ? '$' + g.totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         </tr>`;
@@ -1442,6 +1450,7 @@ function renderOpenCommitmentsTable() {
 
     const summaryTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td style="${sumTdStyle}color:#10b981;border-top:2px solid #0ea5e9;">${grandPremium > 0 ? '$' + grandPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="${sumTdStyle}color:${negColor};border-top:2px solid #0ea5e9;">${grandPuts > 0 ? '$' + grandPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="${sumTdStyle}color:${posColor};border-top:2px solid #0ea5e9;">${grandCalls > 0 ? '$' + grandCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
     </tr>`;
@@ -1463,10 +1472,11 @@ function renderOpenCommitmentsTable() {
             <h3 style="color:#0ea5e9;margin:0 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
             <div style="overflow-x:auto;margin-bottom:28px;">
             <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
-                <colgroup><col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%"></colgroup>
+                <colgroup><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
                 <thead><tr>
                     <th style="${sumThStyle}">Strike Date</th>
                     <th style="${sumThStyle}">Days Till Expiration</th>
+                    <th style="${sumThStyle}">Premium</th>
                     <th style="${sumThStyle}">Total Commitments (Puts)</th>
                     <th style="${sumThStyle}">Total Commitments (Calls)</th>
                 </tr></thead>
@@ -1482,7 +1492,7 @@ function renderOpenCommitmentsTable() {
             <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
                 <colgroup>
                     <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
-                    <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                    <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
                 </colgroup>
                 <thead id="ocDetailThead"><tr>
                     <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
@@ -1495,6 +1505,7 @@ function renderOpenCommitmentsTable() {
                     <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('premium')">Premium${arrow('premium')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
                 </tr></thead>
@@ -1514,6 +1525,7 @@ function renderOpenCommitmentsTable() {
             <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('premium')">Premium${arrow('premium')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>`;
     }
