@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schwab Options Profit/Loss Calculator</title>
+<title>Schwab Options Calculator & Data Sorter</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -198,7 +198,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 </button>
 
 <div class="container">
-    <h1>Schwab Options Profit/Loss Calculator</h1>
+    <h1>Schwab Options Calculator & Data Sorter</h1>
     <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
 
     <div class="upload-box" id="dropZone">
@@ -209,46 +209,55 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
     </div>
 
-    <div class="filter-bar" id="filterBar" style="display:none; position:relative;">
-        <button onclick="resetFilters()" style="position:absolute;top:12px;right:12px;background:#ef4444;color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.8rem;display:inline-flex;align-items:center;gap:6px;z-index:1;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v5h-5M3 21v-5h5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Reset All Filters</button>
+    <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
 
-        <div class="filter-group" style="min-width: 350px;">
-            <label>1. Status Filter</label>
-            <div class="checkbox-grid" id="statusCheckboxes">
-                <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
-                <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
-                <label class="checkbox-item"><input type="checkbox" value="Called Away" checked onchange="applyFilters()"> Called Away</label>
-                <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
-                <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
-                <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
-                <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
+        <!-- All 4 filters + Reset button in one horizontal centered row -->
+        <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:center; width:100%;">
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">1. Status Filter</label>
+                <div id="statusCheckboxes" style="display:inline-flex; flex-wrap:wrap; justify-content:center; gap:6px 16px; background:var(--bg-input); padding:8px 14px; border-radius:8px; border:1px solid var(--border-color);">
+                    <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Called Away" checked onchange="applyFilters()"> Called Away</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
+                </div>
             </div>
-        </div>
 
-        <div class="filter-group">
-            <label>2. Quick Range</label>
-            <select id="quickRange" onchange="setQuickRange()">
-                <option value="all" selected>Show All</option>
-                <option value="today">Today</option>
-                <option value="7days">Last 7 Days</option>
-                <option value="currentMonth">Current Month</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="currentYear">Current Year</option>
-                <option value="lastYear">Last Year</option>
-                <option value="last3Months">Last 3 Months</option>
-                <option value="last6Months">Last 6 Months</option>
-                <option value="last12Months">Last 12 Months</option>
-            </select>
-        </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">2. Quick Range</label>
+                <select id="quickRange" onchange="setQuickRange()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
+                    <option value="all" selected>Show All</option>
+                    <option value="today">Today</option>
+                    <option value="7days">Last 7 Days</option>
+                    <option value="currentMonth">Current Month</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="currentYear">Current Year</option>
+                    <option value="lastYear">Last Year</option>
+                    <option value="last3Months">Last 3 Months</option>
+                    <option value="last6Months">Last 6 Months</option>
+                    <option value="last12Months">Last 12 Months</option>
+                </select>
+            </div>
 
-        <div class="filter-group">
-            <label>3. From Date</label>
-            <input type="date" id="startDate" onchange="applyFilters()">
-        </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">3. From Date</label>
+                <input type="date" id="startDate" onchange="applyFilters()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
+            </div>
 
-        <div class="filter-group">
-            <label>4. To Date</label>
-            <input type="date" id="endDate" onchange="applyFilters()">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">4. To Date</label>
+                <input type="date" id="endDate" onchange="applyFilters()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:transparent; user-select:none;">.</label>
+                <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.8rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v5h-5M3 21v-5h5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Reset Filters</button>
+            </div>
+
         </div>
 
     </div>
@@ -256,9 +265,83 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly Summary</button>
         <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
         <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
+        <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
     </div>
 
-    <!-- Open Commitments Modal -->
+    <!-- Transaction Data Sorter Modal -->
+    <div id="txSorterModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:flex-start; overflow-y:auto;">
+        <div id="txSorterInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color:#10b981; font-size:1.2rem; margin:0;">📊 Transaction Data Sorter</h2>
+                <button onclick="closeTxSorter()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+            </div>
+
+            <!-- Filters -->
+            <div id="tsSummarySection" style="margin-bottom:16px;">
+                <div id="tsSummaryGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;"></div>
+            </div>
+
+            <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:16px;">
+                <!-- Action checkboxes -->
+                <div style="margin-bottom:14px;">
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; text-align:center;">Action Filters</div>
+                    <div id="tsActionCheckboxes" style="display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center;"></div>
+                </div>
+                <!-- Date + secondary filters row -->
+                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Date Preset</div>
+                            <select id="tsDatePreset" onchange="tsApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                                <option value="all">All</option>
+                                <option value="today">Today</option>
+                                <option value="last7">Last 7 Days</option>
+                                <option value="currentMonth">Current Month</option>
+                                <option value="lastMonth">Last Month</option>
+                                <option value="last3Months">Last 3 Months</option>
+                                <option value="last6Months">Last 6 Months</option>
+                                <option value="last12Months">Last 12 Months</option>
+                                <option value="lastYear">Last Year</option>
+                                <option value="currentYear">Current Year</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">From</div>
+                            <input type="date" id="tsDateFrom" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">To</div>
+                            <input type="date" id="tsDateTo" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Search Table</div>
+                            <input type="text" id="tsSymbolSearch" placeholder="Search..." oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
+                        </div>
+                    </div>
+                    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                        <button onclick="tsReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset</button>
+                        <button onclick="tsDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:8px; flex-wrap:wrap;">
+                <div id="tsDateRangeBar" style="font-size:0.82rem; color:var(--text-secondary); font-weight:500; letter-spacing:0.03em;"></div>
+                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:11pt; color:var(--text-secondary); user-select:none; font-weight:500; white-space:nowrap;">
+                    <input type="checkbox" id="tsUseTransactionDate" onchange="tsApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#a78bfa;">
+                    Settlement / Transaction Date
+                </label>
+            </div>
+            <div style="overflow-x:auto; overflow-y:auto; max-height:55vh; border-radius:8px;">
+                <table id="tsSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
+                    <thead style="position:sticky; top:0; z-index:10;"><tr id="tsSorterHead"></tr></thead>
+                    <tbody id="tsSorterBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
@@ -319,6 +402,10 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
             <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:1rem; color:var(--text-secondary); user-select:none; font-weight:500;">
                 <input type="checkbox" id="showEntireTable" onchange="applyFilters()" style="width:15px;height:15px;cursor:pointer;accent-color:#10b981;">
                 Show Entire Table
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:1rem; color:var(--text-secondary); user-select:none; font-weight:500;">
+                <input type="checkbox" id="useTransactionDate" onchange="applyFilters()" style="width:15px;height:15px;cursor:pointer;accent-color:#a78bfa;">
+                Settlement / Transaction Date
             </label>
         </div>
         <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Results</button>
@@ -446,16 +533,33 @@ function cleanNum(val) {
     return parseFloat(str) || 0;
 }
 
+function fmtDateMMDDYYYY(d) {
+    if (!d) return '';
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const y = d.getFullYear();
+    return `${m}/${day}/${y}`;
+}
+
 function process(rows) {
     const inventory = {};
     const realized = [];
     const allTransactions = [];
 
+    // Store ALL rows (with parsed dates) before any Symbol/date filtering
+    window.allRawRows = rows.map(r => {
+        const raw = parseDateString(r.Date);
+        const parsedDate = raw ? nextSettlementDate(raw) : null;
+        const rawDateFormatted = fmtDateMMDDYYYY(raw);
+        return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
+    });
+
     const sortedRows = rows
         .map(r => {
             const raw = parseDateString(r.Date);
             const parsedDate = raw ? nextSettlementDate(raw) : null;
-            return { ...r, parsedDate };
+            const rawDateFormatted = fmtDateMMDDYYYY(raw);
+            return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
         })
         .filter(r => r.Symbol && r.parsedDate)
         .sort((a, b) => {
@@ -482,7 +586,7 @@ function process(rows) {
         if (!inventory[sym]) inventory[sym] = [];
 
         if (action.includes('to open')) {
-            inventory[sym].push({ date: row.parsedDate, qty, premium: amt, status: action });
+            inventory[sym].push({ date: row.parsedDate, transactionDate: row.transactionDate, rawDateFormatted: row.rawDateFormatted || '', qty, premium: amt, status: action });
             allTransactions.push({ date: row.parsedDate, action, amount: amt });
         }
         else if (action.includes('to close') || action.includes('expired') || action.includes('assigned')) {
@@ -495,6 +599,8 @@ function process(rows) {
 
             let openingPremiumUsed = 0;
             let firstOpenDate = row.parsedDate;
+            let firstOpenRawDate = row.rawDateFormatted || '';
+            let firstOpenTransactionDate = row.transactionDate;
 
             while (remainingToClose > 0 && inventory[sym].length > 0) {
                 let earliest = inventory[sym][0];
@@ -502,6 +608,8 @@ function process(rows) {
                 let sliceOpeningPremium = (earliest.premium / earliest.qty) * qtyFromThisOpening;
                 openingPremiumUsed += sliceOpeningPremium;
                 firstOpenDate = earliest.date;
+                firstOpenRawDate = earliest.rawDateFormatted || '';
+                firstOpenTransactionDate = earliest.transactionDate;
                 earliest.qty -= qtyFromThisOpening;
                 remainingToClose -= qtyFromThisOpening;
                 if (earliest.qty <= 0) inventory[sym].shift();
@@ -526,6 +634,8 @@ function process(rows) {
                 profit: openingPremiumUsed + actualClosingCost,
                 openDate: firstOpenDate,
                 closeDate: row.parsedDate,
+                transactionDate: row.transactionDate,
+                rawDate: row.rawDateFormatted || '',
                 status: rawStatus,
                 isOpen: false
             });
@@ -547,6 +657,8 @@ function process(rows) {
                     profit: 0,
                     openDate: item.date,
                     closeDate: item.date,
+                    transactionDate: item.transactionDate,
+                    rawDate: item.rawDateFormatted || '',
                     status: 'Sell to Open',
                     isOpen: true
                 });
@@ -578,7 +690,7 @@ function applyFilters() {
     const allItems = [...finalTrades, ...openPositions];
     const filtered = allItems.filter(item => {
         if (searchTerm) {
-            const dateStr = (item.isOpen ? item.openDate : item.closeDate)?.toLocaleDateString() || '';
+            const dateStr = (item.isOpen ? item.openDate : item.closeDate) ? fmtDateMMDDYYYY(item.isOpen ? item.openDate : item.closeDate) : '';
             const matchesSearch =
                 item.symbol.toLowerCase().includes(searchTerm) ||
                 item.status.toLowerCase().includes(searchTerm) ||
@@ -590,7 +702,8 @@ function applyFilters() {
             if (!matchesSearch) return false;
         }
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
-        const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
+        // Use transactionDate (original) so today's trades aren't pushed out by settlement offset
+        const dateToFilter = item.transactionDate || (item.isOpen ? item.openDate : item.closeDate);
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
         if (endDate && dateToFilter > endDate) matchesDate = false;
@@ -611,9 +724,9 @@ function sortRawTable(key) {
 }
 
 function renderRawTable() {
-    if (!window.rawRows) return;
+    if (!window.allRawRows) return;
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    let rows = window.rawRows.filter(r => {
+    let rows = window.allRawRows.filter(r => {
         if (!searchTerm) return true;
         const sym = (r.Symbol || '').toLowerCase();
         const action = (r.Action || '').toLowerCase();
@@ -640,10 +753,12 @@ function renderRawTable() {
     });
 
     const arrow = (key) => rawSortKey === key ? (rawSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+    const useTransDate = document.getElementById('useTransactionDate')?.checked;
+    const rawDateColLabel = useTransDate ? 'Transaction Date' : 'Settlement Date';
 
     // Reuse existing table with remapped columns
     const cols = [
-        { lab: 'Transaction Date', key: 'date' },
+        { lab: rawDateColLabel, key: 'date' },
         { lab: 'Action',           key: 'action' },
         { lab: 'Symbol',           key: 'symbol' },
         { lab: 'Description',      key: 'desc' },
@@ -686,7 +801,7 @@ function renderRawTable() {
         const amtDisplay = r.Amount ? (amt >= 0 ? '$' : '-$') + Math.abs(amt).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
         const priceDisplay = r.Price ? '$' + parseFloat(r.Price).toFixed(2) : '';
         return `<tr>
-            <td>${r.parsedDate ? r.parsedDate.toLocaleDateString() : (r.Date || '')}</td>
+            <td>${useTransDate ? (r.rawDateFormatted || '') : (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || ''))}</td>
             <td><span class="tag">${r.Action || ''}</span></td>
             <td>${r.Symbol || ''}</td>
             <td>${r.Description || ''}</td>
@@ -767,13 +882,14 @@ function render(newSortKey, dataToRender) {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
 
     // Cash Flow: STO received and BTC paid within date range (by transaction date)
+    const useTransDate = document.getElementById('useTransactionDate')?.checked;
     let sellToOpen = 0, buyToClose = 0;
     if (window.rawRows) {
         window.rawRows.forEach(r => {
             const sym = (r.Symbol || '').toLowerCase();
             if (searchTerm && !sym.includes(searchTerm)) return;
             const action = (r.Action || '').toLowerCase();
-            const d = r.parsedDate;
+            const d = useTransDate ? r.transactionDate : r.parsedDate;
             if (!d) return;
             if (startDate && d < startDate) return;
             if (endDate && d > endDate) return;
@@ -793,7 +909,7 @@ function render(newSortKey, dataToRender) {
         const st = x.status.toLowerCase();
         if (st.includes('assigned')) return;
         if (!activeStatuses.includes(st)) return;
-        const d = x.closeDate;
+        const d = useTransDate ? x.transactionDate : x.closeDate;
         if (startDate && d < startDate) return;
         if (endDate && d > endDate) return;
         reconPL += x.profit || 0;
@@ -805,7 +921,7 @@ function render(newSortKey, dataToRender) {
         const sym = x.symbol.toLowerCase();
         if (searchTerm && !sym.includes(searchTerm)) return;
         if (!x.status.toLowerCase().includes('assigned')) return;
-        const d = x.closeDate;
+        const d = useTransDate ? x.transactionDate : x.closeDate;
         if (startDate && d < startDate) return;
         if (endDate && d > endDate) return;
         reconAssigned += Math.abs(x.openingPremium || 0);
@@ -833,11 +949,13 @@ function render(newSortKey, dataToRender) {
     `;
 
     if (uploadedDateRange.min && uploadedDateRange.max) {
-        document.getElementById('dateRange').innerHTML = `Available Dates: ${uploadedDateRange.min.toLocaleDateString()} to ${uploadedDateRange.max.toLocaleDateString()}`;
+        document.getElementById('dateRange').innerHTML = `Available Dates: ${fmtDateMMDDYYYY(uploadedDateRange.min)} to ${fmtDateMMDDYYYY(uploadedDateRange.max)}`;
     }
 
+    const dateColLabel = useTransDate ? 'Transaction Date' : 'Settlement Date';
+
     const cols = [
-        {lab:'Transaction Date',key:'closeDate'},
+        {lab: dateColLabel, key:'closeDate'},
         {lab:'Symbol',key:'symbol'},
         {lab:'Put Or Call',key:'putOrCall'},
         {lab:'# Of Contracts',key:'contracts'},
@@ -888,7 +1006,9 @@ function render(newSortKey, dataToRender) {
 
         return `
         <tr>
-            <td>${p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString()}</td>
+            <td>${useTransDate
+                ? (p.rawDate || fmtDateMMDDYYYY(p.isOpen ? p.openDate : p.closeDate))
+                : fmtDateMMDDYYYY(p.isOpen ? p.openDate : p.closeDate)}</td>
             <td>${p.symbol}</td>
             <td style="color:${p.putOrCall === 'Put' ? '#f87171' : p.putOrCall === 'Call' ? '#4ade80' : 'inherit'};font-weight:600;">${p.putOrCall}</td>
             <td>${p.contracts}</td>
@@ -948,7 +1068,7 @@ function downloadResults() {
     const filtered = [...finalTrades, ...openPositions].filter(item => {
         const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
-        const dateToFilter = item.isOpen ? item.openDate : item.closeDate;
+        const dateToFilter = item.transactionDate || (item.isOpen ? item.openDate : item.closeDate);
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
         if (endDate && dateToFilter > endDate) matchesDate = false;
@@ -957,7 +1077,7 @@ function downloadResults() {
 
     let csv = 'Date,Symbol,Put or Call,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return\n';
     filtered.forEach(p => {
-        const date = p.isOpen ? p.openDate.toLocaleDateString() : p.closeDate.toLocaleDateString();
+        const date = p.isOpen ? fmtDateMMDDYYYY(p.openDate) : fmtDateMMDDYYYY(p.closeDate);
         const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
         const pl = p.isOpen ? 'Waiting to close' : p.profit.toFixed(2);
         const dte = p.isOpen ? calcDTE(p.symbol) : '';
@@ -1145,7 +1265,7 @@ function showOpenCommitments() {
         const type = isPut ? 'Put' : isCall ? 'Call' : '—';
         const strikeDisplay = strike !== null ? '$' + strike.toFixed(2) : '—';
         const dateObj = p.openDate || null;
-        const date = dateObj ? dateObj.toLocaleDateString() : '—';
+        const date = dateObj ? fmtDateMMDDYYYY(dateObj) : '—';
         const dte = calcDTE(p.symbol);
         const premiumReceived = Math.abs(p.openingPremium || 0);
         return { dateObj, date, symbol: p.symbol, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte, premiumReceived };
@@ -1674,7 +1794,7 @@ function renderAssignmentsTable() {
 
         const bg = i % 2 === 0 ? rowBg : rowAltBg;
         return `<tr style="background:${bg};">
-            <td style="${tdBase}color:${textColor};">${assignDate ? assignDate.toLocaleDateString() : '—'}</td>
+            <td style="${tdBase}color:${textColor};">${assignDate ? fmtDateMMDDYYYY(assignDate) : '—'}</td>
             <td style="${tdBase}color:${textColor};font-size:0.78rem;">${t.symbol}</td>
             <td style="${tdBase}color:#a78bfa;font-weight:600;">${strike > 0 ? fmtU(strike) : '—'}</td>
             <td style="${tdBase}color:${textColor};">${contracts}</td>
@@ -1920,6 +2040,268 @@ function showMonthlySummary() {
     const modal = document.getElementById('monthlyModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
+}
+
+// ============================================================
+// TRANSACTION DATA SORTER
+// ============================================================
+let tsData = [];
+let tsFiltered = [];
+let tsSortKey = 'parsedDate';
+let tsSortDir = -1;
+
+function showTransactionSorter() {
+    if (!window.allRawRows || window.allRawRows.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const inner = document.getElementById('txSorterInner');
+    inner.style.background = isDark ? '#1e293b' : '#ffffff';
+    inner.style.border = '1px solid #10b981';
+
+    tsData = window.allRawRows.map(r => ({ ...r }));
+    tsFiltered = [...tsData];
+    tsSortKey = 'parsedDate';
+    tsSortDir = -1;
+
+    tsPopulateActionCheckboxes();
+    tsRenderSummary();
+    tsRenderTable();
+
+    const modal = document.getElementById('txSorterModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeTxSorter(); };
+}
+
+function closeTxSorter() {
+    document.getElementById('txSorterModal').style.display = 'none';
+}
+
+function tsPopulateActionCheckboxes() {
+    const container = document.getElementById('tsActionCheckboxes');
+    const uniqueActions = [...new Set(tsData.map(r => r.Action || '').filter(Boolean))].sort();
+    container.innerHTML = uniqueActions.map(a => `
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
+            <input type="checkbox" value="${a}" onchange="tsApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#10b981;">
+            ${a}
+        </label>`).join('');
+}
+
+function tsApplyDatePreset() {
+    const preset = document.getElementById('tsDatePreset').value;
+    if (preset === 'all') {
+        document.getElementById('tsDateFrom').value = '';
+        document.getElementById('tsDateTo').value = '';
+    } else {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        let from, to;
+        switch(preset) {
+            case 'today':        from = new Date(today); to = new Date(today); break;
+            case 'last7':        from = new Date(today); from.setDate(today.getDate()-6); to = new Date(today); break;
+            case 'currentMonth': from = new Date(today.getFullYear(), today.getMonth(), 1); to = new Date(today); break;
+            case 'lastMonth':    from = new Date(today.getFullYear(), today.getMonth()-1, 1); to = new Date(today.getFullYear(), today.getMonth(), 0); break;
+            case 'last3Months':  from = new Date(today); from.setMonth(today.getMonth()-3); to = new Date(today); break;
+            case 'last6Months':  from = new Date(today); from.setMonth(today.getMonth()-6); to = new Date(today); break;
+            case 'last12Months': from = new Date(today); from.setMonth(today.getMonth()-12); to = new Date(today); break;
+            case 'lastYear':     from = new Date(today.getFullYear()-1,0,1); to = new Date(today.getFullYear()-1,11,31); break;
+            case 'currentYear':  from = new Date(today.getFullYear(),0,1); to = new Date(today); break;
+        }
+        const fmtD = d => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; };
+        document.getElementById('tsDateFrom').value = fmtD(from);
+        document.getElementById('tsDateTo').value = fmtD(to);
+    }
+    tsApplyFilters();
+}
+
+function tsApplyFilters() {
+    const checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
+    const totalActions = document.querySelectorAll('#tsActionCheckboxes input').length;
+    const fromVal = document.getElementById('tsDateFrom').value;
+    const toVal = document.getElementById('tsDateTo').value;
+    const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
+    const search = (document.getElementById('tsSymbolSearch').value || '').toLowerCase().trim();
+    const tsUseTransDate = document.getElementById('tsUseTransactionDate')?.checked;
+
+    tsFiltered = tsData.filter(r => {
+        // If some (but not all) actions are unchecked, filter by checked ones; rows with no Action always pass
+        if (checkedActions.length > 0 && checkedActions.length < totalActions) {
+            if (r.Action && !checkedActions.includes(r.Action)) return false;
+        }
+        const dateForFilter = tsUseTransDate ? r.transactionDate : r.parsedDate;
+        if (dateForFilter) {
+            if (fromDate && dateForFilter < fromDate) return false;
+            if (toDate && dateForFilter > toDate) return false;
+        }
+        if (search) {
+            const sym = (r.Symbol || '').toLowerCase();
+            const act = (r.Action || '').toLowerCase();
+            const desc = (r.Description || '').toLowerCase();
+            const date = (tsUseTransDate ? r.rawDateFormatted : (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : r.rawDateFormatted) || '').toLowerCase();
+            const qty = String(r.Quantity || '').toLowerCase();
+            const price = String(r.Price || '').toLowerCase();
+            const fees = String(r['Fees & Comm'] || r['Fees'] || '').toLowerCase();
+            const amt = String(r.Amount || '').toLowerCase();
+            if (!sym.includes(search) && !act.includes(search) && !desc.includes(search) &&
+                !date.includes(search) && !qty.includes(search) && !price.includes(search) &&
+                !fees.includes(search) && !amt.includes(search)) return false;
+        }
+        return true;
+    });
+
+    tsRenderSummary();
+    tsRenderTable();
+}
+
+function tsReset() {
+    document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => cb.checked = false);
+    document.getElementById('tsDatePreset').value = 'all';
+    document.getElementById('tsDateFrom').value = '';
+    document.getElementById('tsDateTo').value = '';
+    document.getElementById('tsSymbolSearch').value = '';
+    const tsTransCb = document.getElementById('tsUseTransactionDate');
+    if (tsTransCb) tsTransCb.checked = false;
+    tsFiltered = [...tsData];
+    tsSortKey = 'parsedDate';
+    tsSortDir = -1;
+    tsRenderSummary();
+    tsRenderTable();
+}
+
+function tsRenderSummary() {
+    const totalRows = tsFiltered.length;
+    const totalAmount = tsFiltered.reduce((s, r) => s + cleanNum(r.Amount), 0);
+    const totalFees = tsFiltered.reduce((s, r) => s + cleanNum(r['Fees & Comm'] || r['Fees'] || 0), 0);
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const cardBg = isDark ? '#0f172a' : '#f8fafc';
+    const fmtAmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Compute available date range from full dataset
+    const tsUseTransDate = document.getElementById('tsUseTransactionDate')?.checked;
+    const dates = tsData.map(r => tsUseTransDate ? r.transactionDate : r.parsedDate).filter(Boolean);
+    if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+        const fmt = d => {
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const y = d.getFullYear();
+            return `${m}/${day}/${y}`;
+        };
+        const rangeLabel = 'Available Date Range';
+        document.getElementById('tsDateRangeBar').innerHTML =
+            `<span style="display:inline-flex;align-items:center;gap:6px;"><span style="font-size:11pt;">${rangeLabel}: <span style="color:var(--text-primary);font-weight:600;">${fmt(minDate)}</span> &nbsp;→&nbsp; <span style="color:var(--text-primary);font-weight:600;">${fmt(maxDate)}</span></span></span>`;
+    } else {
+        document.getElementById('tsDateRangeBar').innerHTML = '';
+    }
+
+    document.getElementById('tsSummaryGrid').innerHTML = `
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Amount</div>
+            <div style="font-size:1.3rem;font-weight:bold;color:${totalAmount >= 0 ? '#10b981' : '#ef4444'};">${fmtAmt(totalAmount)}</div>
+        </div>
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Fees & Comm</div>
+            <div style="font-size:1.3rem;font-weight:bold;color:#f59e0b;">${fmtAmt(totalFees)}</div>
+        </div>
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Rows</div>
+            <div style="font-size:1.3rem;font-weight:bold;color:#10b981;">${totalRows.toLocaleString()}</div>
+        </div>`;
+}
+
+function tsSortBy(key) {
+    if (tsSortKey === key) tsSortDir *= -1;
+    else { tsSortKey = key; tsSortDir = 1; }
+    tsRenderTable();
+}
+
+function tsRenderTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+
+    const useTrans = document.getElementById('tsUseTransactionDate')?.checked;
+    const cols = [
+        { lab: useTrans ? 'Transaction Date' : 'Settlement Date', key: 'parsedDate' },
+        { lab: 'Action',      key: 'Action' },
+        { lab: 'Symbol',      key: 'Symbol' },
+        { lab: 'Description', key: 'Description' },
+        { lab: 'Quantity',    key: 'Quantity' },
+        { lab: 'Price',       key: 'Price' },
+        { lab: 'Fees & Comm', key: 'Fees & Comm' },
+        { lab: 'Amount',      key: 'Amount' },
+    ];
+
+    const arrow = key => tsSortKey === key ? (tsSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+    const thStyle = `background:${thBg};color:#10b981;padding:10px 8px;text-align:center;font-size:0.78rem;border-bottom:2px solid #10b981;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10;`;
+
+    document.getElementById('tsSorterHead').innerHTML = cols.map(c =>
+        `<th onclick="tsSortBy('${c.key}')" style="${thStyle}">${c.lab}${arrow(c.key)}</th>`
+    ).join('');
+
+    const sorted = [...tsFiltered].sort((a, b) => {
+        let v1, v2;
+        if (tsSortKey === 'parsedDate') {
+            v1 = a.parsedDate ? a.parsedDate.getTime() : 0;
+            v2 = b.parsedDate ? b.parsedDate.getTime() : 0;
+        } else if (['Amount','Price','Quantity','Fees & Comm'].includes(tsSortKey)) {
+            v1 = parseFloat(a[tsSortKey]) || 0;
+            v2 = parseFloat(b[tsSortKey]) || 0;
+        } else {
+            v1 = (a[tsSortKey] || '').toString().toLowerCase();
+            v2 = (b[tsSortKey] || '').toString().toLowerCase();
+        }
+        if (v1 < v2) return -tsSortDir;
+        if (v1 > v2) return tsSortDir;
+        return 0;
+    });
+
+    const fmtAmt = n => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2});
+    const tdBase = `padding:8px;border-bottom:1px solid ${borderColor};font-size:0.8rem;text-align:center;`;
+
+    document.getElementById('tsSorterBody').innerHTML = sorted.map((r, i) => {
+        const bg = i % 2 === 0 ? rowBg : rowAltBg;
+        const amt = cleanNum(r.Amount);
+        const amtColor = amt >= 0 ? posColor : negColor;
+        const price = parseFloat(r.Price);
+        const fees = cleanNum(r['Fees & Comm'] || r['Fees'] || 0);
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${useTrans ? (r.rawDateFormatted || '') : (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || ''))}</td>
+            <td style="${tdBase}color:${textColor};"><span class="tag">${r.Action || ''}</span></td>
+            <td style="${tdBase}color:${textColor};font-weight:600;">${r.Symbol || ''}</td>
+            <td style="${tdBase}color:${textColor};max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.Description || ''}</td>
+            <td style="${tdBase}color:${textColor};">${r.Quantity || ''}</td>
+            <td style="${tdBase}color:${textColor};">${!isNaN(price) && r.Price !== '' && r.Price != null ? '$'+price.toFixed(2) : ''}</td>
+            <td style="${tdBase}color:${fees !== 0 ? negColor : textColor};">${fees !== 0 ? fmtAmt(fees) : ''}</td>
+            <td style="${tdBase}color:${amtColor};font-weight:600;">${r.Amount != null && r.Amount !== '' ? fmtAmt(amt) : ''}</td>
+        </tr>`;
+    }).join('');
+}
+
+function tsDownload() {
+    if (!tsFiltered.length) { alert('No data to download.'); return; }
+    const exportRows = tsFiltered.map(r => ({
+        Date: r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || ''),
+        Action: r.Action || '',
+        Symbol: r.Symbol || '',
+        Description: r.Description || '',
+        Quantity: r.Quantity || '',
+        Price: r.Price || '',
+        'Fees & Comm': r['Fees & Comm'] || '',
+        Amount: r.Amount || '',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Filtered Results');
+    XLSX.writeFile(wb, `transaction_sorter_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 </script>
 </body>
