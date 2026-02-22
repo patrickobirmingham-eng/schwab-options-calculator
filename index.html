@@ -555,7 +555,7 @@ function process(rows) {
             const rawDateFormatted = fmtDateMMDDYYYY(raw);
             return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
         })
-        .filter(r => r.Symbol && r.parsedDate)
+        .filter(r => (r.Symbol || '').trim() && r.parsedDate)
         .sort((a, b) => {
             const dateCompare = a.parsedDate - b.parsedDate;
             if (dateCompare !== 0) return dateCompare;
@@ -572,7 +572,7 @@ function process(rows) {
     }
 
     sortedRows.forEach(row => {
-        const sym = row.Symbol;
+        const sym = (row.Symbol || '').trim();
         const action = (row.Action || "").toLowerCase();
         const qty = Math.abs(cleanNum(row.Quantity));
         const amt = cleanNum(row.Amount);
@@ -604,6 +604,7 @@ function process(rows) {
                 firstOpenDate = earliest.date;
                 firstOpenRawDate = earliest.rawDateFormatted || '';
                 firstOpenTransactionDate = earliest.transactionDate;
+                earliest.premium -= sliceOpeningPremium;
                 earliest.qty -= qtyFromThisOpening;
                 remainingToClose -= qtyFromThisOpening;
                 if (earliest.qty <= 0) inventory[sym].shift();
@@ -1477,13 +1478,13 @@ function renderOpenCommitmentsTable() {
                 <input id="commitmentSearch" type="text" placeholder="Search table..." oninput="renderOpenCommitmentsTable()"
                     style="background:var(--bg-input);border:2px solid #0ea5e9;color:var(--text-primary);padding:6px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
             </div>
-            <div style="overflow-x:auto;">
+            <div style="overflow-x:auto;overflow-y:auto;max-height:400px;border:1px solid #0ea5e9;border-radius:8px;">
             <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
                 <colgroup>
                     <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
                     <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
                 </colgroup>
-                <thead id="ocDetailThead"><tr>
+                <thead id="ocDetailThead" style="position:sticky;top:0;z-index:2;"><tr>
                     <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('dte')">Days Till Expiration${arrow('dte')}</th>
@@ -1890,7 +1891,7 @@ function showMonthlySummary() {
     modalInner.style.background = modalBg;
     modalInner.style.border = `1px solid ${modalBorder}`;
 
-    const startYear = 2025;
+    const startYear = finalTrades.length > 0 ? Math.min(...finalTrades.map(t => t.closeDate ? t.closeDate.getFullYear() : 9999)) : new Date().getFullYear();
     const now = new Date();
     const months = [];
     for (let y = startYear; y <= now.getFullYear(); y++) {
@@ -1905,7 +1906,7 @@ function showMonthlySummary() {
 
     let totSellOpen = 0, totBuyClose = 0, totProfit = 0, totAssigned = 0;
 
-    const rows = months.map(({year, month}) => {
+    const rows = [...months].reverse().map(({year, month}) => {
         const mStart = new Date(year, month, 1);
         const mEnd = new Date(year, month + 1, 0, 23, 59, 59);
         const monthLabel = mStart.toLocaleDateString('en-US', {month:'short', year:'numeric'});
@@ -1922,9 +1923,8 @@ function showMonthlySummary() {
         finalTrades.forEach(t => {
             if (t.closeDate >= mStart && t.closeDate <= mEnd) {
                 const st = t.status.toLowerCase();
-                if (st.includes('buy') && st.includes('close')) profit += t.profit;
-                if (st.includes('expired')) profit += t.profit;
-                if (st.includes('assigned')) assignedPaid += Math.abs(t.openingPremium);
+                if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) assignedPaid += Math.abs(t.openingPremium);
             }
         });
 
@@ -1955,7 +1955,7 @@ function showMonthlySummary() {
         <td style="padding:12px 14px;color:#d97706;">${totAssigned > 0 ? fmt(totAssigned) : '$0.00'}</td>
     </tr>`;
 
-    const years = [...new Set(months.map(m => m.year))];
+    const years = [...new Set(months.map(m => m.year))].reverse();
     let grandSellOpen = 0, grandBuyClose = 0, grandProfit = 0, grandAssigned = 0;
 
     const yearRows = years.map(year => {
@@ -1972,9 +1972,8 @@ function showMonthlySummary() {
         finalTrades.forEach(t => {
             if (t.closeDate >= yStart && t.closeDate <= yEnd) {
                 const st = t.status.toLowerCase();
-                if (st.includes('buy') && st.includes('close')) yProfit += t.profit;
-                if (st.includes('expired')) yProfit += t.profit;
-                if (st.includes('assigned')) yAssigned += Math.abs(t.openingPremium);
+                if (!st.includes('assigned') || st.includes('called')) yProfit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) yAssigned += Math.abs(t.openingPremium);
             }
         });
         const yCashFlow = ySellOpen + yBuyClose;
@@ -2023,10 +2022,10 @@ function showMonthlySummary() {
         </div>
 
         <h3 style="color:#a78bfa;margin:28px 0 14px;font-size:1rem;">Monthly Breakdown</h3>
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto; overflow-y:auto; max-height:380px; border:1px solid ${borderColor}; border-radius:8px;">
         <table style="${tblStyle}">
             <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
-            <thead><tr>
+            <thead style="position:sticky;top:0;z-index:2;"><tr>
                 <th style="${thStyle}">Month</th>
                 <th style="${thStyle}">Sell to Open</th>
                 <th style="${thStyle}">Buy to Close</th>
