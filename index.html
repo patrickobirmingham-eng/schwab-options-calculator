@@ -277,7 +277,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         <div id="txSorterInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
             <!-- Header -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-                <h2 style="color:#10b981; font-size:1.2rem; margin:0;">📊 Transaction Data Sorter</h2>
+                <h2 style="color:#10b981; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Transaction Data Sorter</h2>
                 <button onclick="closeTxSorter()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
 
@@ -346,7 +346,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem;">Open Commitments</h2>
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Commitments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <button id="refreshPricesBtn" onclick="refreshStockPrices()" style="background:#0ea5e9;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
                     <button onclick="closeOpenCommitments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
@@ -370,7 +370,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div style="border-radius:16px; padding:30px; max-width:95vw; width:1200px; max-height:85vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem;">Monthly Cash Flow & Profit Summary</h2>
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg>Monthly Cash Flow & Profit Summary</h2>
                 <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
             <div id="monthlyTableContainer"></div>
@@ -381,7 +381,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <div id="assignmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div style="border-radius:16px; padding:20px; max-width:1700px; width:97vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem;">Assignments</h2>
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Assignments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <input id="assignmentSearch" type="text" placeholder="Search table..." oninput="renderAssignmentsTable()"
                         style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
