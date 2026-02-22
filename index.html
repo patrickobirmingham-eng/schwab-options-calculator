@@ -123,7 +123,7 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     .filter-bar { flex-direction: column; padding: 15px; gap: 15px; }
     .filter-group { min-width: 100%; }
     .checkbox-grid { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
     .stat-card { padding: 15px; }
     .stat-label { font-size: 0.65rem; }
     .stat-value { font-size: 1.2rem; }
@@ -135,8 +135,12 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 
 @media (max-width: 480px) {
     h1 { font-size: 1.2rem; }
-    .stats { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
     table { min-width: 600px; }
+}
+
+@media (max-width: 360px) {
+    .stats { grid-template-columns: 1fr; }
 }
 
 .filter-bar input, .filter-bar select {
@@ -155,7 +159,7 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-filter, invert(1)); cursor: pointer; }
 [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0); }
 
-.stats { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 30px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 30px; }
 .stat-card { background: var(--bg-secondary); padding: 10px 6px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
 .stat-label { font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
 .stat-value { font-size: 1.05rem; font-weight: bold; }
