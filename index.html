@@ -728,10 +728,17 @@ function renderRawTable() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     let rows = window.allRawRows.filter(r => {
         if (!searchTerm) return true;
-        const sym = (r.Symbol || '').toLowerCase();
+        const sym   = (r.Symbol || '').toLowerCase();
         const action = (r.Action || '').toLowerCase();
-        const desc = (r.Description || '').toLowerCase();
-        return sym.includes(searchTerm) || action.includes(searchTerm) || desc.includes(searchTerm);
+        const desc  = (r.Description || '').toLowerCase();
+        const date  = (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')).toLowerCase();
+        const qty   = String(r.Quantity || '').toLowerCase();
+        const price = String(r.Price || '').toLowerCase();
+        const fees  = String(r['Fees & Comm'] || r['Fees'] || '').toLowerCase();
+        const amt   = String(r.Amount || '').toLowerCase();
+        return sym.includes(searchTerm) || action.includes(searchTerm) || desc.includes(searchTerm) ||
+               date.includes(searchTerm) || qty.includes(searchTerm) || price.includes(searchTerm) ||
+               fees.includes(searchTerm) || amt.includes(searchTerm);
     });
 
     // Sort
