@@ -279,7 +279,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
             <!-- Filters -->
             <div id="tsSummarySection" style="margin-bottom:16px;">
-                <div id="tsSummaryGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;"></div>
+                <div id="tsSummaryGrid" style="display:flex; flex-wrap:wrap; gap:12px; align-items:stretch; justify-content:center;"></div>
             </div>
 
             <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:16px;">
@@ -316,7 +316,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                         </div>
                         <div>
                             <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Search Table</div>
-                            <input type="text" id="tsSymbolSearch" placeholder="Search..." oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
+                            <input type="text" id="tsSymbolSearch" placeholder="Search all columns..." oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
                         </div>
                     </div>
                     <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
@@ -329,10 +329,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
             <!-- Table -->
             <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:8px; flex-wrap:wrap;">
                 <div id="tsDateRangeBar" style="font-size:0.82rem; color:var(--text-secondary); font-weight:500; letter-spacing:0.03em;"></div>
-                <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:11pt; color:var(--text-secondary); user-select:none; font-weight:500; white-space:nowrap;">
-                    <input type="checkbox" id="tsUseTransactionDate" onchange="tsApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#a78bfa;">
-                    Settlement / Transaction Date
-                </label>
+
             </div>
             <div style="overflow-x:auto; overflow-y:auto; max-height:55vh; border-radius:8px;">
                 <table id="tsSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
@@ -403,10 +400,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                 <input type="checkbox" id="showEntireTable" onchange="applyFilters()" style="width:15px;height:15px;cursor:pointer;accent-color:#10b981;">
                 Show Entire Table
             </label>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:1rem; color:var(--text-secondary); user-select:none; font-weight:500;">
-                <input type="checkbox" id="useTransactionDate" onchange="applyFilters()" style="width:15px;height:15px;cursor:pointer;accent-color:#a78bfa;">
-                Settlement / Transaction Date
-            </label>
+
         </div>
         <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Results</button>
     </div>
@@ -549,7 +543,7 @@ function process(rows) {
     // Store ALL rows (with parsed dates) before any Symbol/date filtering
     window.allRawRows = rows.map(r => {
         const raw = parseDateString(r.Date);
-        const parsedDate = raw ? nextSettlementDate(raw) : null;
+        const parsedDate = raw || null;
         const rawDateFormatted = fmtDateMMDDYYYY(raw);
         return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
     });
@@ -557,7 +551,7 @@ function process(rows) {
     const sortedRows = rows
         .map(r => {
             const raw = parseDateString(r.Date);
-            const parsedDate = raw ? nextSettlementDate(raw) : null;
+            const parsedDate = raw || null;
             const rawDateFormatted = fmtDateMMDDYYYY(raw);
             return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
         })
@@ -702,7 +696,6 @@ function applyFilters() {
             if (!matchesSearch) return false;
         }
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
-        // Use transactionDate (original) so today's trades aren't pushed out by settlement offset
         const dateToFilter = item.transactionDate || (item.isOpen ? item.openDate : item.closeDate);
         let matchesDate = true;
         if (startDate && dateToFilter < startDate) matchesDate = false;
@@ -728,17 +721,10 @@ function renderRawTable() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     let rows = window.allRawRows.filter(r => {
         if (!searchTerm) return true;
-        const sym   = (r.Symbol || '').toLowerCase();
+        const sym = (r.Symbol || '').toLowerCase();
         const action = (r.Action || '').toLowerCase();
-        const desc  = (r.Description || '').toLowerCase();
-        const date  = (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')).toLowerCase();
-        const qty   = String(r.Quantity || '').toLowerCase();
-        const price = String(r.Price || '').toLowerCase();
-        const fees  = String(r['Fees & Comm'] || r['Fees'] || '').toLowerCase();
-        const amt   = String(r.Amount || '').toLowerCase();
-        return sym.includes(searchTerm) || action.includes(searchTerm) || desc.includes(searchTerm) ||
-               date.includes(searchTerm) || qty.includes(searchTerm) || price.includes(searchTerm) ||
-               fees.includes(searchTerm) || amt.includes(searchTerm);
+        const desc = (r.Description || '').toLowerCase();
+        return sym.includes(searchTerm) || action.includes(searchTerm) || desc.includes(searchTerm);
     });
 
     // Sort
@@ -760,8 +746,7 @@ function renderRawTable() {
     });
 
     const arrow = (key) => rawSortKey === key ? (rawSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
-    const useTransDate = document.getElementById('useTransactionDate')?.checked;
-    const rawDateColLabel = useTransDate ? 'Transaction Date' : 'Settlement Date';
+    const rawDateColLabel = 'Date';
 
     // Reuse existing table with remapped columns
     const cols = [
@@ -808,7 +793,7 @@ function renderRawTable() {
         const amtDisplay = r.Amount ? (amt >= 0 ? '$' : '-$') + Math.abs(amt).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
         const priceDisplay = r.Price ? '$' + parseFloat(r.Price).toFixed(2) : '';
         return `<tr>
-            <td>${useTransDate ? (r.rawDateFormatted || '') : (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || ''))}</td>
+            <td>${r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')}</td>
             <td><span class="tag">${r.Action || ''}</span></td>
             <td>${r.Symbol || ''}</td>
             <td>${r.Description || ''}</td>
@@ -889,14 +874,13 @@ function render(newSortKey, dataToRender) {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
 
     // Cash Flow: STO received and BTC paid within date range (by transaction date)
-    const useTransDate = document.getElementById('useTransactionDate')?.checked;
     let sellToOpen = 0, buyToClose = 0;
     if (window.rawRows) {
         window.rawRows.forEach(r => {
             const sym = (r.Symbol || '').toLowerCase();
             if (searchTerm && !sym.includes(searchTerm)) return;
             const action = (r.Action || '').toLowerCase();
-            const d = useTransDate ? r.transactionDate : r.parsedDate;
+            const d = r.parsedDate;
             if (!d) return;
             if (startDate && d < startDate) return;
             if (endDate && d > endDate) return;
@@ -916,7 +900,7 @@ function render(newSortKey, dataToRender) {
         const st = x.status.toLowerCase();
         if (st.includes('assigned')) return;
         if (!activeStatuses.includes(st)) return;
-        const d = useTransDate ? x.transactionDate : x.closeDate;
+        const d = x.closeDate;
         if (startDate && d < startDate) return;
         if (endDate && d > endDate) return;
         reconPL += x.profit || 0;
@@ -928,7 +912,7 @@ function render(newSortKey, dataToRender) {
         const sym = x.symbol.toLowerCase();
         if (searchTerm && !sym.includes(searchTerm)) return;
         if (!x.status.toLowerCase().includes('assigned')) return;
-        const d = useTransDate ? x.transactionDate : x.closeDate;
+        const d = x.closeDate;
         if (startDate && d < startDate) return;
         if (endDate && d > endDate) return;
         reconAssigned += Math.abs(x.openingPremium || 0);
@@ -959,7 +943,7 @@ function render(newSortKey, dataToRender) {
         document.getElementById('dateRange').innerHTML = `Available Dates: ${fmtDateMMDDYYYY(uploadedDateRange.min)} to ${fmtDateMMDDYYYY(uploadedDateRange.max)}`;
     }
 
-    const dateColLabel = useTransDate ? 'Transaction Date' : 'Settlement Date';
+    const dateColLabel = 'Date';
 
     const cols = [
         {lab: dateColLabel, key:'closeDate'},
@@ -1013,9 +997,7 @@ function render(newSortKey, dataToRender) {
 
         return `
         <tr>
-            <td>${useTransDate
-                ? (p.rawDate || fmtDateMMDDYYYY(p.isOpen ? p.openDate : p.closeDate))
-                : fmtDateMMDDYYYY(p.isOpen ? p.openDate : p.closeDate)}</td>
+            <td>${fmtDateMMDDYYYY(p.isOpen ? p.openDate : p.closeDate)}</td>
             <td>${p.symbol}</td>
             <td style="color:${p.putOrCall === 'Put' ? '#f87171' : p.putOrCall === 'Call' ? '#4ade80' : 'inherit'};font-weight:600;">${p.putOrCall}</td>
             <td>${p.contracts}</td>
@@ -2069,6 +2051,35 @@ let tsFiltered = [];
 let tsSortKey = 'parsedDate';
 let tsSortDir = -1;
 
+// Persisted filter state for Transaction Data Sorter
+const tsState = {
+    checkedActions: [],
+    datePreset: 'all',
+    dateFrom: '',
+    dateTo: '',
+    symbolSearch: '',
+};
+
+function tsSaveState() {
+    tsState.checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
+    tsState.datePreset = document.getElementById('tsDatePreset').value;
+    tsState.dateFrom = document.getElementById('tsDateFrom').value;
+    tsState.dateTo = document.getElementById('tsDateTo').value;
+    tsState.symbolSearch = document.getElementById('tsSymbolSearch').value;
+}
+
+function tsRestoreState() {
+    document.getElementById('tsDatePreset').value = tsState.datePreset || 'all';
+    document.getElementById('tsDateFrom').value = tsState.dateFrom || '';
+    document.getElementById('tsDateTo').value = tsState.dateTo || '';
+    document.getElementById('tsSymbolSearch').value = tsState.symbolSearch || '';
+    if (tsState.checkedActions.length > 0) {
+        document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => {
+            cb.checked = tsState.checkedActions.includes(cb.value);
+        });
+    }
+}
+
 function showTransactionSorter() {
     if (!window.allRawRows || window.allRawRows.length === 0) {
         alert('Please upload a file first.');
@@ -2085,8 +2096,8 @@ function showTransactionSorter() {
     tsSortDir = -1;
 
     tsPopulateActionCheckboxes();
-    tsRenderSummary();
-    tsRenderTable();
+    tsRestoreState();
+    tsApplyFilters();
 
     const modal = document.getElementById('txSorterModal');
     modal.style.display = 'flex';
@@ -2094,6 +2105,7 @@ function showTransactionSorter() {
 }
 
 function closeTxSorter() {
+    tsSaveState();
     document.getElementById('txSorterModal').style.display = 'none';
 }
 
@@ -2142,14 +2154,12 @@ function tsApplyFilters() {
     const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
     const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
     const search = (document.getElementById('tsSymbolSearch').value || '').toLowerCase().trim();
-    const tsUseTransDate = document.getElementById('tsUseTransactionDate')?.checked;
-
     tsFiltered = tsData.filter(r => {
         // If some (but not all) actions are unchecked, filter by checked ones; rows with no Action always pass
         if (checkedActions.length > 0 && checkedActions.length < totalActions) {
             if (r.Action && !checkedActions.includes(r.Action)) return false;
         }
-        const dateForFilter = tsUseTransDate ? r.transactionDate : r.parsedDate;
+        const dateForFilter = r.parsedDate;
         if (dateForFilter) {
             if (fromDate && dateForFilter < fromDate) return false;
             if (toDate && dateForFilter > toDate) return false;
@@ -2158,7 +2168,7 @@ function tsApplyFilters() {
             const sym = (r.Symbol || '').toLowerCase();
             const act = (r.Action || '').toLowerCase();
             const desc = (r.Description || '').toLowerCase();
-            const date = (tsUseTransDate ? r.rawDateFormatted : (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : r.rawDateFormatted) || '').toLowerCase();
+            const date = (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')).toLowerCase();
             const qty = String(r.Quantity || '').toLowerCase();
             const price = String(r.Price || '').toLowerCase();
             const fees = String(r['Fees & Comm'] || r['Fees'] || '').toLowerCase();
@@ -2180,8 +2190,7 @@ function tsReset() {
     document.getElementById('tsDateFrom').value = '';
     document.getElementById('tsDateTo').value = '';
     document.getElementById('tsSymbolSearch').value = '';
-    const tsTransCb = document.getElementById('tsUseTransactionDate');
-    if (tsTransCb) tsTransCb.checked = false;
+    Object.assign(tsState, {checkedActions:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
     tsFiltered = [...tsData];
     tsSortKey = 'parsedDate';
     tsSortDir = -1;
@@ -2198,8 +2207,7 @@ function tsRenderSummary() {
     const fmtAmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2});
 
     // Compute available date range from full dataset
-    const tsUseTransDate = document.getElementById('tsUseTransactionDate')?.checked;
-    const dates = tsData.map(r => tsUseTransDate ? r.transactionDate : r.parsedDate).filter(Boolean);
+    const dates = tsData.map(r => r.parsedDate).filter(Boolean);
     if (dates.length > 0) {
         const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
         const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
@@ -2216,16 +2224,33 @@ function tsRenderSummary() {
         document.getElementById('tsDateRangeBar').innerHTML = '';
     }
 
+    // Per-action totals
+    const checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
+    const totalActions = document.querySelectorAll('#tsActionCheckboxes input').length;
+    const showingAll = checkedActions.length === 0 || checkedActions.length === totalActions;
+    const actionsToShow = showingAll ? [...new Set(tsFiltered.map(r => r.Action).filter(Boolean))] : checkedActions;
+    let actionBoxes = '';
+    actionsToShow.forEach(action => {
+        const rows = tsFiltered.filter(r => r.Action === action);
+        const hasAmount = rows.some(r => r.Amount != null && r.Amount !== '');
+        if (!hasAmount) return;
+        const amt = rows.reduce((s, r) => s + cleanNum(r.Amount), 0);
+        const color = amt >= 0 ? '#10b981' : '#ef4444';
+        const label = action.length > 22 ? action.slice(0, 20) + '…' : action;
+        actionBoxes += `<div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;"><div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${action}">${label}</div><div style="font-size:1.3rem;font-weight:bold;color:${color};">${fmtAmt(amt)}</div></div>`;
+    });
+
     document.getElementById('tsSummaryGrid').innerHTML = `
-        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);">
+        ${actionBoxes}
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;">
             <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Amount</div>
             <div style="font-size:1.3rem;font-weight:bold;color:${totalAmount >= 0 ? '#10b981' : '#ef4444'};">${fmtAmt(totalAmount)}</div>
         </div>
-        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);">
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;">
             <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Fees & Comm</div>
             <div style="font-size:1.3rem;font-weight:bold;color:#f59e0b;">${fmtAmt(totalFees)}</div>
         </div>
-        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);">
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;">
             <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Rows</div>
             <div style="font-size:1.3rem;font-weight:bold;color:#10b981;">${totalRows.toLocaleString()}</div>
         </div>`;
@@ -2247,9 +2272,8 @@ function tsRenderTable() {
     const posColor = isDark ? '#4ade80' : '#16a34a';
     const negColor = isDark ? '#f87171' : '#dc2626';
 
-    const useTrans = document.getElementById('tsUseTransactionDate')?.checked;
     const cols = [
-        { lab: useTrans ? 'Transaction Date' : 'Settlement Date', key: 'parsedDate' },
+        { lab: 'Date', key: 'parsedDate' },
         { lab: 'Action',      key: 'Action' },
         { lab: 'Symbol',      key: 'Symbol' },
         { lab: 'Description', key: 'Description' },
@@ -2293,7 +2317,7 @@ function tsRenderTable() {
         const price = parseFloat(r.Price);
         const fees = cleanNum(r['Fees & Comm'] || r['Fees'] || 0);
         return `<tr style="background:${bg};">
-            <td style="${tdBase}color:${textColor};white-space:nowrap;">${useTrans ? (r.rawDateFormatted || '') : (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || ''))}</td>
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')}</td>
             <td style="${tdBase}color:${textColor};"><span class="tag">${r.Action || ''}</span></td>
             <td style="${tdBase}color:${textColor};font-weight:600;">${r.Symbol || ''}</td>
             <td style="${tdBase}color:${textColor};max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.Description || ''}</td>
