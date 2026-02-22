@@ -289,38 +289,36 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                     <div id="tsActionCheckboxes" style="display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center;"></div>
                 </div>
                 <!-- Date + secondary filters row -->
-                <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
-                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-                        <div>
-                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Quick Range</div>
-                            <select id="tsDatePreset" onchange="tsApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
-                                <option value="all">All</option>
-                                <option value="today">Today</option>
-                                <option value="last7">Last 7 Days</option>
-                                <option value="currentMonth" selected>Current Month</option>
-                                <option value="lastMonth">Last Month</option>
-                                <option value="last3Months">Last 3 Months</option>
-                                <option value="last6Months">Last 6 Months</option>
-                                <option value="last12Months">Last 12 Months</option>
-                                <option value="lastYear">Last Year</option>
-                                <option value="currentYear">Current Year</option>
-                            </select>
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">From Date</div>
-                            <input type="date" id="tsDateFrom" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">To Date</div>
-                            <input type="date" id="tsDateTo" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
-                        </div>
-                        <div>
-                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Search Table</div>
-                            <input type="text" id="tsSymbolSearch" placeholder="Search all columns..." oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
-                        </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:center;">
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                        <select id="tsDatePreset" onchange="tsApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                            <option value="all">All</option>
+                            <option value="today">Today</option>
+                            <option value="last7">Last 7 Days</option>
+                            <option value="currentMonth" selected>Current Month</option>
+                            <option value="lastMonth">Last Month</option>
+                            <option value="last3Months">Last 3 Months</option>
+                            <option value="last6Months">Last 6 Months</option>
+                            <option value="last12Months">Last 12 Months</option>
+                            <option value="lastYear">Last Year</option>
+                            <option value="currentYear">Current Year</option>
+                        </select>
                     </div>
-                    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
-                        <button onclick="tsReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset</button>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
+                        <input type="date" id="tsDateFrom" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
+                        <input type="date" id="tsDateTo" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                        <input type="text" id="tsSymbolSearch" placeholder="Search all columns..." oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:flex-end;">
+                        <button onclick="tsReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
                         <button onclick="tsDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
                     </div>
                 </div>
@@ -2051,15 +2049,7 @@ let tsFiltered = [];
 let tsSortKey = 'parsedDate';
 let tsSortDir = -1;
 
-// Persisted filter state for Transaction Data Sorter
-const tsState = {
-    checkedActions: [],
-    datePreset: 'currentMonth',
-    dateFrom: '',
-    dateTo: '',
-    symbolSearch: '',
-};
-
+const tsState = { checkedActions:[], datePreset:'currentMonth', dateFrom:'', dateTo:'', symbolSearch:'' };
 function tsSaveState() {
     tsState.checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
     tsState.datePreset = document.getElementById('tsDatePreset').value;
@@ -2067,19 +2057,15 @@ function tsSaveState() {
     tsState.dateTo = document.getElementById('tsDateTo').value;
     tsState.symbolSearch = document.getElementById('tsSymbolSearch').value;
 }
-
 function tsRestoreState() {
     document.getElementById('tsDatePreset').value = tsState.datePreset || 'currentMonth';
     document.getElementById('tsDateFrom').value = tsState.dateFrom || '';
     document.getElementById('tsDateTo').value = tsState.dateTo || '';
     document.getElementById('tsSymbolSearch').value = tsState.symbolSearch || '';
     if (tsState.checkedActions.length > 0) {
-        document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => {
-            cb.checked = tsState.checkedActions.includes(cb.value);
-        });
+        document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => { cb.checked = tsState.checkedActions.includes(cb.value); });
     }
 }
-
 function showTransactionSorter() {
     if (!window.allRawRows || window.allRawRows.length === 0) {
         alert('Please upload a file first.');
@@ -2191,7 +2177,7 @@ function tsReset() {
     document.getElementById('tsDateFrom').value = '';
     document.getElementById('tsDateTo').value = '';
     document.getElementById('tsSymbolSearch').value = '';
-    Object.assign(tsState, {checkedActions:[],datePreset:'currentMonth',dateFrom:'',dateTo:'',symbolSearch:''});
+    Object.assign(tsState,{checkedActions:[],datePreset:'currentMonth',dateFrom:'',dateTo:'',symbolSearch:''});
     tsFiltered = [...tsData];
     tsSortKey = 'parsedDate';
     tsSortDir = -1;
