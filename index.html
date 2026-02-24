@@ -380,13 +380,47 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <!-- Assignments Modal -->
     <div id="assignmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div style="border-radius:16px; padding:20px; max-width:1700px; width:97vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
+            <!-- Title + action buttons row -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Assignments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                    <input id="assignmentSearch" type="text" placeholder="Search table..." oninput="renderAssignmentsTable()"
-                        style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
                     <button id="refreshAssignmentPricesBtn" onclick="refreshAssignmentPrices()" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
                     <button onclick="closeAssignments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+            <!-- Filters + Search row centered between title and table -->
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:center; margin-bottom:12px; padding:12px 16px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border-color);">
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                    <select id="assignDatePreset" onchange="setAssignmentQuickRange()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                        <option value="all">All</option>
+                        <option value="today">Today</option>
+                        <option value="7days">Last 7 Days</option>
+                        <option value="currentMonth" selected>Current Month</option>
+                        <option value="lastMonth">Last Month</option>
+                        <option value="currentYear">Current Year</option>
+                        <option value="lastYear">Last Year</option>
+                        <option value="last3Months">Last 3 Months</option>
+                        <option value="last6Months">Last 6 Months</option>
+                        <option value="last12Months">Last 12 Months</option>
+                    </select>
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
+                    <input type="date" id="assignDateFrom" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
+                    <input type="date" id="assignDateTo" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                    <input id="assignmentSearch" type="text" placeholder="Search all columns..." oninput="renderAssignmentsTable()"
+                        style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:transparent; margin-bottom:4px;">.</div>
+                    <button onclick="resetAssignmentFilters()" style="background:#6d28d9;color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
                 </div>
             </div>
             <div id="assignmentPriceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;text-align:right;"></div>
@@ -1594,6 +1628,39 @@ function closeAssignments() {
     document.getElementById('assignmentsModal').style.display = 'none';
 }
 
+function setAssignmentQuickRange() {
+    const range = document.getElementById('assignDatePreset').value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let start = new Date(today), end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    switch(range) {
+        case 'today': break;
+        case '7days': start.setDate(today.getDate() - 6); break;
+        case 'lastMonth': start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last3Months': start = new Date(today.getFullYear(), today.getMonth() - 3, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last6Months': start = new Date(today.getFullYear(), today.getMonth() - 6, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last12Months': start = new Date(today.getFullYear(), today.getMonth() - 12, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'lastYear': start = new Date(today.getFullYear() - 1, 0, 1); end = new Date(today.getFullYear() - 1, 11, 31); break;
+        case 'currentMonth': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'currentYear': start = new Date(today.getFullYear(), 0, 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'all': default: start = null; end = null; break;
+    }
+
+    document.getElementById('assignDateFrom').value = start ? toISODate(start) : '';
+    document.getElementById('assignDateTo').value = end ? toISODate(end) : '';
+    renderAssignmentsTable();
+}
+
+function resetAssignmentFilters() {
+    document.getElementById('assignDatePreset').value = 'all';
+    document.getElementById('assignDateFrom').value = '';
+    document.getElementById('assignDateTo').value = '';
+    document.getElementById('assignmentSearch').value = '';
+    renderAssignmentsTable();
+}
+
 function getAssignedTrades() {
     return finalTrades.filter(t => {
         if (!t.status.toLowerCase().includes('assigned')) return false;
@@ -1752,27 +1819,46 @@ function renderAssignmentsTable() {
 
     // Full-table search filter (runs after enrichment so all computed columns are searchable)
     const search = (document.getElementById('assignmentSearch')?.value || '').toLowerCase().trim();
-    const filteredEnriched = !search ? enriched : enriched.filter(row => {
+
+    // Date range filter
+    const fromVal = document.getElementById('assignDateFrom')?.value;
+    const toVal = document.getElementById('assignDateTo')?.value;
+    const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
+
+    const filteredEnriched = enriched.filter(row => {
         const { t, ticker, strike, contracts, sharesAssigned, premiumPaid, purchasePrice,
                 assignDate, soldPrice, currentPriceVal, costBasis, marketValue, callsSold, pl } = row;
-        const dateStr = assignDate ? fmtDateMMDDYYYY(assignDate) : '';
-        const vals = [
-            dateStr,
-            t.symbol,
-            ticker,
-            strike > 0 ? strike.toFixed(2) : '',
-            String(contracts),
-            String(sharesAssigned),
-            premiumPaid.toFixed(2),
-            purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
-            soldPrice !== null ? soldPrice.toFixed(2) : 'not sold yet',
-            currentPriceVal !== null ? currentPriceVal.toFixed(2) : '',
-            costBasis.toFixed(2),
-            marketValue !== null ? marketValue.toFixed(2) : '',
-            callsSold !== 0 ? callsSold.toFixed(2) : '',
-            pl !== null ? pl.toFixed(2) : '',
-        ];
-        return vals.some(v => v.toLowerCase().includes(search));
+
+        // Date filter
+        if (assignDate) {
+            if (fromDate && assignDate < fromDate) return false;
+            if (toDate && assignDate > toDate) return false;
+        }
+
+        // Search filter
+        if (search) {
+            const dateStr = assignDate ? fmtDateMMDDYYYY(assignDate) : '';
+            const vals = [
+                dateStr,
+                t.symbol,
+                ticker,
+                strike > 0 ? strike.toFixed(2) : '',
+                String(contracts),
+                String(sharesAssigned),
+                premiumPaid.toFixed(2),
+                purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
+                soldPrice !== null ? soldPrice.toFixed(2) : 'not sold yet',
+                currentPriceVal !== null ? currentPriceVal.toFixed(2) : '',
+                costBasis.toFixed(2),
+                marketValue !== null ? marketValue.toFixed(2) : '',
+                callsSold !== 0 ? callsSold.toFixed(2) : '',
+                pl !== null ? pl.toFixed(2) : '',
+            ];
+            if (!vals.some(v => v.toLowerCase().includes(search))) return false;
+        }
+
+        return true;
     });
 
     if (!filteredEnriched.length) {
