@@ -115,8 +115,10 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 @media (max-width: 768px) {
     #themeToggle { padding: 8px 12px 8px 10px; font-size: 0.75rem; top: 10px; right: 10px; }
     #themeToggle .toggle-label { display: none; }
+    #uploadBtn { top: 10px; left: 10px; font-size: 0.75rem; padding: 8px 10px; }
+    #uploadBtn .upload-btn-text { display: none; }
     body { padding: 10px; }
-    h1 { font-size: 1.5rem; }
+    h1 { font-size: 1.5rem; margin-top: 55px; }
     .subtitle { font-size: 0.8rem; }
     .upload-box { padding: 20px; }
     .upload-box p { font-size: 1rem !important; }
@@ -180,6 +182,14 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 .tag-waiting { background: #f59e0b; color: #000; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
+#uploadBtn:hover {
+    background: #6d28d9;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(109,40,217,0.4);
+}
+#uploadBtn:hover svg path { stroke: #fff; }
+
 /* Upload box text */
 .upload-box p { color: var(--text-primary); }
 .upload-box p:not(:first-child) { color: var(--text-secondary); }
@@ -199,6 +209,12 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <div class="toggle-track">
         <div class="toggle-thumb"></div>
     </div>
+</button>
+
+<!-- Upload Transactions compact button (shown after file is loaded) -->
+<button id="uploadBtn" onclick="document.getElementById('filePicker').click()" title="Upload new transactions file" style="display:none; position:absolute; top:16px; left:16px; z-index:9999; align-items:center; gap:8px; background:var(--bg-secondary); color:var(--text-primary); border:2px solid #6d28d9; border-radius:50px; padding:8px 14px 8px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; letter-spacing:0.03em; box-shadow:0 4px 16px var(--shadow); transition:all 0.25s ease; white-space:nowrap;">
+    <span class="upload-btn-text">Upload Transactions</span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle; flex-shrink:0;"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 20h16" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round"/></svg>
 </button>
 
 <div class="container">
@@ -516,6 +532,9 @@ async function handleFile(file) {
     document.getElementById('summary').style.display = 'grid';
     document.getElementById('tableContainer').style.display = 'block';
     document.getElementById('tableTopBar').style.display = 'flex';
+    // Hide upload box, show compact upload button
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('uploadBtn').style.display = 'inline-flex';
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -1338,7 +1357,7 @@ function showOpenCommitments() {
     const modal = document.getElementById('openCommitmentsModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
-    initDraggableModal('ocInner', '#0ea5e9');
+    initDraggableModal('ocInner', '#0ea5e9', 1400);
     setTimeout(loadSavedFinnhubKey, 50); // restore saved key into input
 }
 
@@ -2073,7 +2092,7 @@ function showAssignments() {
     const modal = document.getElementById('assignmentsModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeAssignments(); };
-    initDraggableModal('assignmentsInner', '#f59e0b');
+    initDraggableModal('assignmentsInner', '#f59e0b', 1400);
 }
 
 function showMonthlySummary() {
@@ -2296,7 +2315,7 @@ function showTransactionSorter() {
     const modal = document.getElementById('txSorterModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeTxSorter(); };
-    initDraggableModal('txSorterInner', '#10b981');
+    initDraggableModal('txSorterInner', '#10b981', 1400);
 }
 
 function closeTxSorter() {
@@ -2544,7 +2563,7 @@ function tsDownload() {
 // ============================================================
 // DRAG + RESIZE UTILITY FOR MODAL WINDOWS
 // ============================================================
-function initDraggableModal(innerId, accentColor) {
+function initDraggableModal(innerId, accentColor, maxWidthPx) {
     const inner = document.getElementById(innerId);
     if (!inner) return;
 
@@ -2553,14 +2572,18 @@ function initDraggableModal(innerId, accentColor) {
     inner._dragInit = true;
 
     // ── Position inner div as fixed, centered in viewport ──
-    inner.style.position = 'fixed';
-    inner.style.margin   = '0';
-    inner.style.maxWidth = 'none';
+    // Read natural dimensions BEFORE changing position (avoids max-width being cleared first)
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const rawW = inner.getBoundingClientRect().width || inner.offsetWidth;
+    const rawH = inner.getBoundingClientRect().height || inner.offsetHeight;
+
+    inner.style.position  = 'fixed';
+    inner.style.margin    = '0';
+    inner.style.maxWidth  = 'none';
     inner.style.maxHeight = 'none';
 
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const w  = Math.min(inner.offsetWidth  || Math.round(vw * 0.95), vw - 20);
-    const h  = Math.min(inner.offsetHeight || Math.round(vh * 0.90), vh - 20);
+    const w = Math.min(rawW || maxWidthPx || Math.round(vw * 0.70), vw - 20);
+    const h = Math.min(rawH || Math.round(vh * 0.90), vh - 20);
     inner.style.width    = w + 'px';
     inner.style.height   = h + 'px';
     inner.style.left     = Math.round((vw - w) / 2) + 'px';
