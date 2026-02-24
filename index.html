@@ -212,8 +212,8 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 </button>
 
 <!-- Upload Transactions compact button (shown after file is loaded) -->
-<button id="uploadBtn" onclick="document.getElementById('filePicker').click()" title="Upload new transactions file" style="display:none; position:absolute; top:16px; left:16px; z-index:9999; align-items:center; gap:8px; background:var(--bg-secondary); color:var(--text-primary); border:2px solid #6d28d9; border-radius:50px; padding:8px 14px 8px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; letter-spacing:0.03em; box-shadow:0 4px 16px var(--shadow); transition:all 0.25s ease; white-space:nowrap;">
-    <span class="upload-btn-text">Upload Transactions</span>
+<button id="uploadBtn" onclick="document.getElementById('filePicker').click()" title="Upload transactions file" style="display:none; position:absolute; top:16px; left:16px; z-index:9999; align-items:center; gap:8px; background:var(--bg-secondary); color:var(--text-primary); border:2px solid #6d28d9; border-radius:50px; padding:8px 14px 8px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; letter-spacing:0.03em; box-shadow:0 4px 16px var(--shadow); transition:all 0.25s ease; white-space:nowrap;">
+    <span class="upload-btn-text">Upload</span>
     <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle; flex-shrink:0;"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 20h16" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round"/></svg>
 </button>
 
@@ -384,7 +384,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:95vw; width:1200px; max-height:85vh; overflow-y:auto; position:relative;">
+        <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:85vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg>Monthly Cash Flow & Profit Summary</h2>
                 <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
@@ -2264,7 +2264,7 @@ function showMonthlySummary() {
     const modal = document.getElementById('monthlyModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
-    initDraggableModal('monthlyInner', '#6d28d9');
+    initDraggableModal('monthlyInner', '#6d28d9', 1600);
 }
 
 // ============================================================
