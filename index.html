@@ -388,40 +388,56 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                     <button onclick="closeAssignments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
                 </div>
             </div>
-            <!-- Filters + Search row centered between title and table -->
+            <!-- Summary boxes centered above filters -->
+            <div id="assignSummaryBoxes" style="display:flex; justify-content:center; margin-bottom:10px;">
+                <div style="padding:12px 20px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border-color);">
+                    <div id="assignSummaryInner" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+                        <div style="font-size:0.75rem; color:var(--text-secondary); text-align:center;">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters row -->
             <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:center; margin-bottom:12px; padding:12px 16px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border-color);">
-                <div>
-                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
-                    <select id="assignDatePreset" onchange="setAssignmentQuickRange()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
-                        <option value="all">All</option>
-                        <option value="today">Today</option>
-                        <option value="7days">Last 7 Days</option>
-                        <option value="currentMonth" selected>Current Month</option>
-                        <option value="lastMonth">Last Month</option>
-                        <option value="currentYear">Current Year</option>
-                        <option value="lastYear">Last Year</option>
-                        <option value="last3Months">Last 3 Months</option>
-                        <option value="last6Months">Last 6 Months</option>
-                        <option value="last12Months">Last 12 Months</option>
-                    </select>
-                </div>
-                <div>
-                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
-                    <input type="date" id="assignDateFrom" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
-                </div>
-                <div>
-                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
-                    <input type="date" id="assignDateTo" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
-                </div>
-                <div>
-                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
-                    <input id="assignmentSearch" type="text" placeholder="Search all columns..." oninput="renderAssignmentsTable()"
-                        style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
-                </div>
-                <div>
-                    <div style="font-size:0.75rem; font-weight:600; color:transparent; margin-bottom:4px;">.</div>
-                    <button onclick="resetAssignmentFilters()" style="background:#6d28d9;color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
-                </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                        <select id="assignDatePreset" onchange="setAssignmentQuickRange()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                            <option value="all" selected>All</option>
+                            <option value="today">Today</option>
+                            <option value="7days">Last 7 Days</option>
+                            <option value="currentMonth">Current Month</option>
+                            <option value="lastMonth">Last Month</option>
+                            <option value="currentYear">Current Year</option>
+                            <option value="lastYear">Last Year</option>
+                            <option value="last3Months">Last 3 Months</option>
+                            <option value="last6Months">Last 6 Months</option>
+                            <option value="last12Months">Last 12 Months</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
+                        <input type="date" id="assignDateFrom" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
+                        <input type="date" id="assignDateTo" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                        <input id="assignmentSearch" type="text" placeholder="Search all columns..." oninput="renderAssignmentsTable()"
+                            style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:150px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+                        <div style="font-size:0.75rem; font-weight:600; color:transparent;">.</div>
+                        <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-primary); white-space:nowrap; padding:7px 10px; background:var(--bg-input); border:2px solid var(--border-color); border-radius:8px;">
+                            <input type="checkbox" id="assignNotSoldFilter" onchange="renderAssignmentsTable()" style="width:15px;height:15px;cursor:pointer;accent-color:#f59e0b;">
+                            Not sold yet
+                        </label>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:transparent; margin-bottom:4px;">.</div>
+                        <button onclick="resetAssignmentFilters()" style="background:#6d28d9;color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                    </div>
             </div>
             <div id="assignmentPriceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;text-align:right;"></div>
             <div id="assignmentsContainer"></div>
@@ -1658,6 +1674,7 @@ function resetAssignmentFilters() {
     document.getElementById('assignDateFrom').value = '';
     document.getElementById('assignDateTo').value = '';
     document.getElementById('assignmentSearch').value = '';
+    document.getElementById('assignNotSoldFilter').checked = false;
     renderAssignmentsTable();
 }
 
@@ -1826,9 +1843,15 @@ function renderAssignmentsTable() {
     const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
     const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
 
+    // "Not sold yet" checkbox filter
+    const notSoldOnly = document.getElementById('assignNotSoldFilter')?.checked || false;
+
     const filteredEnriched = enriched.filter(row => {
         const { t, ticker, strike, contracts, sharesAssigned, premiumPaid, purchasePrice,
                 assignDate, soldPrice, currentPriceVal, costBasis, marketValue, callsSold, pl } = row;
+
+        // Not sold yet filter
+        if (notSoldOnly && soldPrice !== null) return false;
 
         // Date filter
         if (assignDate) {
@@ -1961,6 +1984,31 @@ function renderAssignmentsTable() {
         <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${textColor};">${hasMarketValue ? fmtU(totMarketValue) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${totPL >= 0 ? posColor : negColor};">${hasMarketValue ? fmtD(totPL) : '—'}</td>
     </tr>`;
+
+    // Update summary boxes
+    const summaryBoxStyle = (color) => `display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 10px;border-radius:7px;background:var(--bg-input);border:1px solid var(--border-color);`;
+    const summaryLabel = `font-size:0.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;font-weight:600;white-space:nowrap;`;
+    const summaryValue = (color) => `font-size:0.9rem;font-weight:700;color:${color};white-space:nowrap;`;
+    const summaryEl = document.getElementById('assignSummaryInner');
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Premium Paid</span>
+                <span style="${summaryValue(negColor)}">${fmtU(totPremium)}</span>
+            </div>
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Cost Basis</span>
+                <span style="${summaryValue(textColor)}">${fmtU(totCostBasis)}</span>
+            </div>
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Market Value</span>
+                <span style="${summaryValue(textColor)}">${hasMarketValue ? fmtU(totMarketValue) : '—'}</span>
+            </div>
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Profit / Loss</span>
+                <span style="${summaryValue(hasMarketValue ? (totPL >= 0 ? posColor : negColor) : '#64748b')}">${hasMarketValue ? fmtD(totPL) : '—'}</span>
+            </div>`;
+    }
 
     const colCount = cols.length;
     const colW = `width:${(100/colCount).toFixed(2)}%;`;
