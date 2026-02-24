@@ -344,7 +344,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         </div>
     </div>
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
+        <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Commitments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -368,7 +368,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div style="border-radius:16px; padding:30px; max-width:95vw; width:1200px; max-height:85vh; overflow-y:auto; position:relative;">
+        <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:95vw; width:1200px; max-height:85vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg>Monthly Cash Flow & Profit Summary</h2>
                 <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
@@ -379,7 +379,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <!-- Assignments Modal -->
     <div id="assignmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div style="border-radius:16px; padding:20px; max-width:1700px; width:97vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
+        <div id="assignmentsInner" style="border-radius:16px; padding:20px; max-width:1700px; width:97vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
             <!-- Title + action buttons row -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Assignments</h2>
@@ -429,10 +429,16 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                     </div>
                     <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
                         <div style="font-size:0.75rem; font-weight:600; color:transparent;">.</div>
-                        <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-primary); white-space:nowrap; padding:7px 10px; background:var(--bg-input); border:2px solid var(--border-color); border-radius:8px;">
-                            <input type="checkbox" id="assignNotSoldFilter" onchange="renderAssignmentsTable()" style="width:15px;height:15px;cursor:pointer;accent-color:#f59e0b;">
-                            Not sold yet
-                        </label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-primary); white-space:nowrap; padding:7px 10px; background:var(--bg-input); border:2px solid var(--border-color); border-radius:8px;">
+                                <input type="checkbox" id="assignNotSoldFilter" onchange="renderAssignmentsTable()" style="width:15px;height:15px;cursor:pointer;accent-color:#f59e0b;">
+                                Unsold
+                            </label>
+                            <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-primary); white-space:nowrap; padding:7px 10px; background:var(--bg-input); border:2px solid var(--border-color); border-radius:8px;">
+                                <input type="checkbox" id="assignSoldFilter" onchange="renderAssignmentsTable()" style="width:15px;height:15px;cursor:pointer;accent-color:#4ade80;">
+                                Sold
+                            </label>
+                        </div>
                     </div>
                     <div>
                         <div style="font-size:0.75rem; font-weight:600; color:transparent; margin-bottom:4px;">.</div>
@@ -1145,10 +1151,12 @@ function downloadResults() {
 }
 
 function closeMonthlySummary() {
+    const _di = document.getElementById('monthlyInner'); if (_di) _di._dragInit = false;
     document.getElementById('monthlyModal').style.display = 'none';
 }
 
 function closeOpenCommitments() {
+    const _di = document.getElementById('ocInner'); if (_di) _di._dragInit = false;
     document.getElementById('openCommitmentsModal').style.display = 'none';
     const modalInner = document.querySelector('#openCommitmentsModal > div');
     if (modalInner && modalInner._ocScrollHandler) {
@@ -1330,6 +1338,7 @@ function showOpenCommitments() {
     const modal = document.getElementById('openCommitmentsModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
+    initDraggableModal('ocInner', '#0ea5e9');
     setTimeout(loadSavedFinnhubKey, 50); // restore saved key into input
 }
 
@@ -1641,6 +1650,7 @@ let assignSortKey = 'date';
 let assignSortDir = 1;
 
 function closeAssignments() {
+    const _di = document.getElementById('assignmentsInner'); if (_di) _di._dragInit = false;
     document.getElementById('assignmentsModal').style.display = 'none';
 }
 
@@ -1675,6 +1685,7 @@ function resetAssignmentFilters() {
     document.getElementById('assignDateTo').value = '';
     document.getElementById('assignmentSearch').value = '';
     document.getElementById('assignNotSoldFilter').checked = false;
+    document.getElementById('assignSoldFilter').checked = false;
     renderAssignmentsTable();
 }
 
@@ -1843,15 +1854,18 @@ function renderAssignmentsTable() {
     const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
     const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
 
-    // "Not sold yet" checkbox filter
+    // Unsold / Sold checkbox filters
     const notSoldOnly = document.getElementById('assignNotSoldFilter')?.checked || false;
+    const soldOnly = document.getElementById('assignSoldFilter')?.checked || false;
 
     const filteredEnriched = enriched.filter(row => {
         const { t, ticker, strike, contracts, sharesAssigned, premiumPaid, purchasePrice,
                 assignDate, soldPrice, currentPriceVal, costBasis, marketValue, callsSold, pl } = row;
 
-        // Not sold yet filter
+        // Unsold filter
         if (notSoldOnly && soldPrice !== null) return false;
+        // Sold filter
+        if (soldOnly && soldPrice === null) return false;
 
         // Date filter
         if (assignDate) {
@@ -1871,7 +1885,7 @@ function renderAssignmentsTable() {
                 String(sharesAssigned),
                 premiumPaid.toFixed(2),
                 purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
-                soldPrice !== null ? soldPrice.toFixed(2) : 'not sold yet',
+                soldPrice !== null ? soldPrice.toFixed(2) : 'unsold',
                 currentPriceVal !== null ? currentPriceVal.toFixed(2) : '',
                 costBasis.toFixed(2),
                 marketValue !== null ? marketValue.toFixed(2) : '',
@@ -1940,7 +1954,7 @@ function renderAssignmentsTable() {
                                      purchasePrice, assignDate, soldPrice, pd, currentPriceVal,
                                      costBasis, marketValue, callsSold, pl }, i) => {
 
-        const soldPriceDisplay = soldPrice !== null ? fmtU(soldPrice) : 'Not sold yet';
+        const soldPriceDisplay = soldPrice !== null ? fmtU(soldPrice) : 'Unsold';
 
         let currentPriceDisplay = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
         if (pd) {
@@ -2059,6 +2073,7 @@ function showAssignments() {
     const modal = document.getElementById('assignmentsModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeAssignments(); };
+    initDraggableModal('assignmentsInner', '#f59e0b');
 }
 
 function showMonthlySummary() {
@@ -2230,6 +2245,7 @@ function showMonthlySummary() {
     const modal = document.getElementById('monthlyModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
+    initDraggableModal('monthlyInner', '#6d28d9');
 }
 
 // ============================================================
@@ -2280,9 +2296,11 @@ function showTransactionSorter() {
     const modal = document.getElementById('txSorterModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeTxSorter(); };
+    initDraggableModal('txSorterInner', '#10b981');
 }
 
 function closeTxSorter() {
+    const _di = document.getElementById('txSorterInner'); if (_di) _di._dragInit = false;
     tsSaveState();
     document.getElementById('txSorterModal').style.display = 'none';
 }
@@ -2521,6 +2539,128 @@ function tsDownload() {
     const ws = XLSX.utils.json_to_sheet(exportRows);
     XLSX.utils.book_append_sheet(wb, ws, 'Filtered Results');
     XLSX.writeFile(wb, `transaction_sorter_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ============================================================
+// DRAG + RESIZE UTILITY FOR MODAL WINDOWS
+// ============================================================
+function initDraggableModal(innerId, accentColor) {
+    const inner = document.getElementById(innerId);
+    if (!inner) return;
+
+    // Avoid re-initialising if already done
+    if (inner._dragInit) return;
+    inner._dragInit = true;
+
+    // ── Position inner div as fixed, centered in viewport ──
+    inner.style.position = 'fixed';
+    inner.style.margin   = '0';
+    inner.style.maxWidth = 'none';
+    inner.style.maxHeight = 'none';
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const w  = Math.min(inner.offsetWidth  || Math.round(vw * 0.95), vw - 20);
+    const h  = Math.min(inner.offsetHeight || Math.round(vh * 0.90), vh - 20);
+    inner.style.width    = w + 'px';
+    inner.style.height   = h + 'px';
+    inner.style.left     = Math.round((vw - w) / 2) + 'px';
+    inner.style.top      = Math.round((vh - h) / 2) + 'px';
+    inner.style.overflow = 'auto';
+    inner.style.boxSizing = 'border-box';
+
+    // ── Drag handle: the first child div (header row) ──
+    const header = inner.querySelector('div');
+    if (header) {
+        header.style.cursor     = 'move';
+        header.style.userSelect = 'none';
+    }
+
+    let dragging = false, dx0, dy0, l0, t0;
+
+    const onHeaderDown = (e) => {
+        if (e.button !== 0) return;
+        const tgt = e.target;
+        if (tgt.tagName === 'BUTTON' || tgt.tagName === 'INPUT' ||
+            tgt.tagName === 'SELECT' || tgt.closest('button') ||
+            tgt.closest('select')) return;
+        dragging = true;
+        dx0 = e.clientX; dy0 = e.clientY;
+        l0  = parseInt(inner.style.left) || 0;
+        t0  = parseInt(inner.style.top)  || 0;
+        e.preventDefault();
+    };
+    if (header) header.addEventListener('mousedown', onHeaderDown);
+
+    const onMouseMove = (e) => {
+        if (!dragging) return;
+        inner.style.left = (l0 + e.clientX - dx0) + 'px';
+        inner.style.top  = (t0 + e.clientY - dy0) + 'px';
+    };
+    const onMouseUp = () => { dragging = false; };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup',   onMouseUp);
+
+    // ── Resize handles at all 4 corners ──
+    const corners = [
+        { id: 'nw', cursor: 'nw-resize', top: 0,    left: 0,    right: null, bottom: null },
+        { id: 'ne', cursor: 'ne-resize', top: 0,    left: null,  right: 0,   bottom: null },
+        { id: 'sw', cursor: 'sw-resize', top: null,  left: 0,    right: null, bottom: 0   },
+        { id: 'se', cursor: 'se-resize', top: null,  left: null,  right: 0,   bottom: 0   },
+    ];
+
+    corners.forEach(({ id, cursor, top, left, right, bottom }) => {
+        const h = document.createElement('div');
+        Object.assign(h.style, {
+            position:  'absolute',
+            width:     '18px',
+            height:    '18px',
+            cursor,
+            zIndex:    '9999',
+            boxSizing: 'border-box',
+        });
+        if (top    !== null) h.style.top    = top    + 'px';
+        if (bottom !== null) h.style.bottom = bottom + 'px';
+        if (left   !== null) h.style.left   = left   + 'px';
+        if (right  !== null) h.style.right  = right  + 'px';
+
+        // Visual grip dots
+        const isS = id.includes('s'), isE = id.includes('e');
+        h.innerHTML = `<svg width="10" height="10" style="position:absolute;${isS?'bottom':'top'}:3px;${isE?'right':'left'}:3px;opacity:0.5;" viewBox="0 0 10 10"><circle cx="2" cy="2" r="1.5" fill="${accentColor||'#6d28d9'}"/><circle cx="6" cy="2" r="1.5" fill="${accentColor||'#6d28d9'}"/><circle cx="2" cy="6" r="1.5" fill="${accentColor||'#6d28d9'}"/><circle cx="6" cy="6" r="1.5" fill="${accentColor||'#6d28d9'}"/></svg>`;
+
+        h.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); e.preventDefault();
+            const sx = e.clientX, sy = e.clientY;
+            const sw = inner.offsetWidth,  sh = inner.offsetHeight;
+            const sl = parseInt(inner.style.left) || 0;
+            const st = parseInt(inner.style.top)  || 0;
+            const minW = 360, minH = 220;
+
+            const onMove = (e) => {
+                const ddx = e.clientX - sx, ddy = e.clientY - sy;
+                // LEFT edge: drag right shrinks from left, moves left position
+                if (left   !== null) { const nw = Math.max(minW, sw - ddx); inner.style.width  = nw + 'px'; inner.style.left = (sl + sw - nw) + 'px'; }
+                // RIGHT edge: drag right grows from right, left position stays
+                if (right  !== null) { inner.style.width  = Math.max(minW, sw + ddx) + 'px'; }
+                // TOP edge: drag down shrinks from top, moves top position
+                if (top    !== null) { const nh = Math.max(minH, sh - ddy); inner.style.height = nh + 'px'; inner.style.top  = (st + sh - nh) + 'px'; }
+                // BOTTOM edge: drag down grows from bottom, top position stays
+                if (bottom !== null) { inner.style.height = Math.max(minH, sh + ddy) + 'px'; }
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+        inner.appendChild(h);
+    });
+
+    // Store cleanup fn so it can be called on close
+    inner._dragCleanup = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup',   onMouseUp);
+        inner._dragInit = false;
+        // Remove corner handles
+        inner.querySelectorAll('div[style*="cursor: nw-resize"], div[style*="cursor: ne-resize"], div[style*="cursor: sw-resize"], div[style*="cursor: se-resize"]').forEach(el => el.remove());
+    };
 }
 </script>
 </body>
