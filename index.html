@@ -220,6 +220,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 <div class="container">
     <h1>Schwab Options Calculator & Data Sorter</h1>
     <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
+    <p id="mainFilename" style="text-align:center; font-size:0.85rem; margin-top:-14px; margin-bottom:20px; display:none;"></p>
 
     <div class="upload-box" id="dropZone">
         <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
@@ -526,6 +527,9 @@ async function handleFile(file) {
     const fnEl = document.getElementById('uploadedFileName');
     fnEl.textContent = 'Filename: ' + file.name;
     fnEl.style.display = 'block';
+    const mainFn = document.getElementById('mainFilename');
+    mainFn.innerHTML = '<span style="color:var(--text-secondary);">Filename: </span><span style="color:#a78bfa;">' + file.name + '</span>';
+    mainFn.style.display = 'block';
 
     document.getElementById('filterBar').style.display = 'flex';
     document.getElementById('actionButtons').style.display = 'flex';
@@ -649,7 +653,12 @@ function process(rows) {
             return 0;
         });
 
-    if (sortedRows.length > 0) {
+    const allDatedRows = window.allRawRows.filter(r => r.parsedDate);
+    if (allDatedRows.length > 0) {
+        const times = allDatedRows.map(r => r.parsedDate.getTime());
+        uploadedDateRange.min = new Date(Math.min(...times));
+        uploadedDateRange.max = new Date(Math.max(...times));
+    } else if (sortedRows.length > 0) {
         uploadedDateRange.min = sortedRows[0].parsedDate;
         uploadedDateRange.max = sortedRows[sortedRows.length - 1].parsedDate;
     }
@@ -1024,7 +1033,7 @@ function render(newSortKey, dataToRender) {
     `;
 
     if (uploadedDateRange.min && uploadedDateRange.max) {
-        document.getElementById('dateRange').innerHTML = `Available Dates: ${fmtDateMMDDYYYY(uploadedDateRange.min)} to ${fmtDateMMDDYYYY(uploadedDateRange.max)}`;
+        document.getElementById('dateRange').innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;">Available Date Range: <span style="font-weight:600;">${fmtDateMMDDYYYY(uploadedDateRange.min)}</span><span style="font-size:2em;line-height:1;position:relative;top:-0.05em;">→</span><span style="font-weight:600;">${fmtDateMMDDYYYY(uploadedDateRange.max)}</span></span>`;
     }
 
     const dateColLabel = 'Date';
@@ -2440,7 +2449,7 @@ function tsRenderSummary() {
         };
         const rangeLabel = 'Available Date Range';
         document.getElementById('tsDateRangeBar').innerHTML =
-            `<span style="display:inline-flex;align-items:center;gap:6px;"><span style="font-size:11pt;">${rangeLabel}: <span style="color:var(--text-primary);font-weight:600;">${fmt(minDate)}</span> &nbsp;→&nbsp; <span style="color:var(--text-primary);font-weight:600;">${fmt(maxDate)}</span></span></span>`;
+            `<span style="display:inline-flex;align-items:center;gap:6px;">${rangeLabel}: <span style="color:var(--text-primary);font-weight:600;">${fmt(minDate)}</span><span style="font-size:2em;line-height:1;position:relative;top:-0.05em;">→</span><span style="color:var(--text-primary);font-weight:600;">${fmt(maxDate)}</span></span>`;
     } else {
         document.getElementById('tsDateRangeBar').innerHTML = '';
     }
