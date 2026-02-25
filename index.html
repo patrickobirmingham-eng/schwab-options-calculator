@@ -250,10 +250,10 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
             <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
                 <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">2. Quick Range</label>
                 <select id="quickRange" onchange="setQuickRange()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
-                    <option value="all">Show All</option>
+                    <option value="all" selected>Show All</option>
                     <option value="today">Today</option>
                     <option value="7days">Last 7 Days</option>
-                    <option value="currentMonth" selected>Current Month</option>
+                    <option value="currentMonth">Current Month</option>
                     <option value="lastMonth">Last Month</option>
                     <option value="currentYear">Current Year</option>
                     <option value="lastYear">Last Year</option>
@@ -493,8 +493,8 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 let finalTrades = [];
 let openPositions = [];
 let currentFilteredData = [];
-let sortKey = 'closeDate';
-let sortDir = -1;
+let sortKey = 'dte';
+let sortDir = 1;
 let columnWidths = {};
 let uploadedDateRange = { min: null, max: null };
 
@@ -536,6 +536,10 @@ async function handleFile(file) {
     document.getElementById('dropZone').style.display = 'none';
     document.getElementById('uploadBtn').style.display = 'inline-flex';
     const data = await file.arrayBuffer();
+    sortKey = 'dte';
+    sortDir = 1;
+    ocSortKey = 'dte';
+    ocSortDir = 1;
     const workbook = XLSX.read(data, { type: 'array' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(sheet);
@@ -1188,7 +1192,7 @@ function closeOpenCommitments() {
 const FINNHUB_API_KEY = "d6bjguhr01qp4lhvmct0d6bjguhr01qp4lhvmctg";
 
 // State for Open Commitments sort
-let ocSortKey = 'date';
+let ocSortKey = 'dte';
 let ocSortDir = 1;
 let ocSearchValue = '';
 let ocParsedRows = [];
@@ -2277,7 +2281,7 @@ let tsFiltered = [];
 let tsSortKey = 'parsedDate';
 let tsSortDir = -1;
 
-const tsState = { checkedActions:[], datePreset:'currentMonth', dateFrom:'', dateTo:'', symbolSearch:'' };
+const tsState = { checkedActions:[], datePreset:'all', dateFrom:'', dateTo:'', symbolSearch:'' };
 function tsSaveState() {
     tsState.checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
     tsState.datePreset = document.getElementById('tsDatePreset').value;
@@ -2286,7 +2290,7 @@ function tsSaveState() {
     tsState.symbolSearch = document.getElementById('tsSymbolSearch').value;
 }
 function tsRestoreState() {
-    document.getElementById('tsDatePreset').value = tsState.datePreset || 'currentMonth';
+    document.getElementById('tsDatePreset').value = tsState.datePreset || 'all';
     document.getElementById('tsDateFrom').value = tsState.dateFrom || '';
     document.getElementById('tsDateTo').value = tsState.dateTo || '';
     document.getElementById('tsSymbolSearch').value = tsState.symbolSearch || '';
@@ -2403,11 +2407,11 @@ function tsApplyFilters() {
 
 function tsReset() {
     document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => cb.checked = false);
-    document.getElementById('tsDatePreset').value = 'currentMonth';
+    document.getElementById('tsDatePreset').value = 'all';
     document.getElementById('tsDateFrom').value = '';
     document.getElementById('tsDateTo').value = '';
     document.getElementById('tsSymbolSearch').value = '';
-    Object.assign(tsState,{checkedActions:[],datePreset:'currentMonth',dateFrom:'',dateTo:'',symbolSearch:''});
+    Object.assign(tsState,{checkedActions:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
     tsFiltered = [...tsData];
     tsSortKey = 'parsedDate';
     tsSortDir = -1;
