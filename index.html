@@ -284,6 +284,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     </div>
     <div id="actionButtons" style="display:none; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
         <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly / Annual Summary</button>
+        <button onclick="showWeeklySummary()" style="background:#0891b2;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg> Weekly / Monthly Summary</button>
         <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
         <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
         <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
@@ -386,11 +387,34 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:98vh; overflow-y:auto; position:relative;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg><span style="color:#a78bfa;">[-]</span> Monthly <span style="color:#a78bfa;">/</span> <span style="color:#a78bfa;">[+]</span> Annual Cash Flow &amp; Profit Summary</h2>
-                <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+            <div style="display:flex; align-items:center; margin-bottom:20px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg><span style="color:#a78bfa;">[-]</span> Monthly <span style="color:#a78bfa;">/</span> <span style="color:#a78bfa;">[+]</span> Annual Cash Flow &amp; Profit Summary</h2>
+                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="monthlyExpandAll" onchange="toggleMonthlyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#a78bfa;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
             </div>
             <div id="monthlyTableContainer"></div>
+        </div>
+    </div>
+
+    <!-- Weekly Summary Modal -->
+    <div id="weeklyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="weeklyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg><span style="color:#67e8f9;">[-]</span> Weekly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Monthly Cash Flow &amp; Profit Summary</h2>
+                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="weeklyExpandAll" onchange="toggleWeeklyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#67e8f9;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="closeWeeklySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="weeklyTableContainer"></div>
         </div>
     </div>
 
@@ -1199,6 +1223,70 @@ function toggleMonthlyYear(year) {
 function closeMonthlySummary() {
     const _di = document.getElementById('monthlyInner'); if (_di) _di._dragInit = false;
     document.getElementById('monthlyModal').style.display = 'none';
+    const cb = document.getElementById('monthlyExpandAll'); if (cb) cb.checked = false;
+}
+
+function closeWeeklySummary() {
+    const _di = document.getElementById('weeklyInner'); if (_di) _di._dragInit = false;
+    document.getElementById('weeklyModal').style.display = 'none';
+    const cb = document.getElementById('weeklyExpandAll'); if (cb) cb.checked = false;
+}
+
+function toggleWeeklyMonth(monthKey) {
+    const weekRows = document.querySelectorAll(`.wk-week-row-${monthKey}`);
+    const collapsedRow = document.querySelector(`.wk-month-collapsed-${monthKey}`);
+    if (!weekRows.length || !collapsedRow) return;
+    const isExpanded = weekRows[0].style.display !== 'none';
+    weekRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    collapsedRow.style.display = isExpanded ? 'table-row' : 'none';
+    document.querySelectorAll(`#wkbtn-${monthKey}`).forEach(btn => {
+        btn.textContent = isExpanded ? '➕' : '➖';
+        btn.title = isExpanded ? `Expand` : `Collapse`;
+    });
+}
+
+function toggleMonthlyExpandAll(checked) {
+    // Get all unique year keys from existing rows
+    const body = document.getElementById('monthlyBreakdownBody');
+    if (!body) return;
+    const years = [...new Set([...body.querySelectorAll('tr[class*="mb-year-"]')]
+        .map(r => [...r.classList].find(c => c.startsWith('mb-year-') && !c.includes('collapsed')))
+        .filter(Boolean)
+        .map(c => c.replace('mb-year-', '')))];
+    years.forEach(year => {
+        const monthRows = body.querySelectorAll(`.mb-year-${year}`);
+        const collapsedRow = body.querySelector(`.mb-year-collapsed-${year}`);
+        if (!monthRows.length) return;
+        const isCurrentlyExpanded = monthRows[0].style.display !== 'none';
+        if (checked && !isCurrentlyExpanded) toggleMonthlyYear(year);
+        else if (!checked && isCurrentlyExpanded) {
+            // Only collapse if not the default-expanded year (current year)
+            const currentYear = new Date().getFullYear().toString();
+            if (year !== currentYear) toggleMonthlyYear(year);
+        }
+    });
+}
+
+function toggleWeeklyExpandAll(checked) {
+    const container = document.getElementById('weeklyTableContainer');
+    if (!container) return;
+    const keys = [...new Set([...container.querySelectorAll('tr[class*="wk-week-row-"]')]
+        .map(r => [...r.classList].find(c => c.startsWith('wk-week-row-')))
+        .filter(Boolean)
+        .map(c => c.replace('wk-week-row-', '')))];
+    keys.forEach(key => {
+        const weekRows = container.querySelectorAll(`.wk-week-row-${key}`);
+        const collapsedRow = container.querySelector(`.wk-month-collapsed-${key}`);
+        if (!weekRows.length || !collapsedRow) return;
+        const isExpanded = weekRows[0].style.display !== 'none';
+        if (checked && !isExpanded) toggleWeeklyMonth(key);
+        else if (!checked && isExpanded) {
+            // Only collapse non-current-year months
+            const year = key.split('_')[0];
+            const currentYear = new Date().getFullYear().toString();
+            if (year !== currentYear) toggleWeeklyMonth(key);
+        }
+    });
 }
 
 function closeOpenCommitments() {
@@ -2254,7 +2342,6 @@ function showMonthlySummary() {
     const tblStyle = `width:100%;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
 
     document.getElementById('monthlyTableContainer').innerHTML = `
-        <h3 style="color:#a78bfa;margin:0 0 14px;font-size:1rem;">Monthly Breakdown</h3>
         <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
         <table id="monthlyBreakdownTable" style="${tblStyle}">
             <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
@@ -2328,6 +2415,230 @@ function showMonthlySummary() {
         }
         modalInner._monthlyScrollHandler = onScroll;
         modalInner.addEventListener('scroll', onScroll);
+    }, 100);
+}
+
+// ============================================================
+// WEEKLY SUMMARY
+// ============================================================
+function showWeeklySummary() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg    = isDark ? '#1e293b' : '#ffffff';
+    const textColor  = isDark ? '#f8fafc' : '#0f172a';
+    const thBg       = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg      = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg   = isDark ? '#1a2840' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const accentColor = '#0891b2';
+
+    const modalInner = document.getElementById('weeklyInner');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = `1px solid ${accentColor}`;
+
+    const fmt    = n => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtNeg = n => n === 0 ? '$0.00' : (n > 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    // Helper: get Monday of the week containing a date
+    const getMonday = d => {
+        const dt = new Date(d);
+        const day = dt.getDay();
+        const diff = (day === 0) ? -6 : 1 - day;
+        dt.setDate(dt.getDate() + diff);
+        dt.setHours(0, 0, 0, 0);
+        return dt;
+    };
+
+    // Helper: ISO week number
+    const getISOWeek = d => {
+        const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = dt.getUTCDay() || 7;
+        dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+        return Math.ceil((((dt - yearStart) / 86400000) + 1) / 7);
+    };
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Build week starts from Jan 1 2025 to now
+    const startDate = new Date(2025, 0, 1);
+    const startMonday = getMonday(startDate);
+    const weeks = [];
+    let wk = new Date(startMonday);
+    while (wk <= now) {
+        weeks.push(new Date(wk));
+        wk.setDate(wk.getDate() + 7);
+    }
+
+    // Group weeks by month key "YYYY-MM" based on the Friday (end of trading week) or Sunday
+    // Use the month the week's Monday falls in
+    const groupedByMonth = {};
+    const weekData = [];
+
+    weeks.forEach(monday => {
+        const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+        const wkEnd  = sunday > now ? now : sunday;
+        const wkStart = monday;
+        const isoWeek = getISOWeek(monday);
+        const weekYear = monday.getFullYear();
+        const monthKey = `${monday.getFullYear()}-${String(monday.getMonth()).padStart(2,'0')}`;
+        const monthLabel = monday.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+        const weekLabel = monday.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' – ' +
+                          wkEnd.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        const calWeek = `W${String(isoWeek).padStart(2,'0')} ${weekYear}`;
+
+        let sellOpen = 0, buyClose = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= wkStart && t.date <= wkEnd) {
+                if (t.action.includes('sell') && t.action.includes('to open')) sellOpen += t.amount;
+                if (t.action.includes('buy')  && t.action.includes('to close')) buyClose += t.amount;
+            }
+        });
+        let profit = 0, assignedPaid = 0;
+        finalTrades.forEach(t => {
+            if (t.closeDate >= wkStart && t.closeDate <= wkEnd) {
+                const st = t.status.toLowerCase();
+                if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) assignedPaid += Math.abs(t.openingPremium);
+            }
+        });
+        const cashFlow = sellOpen + buyClose;
+        const wd = { monday, wkEnd, weekLabel, calWeek, monthKey, monthLabel, sellOpen, buyClose, cashFlow, profit, assignedPaid };
+        weekData.push(wd);
+        if (!groupedByMonth[monthKey]) groupedByMonth[monthKey] = { monthLabel, weeks: [], sellOpen:0, buyClose:0, cashFlow:0, profit:0, assignedPaid:0 };
+        const mg = groupedByMonth[monthKey];
+        mg.weeks.push(wd);
+        mg.sellOpen += sellOpen; mg.buyClose += buyClose; mg.cashFlow += cashFlow;
+        mg.profit += profit; mg.assignedPaid += assignedPaid;
+    });
+
+    // Sort months descending
+    const sortedMonthKeys = Object.keys(groupedByMonth).sort((a,b) => b.localeCompare(a));
+
+    // Default: expand only months in current year
+    const defaultExpanded = new Set(sortedMonthKeys.filter(k => k.startsWith(String(currentYear))));
+
+    const thStyle = `padding:10px 8px;background:${thBg};color:${accentColor};font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid ${accentColor};white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
+    const tblStyle = `width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;`;
+    const bdBase = `border-bottom:1px solid ${borderColor};`;
+
+    let html = '';
+    let grandSell = 0, grandBuy = 0, grandCF = 0, grandProfit = 0, grandAssigned = 0;
+
+    sortedMonthKeys.forEach((mKey, mIdx) => {
+        const mg = groupedByMonth[mKey];
+        const isExpanded = defaultExpanded.has(mKey);
+        const safeKey = mKey.replace('-','_');
+        const weeksDesc = [...mg.weeks].reverse();
+
+        grandSell += mg.sellOpen; grandBuy += mg.buyClose; grandCF += mg.cashFlow;
+        grandProfit += mg.profit; grandAssigned += mg.assignedPaid;
+
+        const topBorder = `border-top:2px solid ${accentColor};`;
+
+        // Week rows
+        weeksDesc.forEach((wd, wIdx) => {
+            const isFirst = wIdx === 0;
+            const bg = wIdx % 2 === 0 ? rowBg : rowAltBg;
+            const toggleBtn = isFirst
+                ? `<button onclick="toggleWeeklyMonth('${safeKey}')" id="wkbtn-${safeKey}" style="background:none;border:none;cursor:pointer;color:${accentColor};font-size:1rem;padding:0;line-height:1;position:absolute;left:8px;top:50%;transform:translateY(-50%);" title="Collapse">${isExpanded ? '➖' : '➕'}</button>`
+                : '';
+            html += `<tr class="wk-week-row-${safeKey}" style="background:${bg};display:${isExpanded ? 'table-row' : 'none'};">
+                <td style="color:${textColor};text-align:center;padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}font-weight:500;position:relative;white-space:nowrap;">${toggleBtn}${wd.weekLabel}</td>
+                <td style="text-align:center;padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${textColor};">${wd.calWeek}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:#16a34a;">${fmt(wd.sellOpen)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${wd.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(wd.buyClose)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${wd.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(wd.cashFlow)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${wd.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(wd.profit)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:#d97706;">${wd.assignedPaid > 0 ? fmt(wd.assignedPaid) : '$0.00'}</td>
+            </tr>`;
+        });
+
+        // Collapsed month row
+        html += `<tr class="wk-month-collapsed-${safeKey}" style="background:${totalRowBg};display:${isExpanded ? 'none' : 'table-row'};">
+            <td style="color:${textColor};text-align:center;padding:9px 14px;${topBorder}${bdBase}font-weight:600;position:relative;">
+                <button onclick="toggleWeeklyMonth('${safeKey}')" id="wkbtn-${safeKey}" style="background:none;border:none;cursor:pointer;color:${accentColor};font-size:1rem;padding:0;line-height:1;position:absolute;left:8px;top:50%;transform:translateY(-50%);" title="Expand">➕</button>${mg.monthLabel}
+            </td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}"></td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:#16a34a;">${fmt(mg.sellOpen)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:${mg.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(mg.buyClose)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:${mg.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(mg.cashFlow)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:${mg.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(mg.profit)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:#d97706;">${mg.assignedPaid > 0 ? fmt(mg.assignedPaid) : '$0.00'}</td>
+        </tr>`;
+    });
+
+    // Grand total row
+    const grandTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td style="text-align:center;padding:12px 14px;color:${accentColor};" colspan="2">Total</td>
+        <td style="padding:12px 14px;color:#16a34a;">${fmt(grandSell)}</td>
+        <td style="padding:12px 14px;color:${grandBuy < 0 ? '#dc2626' : textColor};">${fmtNeg(grandBuy)}</td>
+        <td style="padding:12px 14px;color:${grandCF >= 0 ? '#16a34a' : '#dc2626'};">${fmt(grandCF)}</td>
+        <td style="padding:12px 14px;color:${grandProfit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(grandProfit)}</td>
+        <td style="padding:12px 14px;color:#d97706;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
+    </tr>`;
+
+    document.getElementById('weeklyTableContainer').innerHTML = `
+        <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
+        <table id="weeklyBreakdownTable" style="${tblStyle}">
+            <colgroup><col style="width:22%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
+            <thead><tr>
+                <th style="${thStyle}">Week / Month</th>
+                <th style="${thStyle}">Calendar Week</th>
+                <th style="${thStyle}">Sell to Open</th>
+                <th style="${thStyle}">Buy to Close</th>
+                <th style="${thStyle}">Cash Flow</th>
+                <th style="${thStyle}">Profit from Closed Options</th>
+                <th style="${thStyle}">Paid Premium Assigned</th>
+            </tr></thead>
+            <tbody>${html}${grandTotalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('weeklyModal');
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) closeWeeklySummary(); };
+    initDraggableModal('weeklyInner', accentColor, 1600);
+
+    // Floating sticky header
+    setTimeout(() => {
+        const mi = document.getElementById('weeklyInner');
+        const wt = document.getElementById('weeklyBreakdownTable');
+        const wth = wt ? wt.querySelector('thead') : null;
+        if (!mi || !wt || !wth) return;
+        const old = document.getElementById('weeklyFloatingHeader');
+        if (old) old.remove();
+        const floatDiv = document.createElement('div');
+        floatDiv.id = 'weeklyFloatingHeader';
+        floatDiv.style.cssText = `position:absolute;left:0;top:0;pointer-events:none;z-index:50;display:none;box-sizing:border-box;`;
+        const ft = document.createElement('table');
+        ft.style.cssText = `width:100%;border-collapse:collapse;table-layout:fixed;font-size:0.88rem;`;
+        ft.innerHTML = `<colgroup><col style="width:22%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>` + wth.outerHTML;
+        floatDiv.appendChild(ft);
+        mi.appendChild(floatDiv);
+        const onScroll = () => {
+            const ir = mi.getBoundingClientRect();
+            const tr = wth.getBoundingClientRect();
+            const mr = wt.getBoundingClientRect();
+            if (tr.top < ir.top && mr.bottom > ir.top + wth.offsetHeight) {
+                floatDiv.style.display = 'block';
+                floatDiv.style.top   = mi.scrollTop + 'px';
+                floatDiv.style.width = wt.offsetWidth + 'px';
+                floatDiv.style.left  = wt.offsetLeft + 'px';
+            } else {
+                floatDiv.style.display = 'none';
+            }
+        };
+        if (mi._weeklyScrollHandler) mi.removeEventListener('scroll', mi._weeklyScrollHandler);
+        mi._weeklyScrollHandler = onScroll;
+        mi.addEventListener('scroll', onScroll);
     }, 100);
 }
 
