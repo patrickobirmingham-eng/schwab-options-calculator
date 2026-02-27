@@ -47,39 +47,32 @@
 
 <script>
     async function fetchQuote() {
-        const symbol = document.getElementById('symbolInput').value.trim();
-        const errorDiv = document.getElementById('errorMsg');
-        const resultDiv = document.getElementById('result');
-        
-        errorDiv.innerText = '';
-        if (!symbol) return;
+    let rawInput = document.getElementById('symbolInput').value.trim();
+    
+    // Logic to convert "NVDA 03/06/2026 185.00 P" to "NVDA  260306P00185000"
+    // This is a simplified version; usually, you'd use a Regex or Split
+    const formattedSymbol = formatToSchwabOSI(rawInput); 
 
-        try {
-            // NOTE: Replace this URL with your actual Vercel domain
-            // We use the marketdata/v1/quotes endpoint for single symbols
-            const response = await fetch(`/api/getQuote?symbol=${encodeURIComponent(symbol)}`, {
-                headers: { 
-                    // This assumes you have logic elsewhere to store your token
-                    'Authorization': `Bearer ${localStorage.getItem('schwab_token')}` 
-                }
-            });
+    const response = await fetch(`/api/getQuote?symbol=${encodeURIComponent(formattedSymbol)}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    // ... rest of your display code
+}
 
-            const data = await response.json();
+// Helper function to build the 21-character string
+function formatToSchwabOSI(input) {
+    // If user already typed the 21-char version, return it
+    if (input.length === 21) return input;
 
-            if (data[symbol]) {
-                const quote = data[symbol].quote;
-                document.getElementById('bidPrice').innerText = `$${quote.bidPrice}`;
-                document.getElementById('askPrice').innerText = `$${quote.askPrice}`;
-                document.getElementById('lastPrice').innerText = `$${quote.lastPrice}`;
-                document.getElementById('volume').innerText = quote.totalVolume;
-                resultDiv.style.display = 'block';
-            } else {
-                errorDiv.innerText = 'Symbol not found. Check formatting.';
-            }
-        } catch (err) {
-            errorDiv.innerText = 'Failed to fetch quote. Is your token valid?';
-        }
-    }
+    // Example parser for "NVDA 260306 P 185"
+    const parts = input.split(' ');
+    const root = parts[0].padEnd(6, ' ');
+    const date = parts[1].replace(/\//g, '').slice(-6); // Gets 260306
+    const type = parts[3].toUpperCase();
+    const strike = (parseFloat(parts[2]) * 1000).toString().padStart(8, '0');
+
+    return `${root}${date}${type}${strike}`;
+}
 </script>
 
 </body>
