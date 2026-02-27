@@ -19,13 +19,17 @@
 <body>
 
 <div class="card">
-    <h2>Option Quote2</h2>
-    <p style="font-size: 0.8em; color: #888;">Format: SYMBOL YYMMDD[C/P]00000000</p>
-    <input type="text" id="symbolInput" placeholder="e.g., AAPL  250620C00150000">
+    <h2>Option Quote Fetcher</h2>
+    <p style="font-size: 0.8em; color: #888;">Format: NVDA 03/06/2026 185.00 P</p>
+    <input type="text" id="symbolInput" placeholder="Enter option details...">
     <button onclick="fetchQuote()">Get Quote</button>
     <div id="errorMsg" class="error"></div>
 
     <div id="result">
+        <div class="price-row">
+            <span class="label">Formatted Symbol:</span>
+            <span class="value" id="displaySymbol">-</span>
+        </div>
         <div class="price-row">
             <span class="label">Bid (Sell)</span>
             <span class="value" id="bidPrice">$0.00</span>
@@ -38,41 +42,68 @@
             <span class="label">Last Price</span>
             <span class="value" id="lastPrice">$0.00</span>
         </div>
-        <div class="price-row">
-            <span class="label">Volume</span>
-            <span class="value" id="volume">0</span>
-        </div>
     </div>
 </div>
 
 <script>
     async function fetchQuote() {
-    let rawInput = document.getElementById('symbolInput').value.trim();
-    
-    // Logic to convert "NVDA 03/06/2026 185.00 P" to "NVDA  260306P00185000"
-    // This is a simplified version; usually, you'd use a Regex or Split
-    const formattedSymbol = formatToSchwabOSI(rawInput); 
+        const errorDiv = document.getElementById('errorMsg');
+        const resultDiv = document.getElementById('result');
+        const rawInput = document.getElementById('symbolInput').value.trim();
+        
+        errorDiv.innerText = ''; // Clear old errors
 
-    const response = await fetch(`/api/getQuote?symbol=${encodeURIComponent(formattedSymbol)}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    // ... rest of your display code
-}
+        // 1. Format the symbol
+        const formattedSymbol = formatToSchwabOSI(rawInput);
+        document.getElementById('displaySymbol').innerText = formattedSymbol;
 
-// Helper function to build the 21-character string
-function formatToSchwabOSI(input) {
-    // If user already typed the 21-char version, return it
-    if (input.length === 21) return input;
+        try {
+            // 2. Access Token Check (Change this if you store it differently)
+            const token = localStorage.getItem('schwab_access_token');
+            if (!token) {
+                errorDiv.innerText = "Error: No access token found. Please log in.";
+                return;
+            }
 
-    // Example parser for "NVDA 260306 P 185"
-    const parts = input.split(' ');
-    const root = parts[0].padEnd(6, ' ');
-    const date = parts[1].replace(/\//g, '').slice(-6); // Gets 260306
-    const type = parts[3].toUpperCase();
-    const strike = (parseFloat(parts[2]) * 1000).toString().padStart(8, '0');
+            // 3. Fetch from your Vercel Proxy
+            const response = await fetch(`/api/getQuote?symbol=${encodeURIComponent(formattedSymbol)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-    return `${root}${date}${type}${strike}`;
-}
+            if (!response.ok) throw new Error('API request failed');
+
+            const data = await response.json();
+
+            // 4. DISPLAY THE DATA
+            // Schwab returns an object where the key is the symbol name
+            if (data[formattedSymbol]) {
+                const quote = data[formattedSymbol].quote;
+                document.getElementById('bidPrice').innerText = `$${quote.bidPrice}`;
+                document.getElementById('askPrice').innerText = `$${quote.askPrice}`;
+                document.getElementById('lastPrice').innerText = `$${quote.lastPrice}`;
+                resultDiv.style.display = 'block';
+            } else {
+                errorDiv.innerText = "Symbol not found in Schwab data.";
+            }
+
+        } catch (err) {
+            console.error(err);
+            errorDiv.innerText = "Failed to fetch quote. Check console (F12) for details.";
+        }
+    }
+
+    function formatToSchwabOSI(input) {
+        if (input.length === 21) return input;
+        const parts = input.split(' ').filter(p => p !== '');
+        if (parts.length < 4) return input;
+
+        const root = parts[0].padEnd(6, ' ');
+        const date = parts[1].replace(/\//g, '').slice(-6); 
+        const type = parts[3].toUpperCase();
+        const strike = (parseFloat(parts[2]) * 1000).toString().padStart(8, '0');
+
+        return `${root}${date}${type}${strike}`;
+    }
 </script>
 
 </body>
