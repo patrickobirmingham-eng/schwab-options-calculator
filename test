@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Schwab Option Quote</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 40px; background: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #005bc1; }
+        #result { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; display: none; }
+        .price-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .label { color: #666; }
+        .value { font-weight: bold; font-size: 1.1em; }
+        .error { color: red; margin-top: 10px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Option Quote</h2>
+    <p style="font-size: 0.8em; color: #888;">Format: SYMBOL YYMMDD[C/P]00000000</p>
+    <input type="text" id="symbolInput" placeholder="e.g., AAPL  250620C00150000">
+    <button onclick="fetchQuote()">Get Quote</button>
+    <div id="errorMsg" class="error"></div>
+
+    <div id="result">
+        <div class="price-row">
+            <span class="label">Bid (Sell)</span>
+            <span class="value" id="bidPrice">$0.00</span>
+        </div>
+        <div class="price-row">
+            <span class="label">Ask (Buy/Cost)</span>
+            <span class="value" id="askPrice">$0.00</span>
+        </div>
+        <div class="price-row">
+            <span class="label">Last Price</span>
+            <span class="value" id="lastPrice">$0.00</span>
+        </div>
+        <div class="price-row">
+            <span class="label">Volume</span>
+            <span class="value" id="volume">0</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function fetchQuote() {
+        const symbol = document.getElementById('symbolInput').value.trim();
+        const errorDiv = document.getElementById('errorMsg');
+        const resultDiv = document.getElementById('result');
+        
+        errorDiv.innerText = '';
+        if (!symbol) return;
+
+        try {
+            // NOTE: Replace this URL with your actual Vercel domain
+            // We use the marketdata/v1/quotes endpoint for single symbols
+            const response = await fetch(`/api/getQuote?symbol=${encodeURIComponent(symbol)}`, {
+                headers: { 
+                    // This assumes you have logic elsewhere to store your token
+                    'Authorization': `Bearer ${localStorage.getItem('schwab_token')}` 
+                }
+            });
+
+            const data = await response.json();
+
+            if (data[symbol]) {
+                const quote = data[symbol].quote;
+                document.getElementById('bidPrice').innerText = `$${quote.bidPrice}`;
+                document.getElementById('askPrice').innerText = `$${quote.askPrice}`;
+                document.getElementById('lastPrice').innerText = `$${quote.lastPrice}`;
+                document.getElementById('volume').innerText = quote.totalVolume;
+                resultDiv.style.display = 'block';
+            } else {
+                errorDiv.innerText = 'Symbol not found. Check formatting.';
+            }
+        } catch (err) {
+            errorDiv.innerText = 'Failed to fetch quote. Is your token valid?';
+        }
+    }
+</script>
+
+</body>
+</html>
