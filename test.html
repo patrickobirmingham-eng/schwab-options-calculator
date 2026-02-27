@@ -1,110 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Schwab Option Quote</title>
+    <title>Quick Schwab Quote</title>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 40px; background: #f4f7f6; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #005bc1; }
-        #result { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; display: none; }
-        .price-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .label { color: #666; }
-        .value { font-weight: bold; font-size: 1.1em; }
-        .error { color: red; margin-top: 10px; font-size: 0.9em; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        .box { border: 1px solid #ccc; padding: 20px; border-radius: 10px; max-width: 400px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background: #0070f3; color: white; border: none; cursor: pointer; }
+        #status { font-size: 0.8em; color: gray; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Option Quote Fetcher</h2>
-    <p style="font-size: 0.8em; color: #888;">Format: NVDA 03/06/2026 185.00 P</p>
-    <input type="text" id="symbolInput" placeholder="Enter option details...">
-    <button onclick="fetchQuote()">Get Quote</button>
-    <div id="errorMsg" class="error"></div>
+<div class="box">
+    <h3>1. Connect</h3>
+    <button onclick="login()">Login to Schwab</button>
+    <p id="status">Status: Not Connected</p>
 
-    <div id="result">
-        <div class="price-row">
-            <span class="label">Formatted Symbol:</span>
-            <span class="value" id="displaySymbol">-</span>
-        </div>
-        <div class="price-row">
-            <span class="label">Bid (Sell)</span>
-            <span class="value" id="bidPrice">$0.00</span>
-        </div>
-        <div class="price-row">
-            <span class="label">Ask (Buy/Cost)</span>
-            <span class="value" id="askPrice">$0.00</span>
-        </div>
-        <div class="price-row">
-            <span class="label">Last Price</span>
-            <span class="value" id="lastPrice">$0.00</span>
-        </div>
-    </div>
+    <h3>2. Get Price</h3>
+    <input type="text" id="sym" placeholder="NVDA 03/06/2026 185.00 P">
+    <button onclick="getQuote()">Get Quote</button>
+    
+    <div id="out" style="margin-top:10px; font-weight:bold;"></div>
 </div>
 
 <script>
-    async function fetchQuote() {
-        const errorDiv = document.getElementById('errorMsg');
-        const resultDiv = document.getElementById('result');
-        const rawInput = document.getElementById('symbolInput').value.trim();
+    // These come from your Schwab Dashboard
+    const clientID = 'MbUXOJWErKFjQXLrF268rvG4l6yYwDSuRveQ1qtAYT4hbkCA';
+    const redirect = 'https://patrickobirmingham-eng.github.io/schwab-options-calculator/';
+
+    function login() {
+        window.location.href = `https://api.schwabapi.com/v1/oauth/authorize?client_id=${clientID}&redirect_uri=${redirect}`;
+    }
+
+    // Check if we just returned from login
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code) {
+        document.getElementById('status').innerText = "Status: Connected! (Code received)";
+        // Note: In a real app, we'd exchange this code for a token here.
+    }
+
+    async function getQuote() {
+        const input = document.getElementById('sym').value;
+        document.getElementById('out').innerText = "Fetching " + input + "...";
         
-        errorDiv.innerText = ''; // Clear old errors
-
-        // 1. Format the symbol
-        const formattedSymbol = formatToSchwabOSI(rawInput);
-        document.getElementById('displaySymbol').innerText = formattedSymbol;
-
+        // This is where we call your Vercel proxy
         try {
-            // 2. Access Token Check (Change this if you store it differently)
-            const token = localStorage.getItem('schwab_access_token');
-            if (!token) {
-                errorDiv.innerText = "Error: No access token found. Please log in.";
-                return;
-            }
-
-            // 3. Fetch from your Vercel Proxy
-            const response = await fetch(`/api/getQuote?symbol=${encodeURIComponent(formattedSymbol)}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error('API request failed');
-
-            const data = await response.json();
-
-            // 4. DISPLAY THE DATA
-            // Schwab returns an object where the key is the symbol name
-            if (data[formattedSymbol]) {
-                const quote = data[formattedSymbol].quote;
-                document.getElementById('bidPrice').innerText = `$${quote.bidPrice}`;
-                document.getElementById('askPrice').innerText = `$${quote.askPrice}`;
-                document.getElementById('lastPrice').innerText = `$${quote.lastPrice}`;
-                resultDiv.style.display = 'block';
-            } else {
-                errorDiv.innerText = "Symbol not found in Schwab data.";
-            }
-
-        } catch (err) {
-            console.error(err);
-            errorDiv.innerText = "Failed to fetch quote. Check console (F12) for details.";
+            const res = await fetch(`/api/getQuote?symbol=${encodeURIComponent(input)}`);
+            const data = await res.json();
+            document.getElementById('out').innerText = `Bid: $${data.bid} | Ask: $${data.ask}`;
+        } catch (e) {
+            document.getElementById('out').innerText = "Error: Check if login expired.";
         }
     }
-
-    function formatToSchwabOSI(input) {
-        if (input.length === 21) return input;
-        const parts = input.split(' ').filter(p => p !== '');
-        if (parts.length < 4) return input;
-
-        const root = parts[0].padEnd(6, ' ');
-        const date = parts[1].replace(/\//g, '').slice(-6); 
-        const type = parts[3].toUpperCase();
-        const strike = (parseFloat(parts[2]) * 1000).toString().padStart(8, '0');
-
-        return `${root}${date}${type}${strike}`;
-    }
 </script>
-
 </body>
 </html>
