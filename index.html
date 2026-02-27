@@ -548,6 +548,8 @@ filePicker.onchange = (e) => handleFile(e.target.files[0]);
 
 async function handleFile(file) {
     if (!file) return;
+    window._pricesRefreshedOC = false;
+    window._pricesRefreshedAssign = false; // reset so prices refresh on next open
     const fnEl = document.getElementById('uploadedFileName');
     fnEl.textContent = 'Filename: ' + file.name;
     fnEl.style.display = 'block';
@@ -1474,6 +1476,12 @@ function showOpenCommitments() {
     modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
     initDraggableModal('ocInner', '#0ea5e9', 1400);
     setTimeout(loadSavedFinnhubKey, 50); // restore saved key into input
+
+    // Auto-refresh prices once per session for open commitments
+    if (!window._pricesRefreshedOC) {
+        window._pricesRefreshedOC = true;
+        setTimeout(() => refreshStockPrices(), 200);
+    }
 }
 
 function sortOpenCommitments(key) {
@@ -2208,6 +2216,12 @@ function showAssignments() {
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeAssignments(); };
     initDraggableModal('assignmentsInner', '#f59e0b', 1600);
+
+    // Auto-refresh prices once per session for assignments
+    if (!window._pricesRefreshedAssign) {
+        window._pricesRefreshedAssign = true;
+        setTimeout(() => refreshAssignmentPrices(), 200);
+    }
 }
 
 function showMonthlySummary() {
