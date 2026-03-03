@@ -128,7 +128,7 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
     .checkbox-grid { grid-template-columns: 1fr; }
     .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
     .stat-card { padding: 15px; }
-    .stat-label { font-size: 0.65rem; }
+    .stat-label { font-size: 0.72rem; }
     .stat-value { font-size: 1.2rem; }
     .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { min-width: 800px; font-size: 0.8rem; }
@@ -164,7 +164,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-f
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 30px; }
 .stat-card { background: var(--bg-secondary); padding: 10px 6px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
-.stat-label { font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
+.stat-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
 .stat-value { font-size: 1.05rem; font-weight: bold; }
 
 table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); border-radius: 12px; table-layout: auto; transition: background 0.3s; }
@@ -294,13 +294,13 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
             <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
                 <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">1. Status Filter</label>
                 <div id="statusCheckboxes" style="display:inline-flex; flex-wrap:wrap; justify-content:center; gap:6px 16px; background:var(--bg-input); padding:8px 14px; border-radius:8px; border:1px solid var(--border-color);">
-                    <label class="checkbox-item"><input type="checkbox" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbBuyToClose" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
                     <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
                     <label class="checkbox-item"><input type="checkbox" value="Called Away" checked onchange="applyFilters()"> Called Away</label>
-                    <label class="checkbox-item"><input type="checkbox" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbSellToClose" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
                     <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
-                    <label class="checkbox-item"><input type="checkbox" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
-                    <label class="checkbox-item"><input type="checkbox" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbSellToOpen" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbBuyToOpen" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
                 </div>
             </div>
 
@@ -522,7 +522,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                     <div>
                         <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
                         <input id="assignmentSearch" type="text" placeholder="Search (e.g. ORCL, TTD)" oninput="renderAssignmentsTable()"
-                            style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:180px;">
+                            style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:187px;">
                     </div>
                     <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
                         <div style="font-size:0.75rem; font-weight:600; color:transparent;">.</div>
@@ -855,7 +855,7 @@ function applyFilters() {
     const endVal = document.getElementById('endDate').value;
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
-    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
 
     const allItems = [...finalTrades, ...openPositions];
     const filtered = allItems.filter(item => {
@@ -1051,7 +1051,7 @@ function render(newSortKey, dataToRender) {
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
     const searchTerm = document.getElementById('searchInput').value.trim();
 
-    // Cash Flow: STO received and BTC paid within date range (by transaction date)
+    // Cash Flow: STO+BTO received/paid and BTC+STC paid/received within date range (by transaction date)
     let sellToOpen = 0, buyToClose = 0;
     if (window.rawRows) {
         window.rawRows.forEach(r => {
@@ -1063,14 +1063,14 @@ function render(newSortKey, dataToRender) {
             if (startDate && d < startDate) return;
             if (endDate && d > endDate) return;
             const amt = cleanNum(r.Amount);
-            if (action.includes('sell') && action.includes('to open')) sellToOpen += amt;
-            if (action.includes('buy') && action.includes('to close')) buyToClose += amt;
+            if (action.includes('to open')) sellToOpen += amt;
+            if (action.includes('to close')) buyToClose += amt;
         });
     }
-    const cashFlow = sellToOpen - Math.abs(buyToClose);
+    const cashFlow = sellToOpen + buyToClose;
 
     // Realized P/L: profit on closed non-assigned trades, by close date, respecting status filters
-    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
     let reconPL = 0;
     finalTrades.forEach(x => {
         const sym = x.symbol.toLowerCase();
@@ -1107,8 +1107,8 @@ function render(newSortKey, dataToRender) {
     const assignedPremium = reconAssigned;
 
     document.getElementById('summary').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Sell to Open</div><div class="stat-value pos">$${sellToOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Buy to Close</div><div class="stat-value neg">$${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Sell to Open + Buy to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Buy to Close + Sell to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Cash Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Realized Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
@@ -1220,7 +1220,7 @@ function resetFilters() {
     document.getElementById('quickRange').value = 'all';
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
-    document.querySelectorAll('#statusCheckboxes input').forEach(cb => { cb.checked = (cb.value !== 'Assigned'); });
+    document.querySelectorAll('#statusCheckboxes input').forEach(cb => { cb.checked = (cb.value !== 'Assigned'); cb.indeterminate = false; });
     applyFilters();
 }
 
@@ -1230,7 +1230,7 @@ function downloadResults() {
     const endVal = document.getElementById('endDate').value;
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
-    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).map(cb => cb.value.toLowerCase());
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
 
     const filtered = [...finalTrades, ...openPositions].filter(item => {
         const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
@@ -2333,8 +2333,8 @@ function showMonthlySummary() {
         let sellOpen = 0, buyClose = 0;
         window.allTransactions.forEach(t => {
             if (t.date >= mStart && t.date <= mEnd) {
-                if (t.action.includes('sell') && t.action.includes('to open')) sellOpen += t.amount;
-                if (t.action.includes('buy') && t.action.includes('to close')) buyClose += t.amount;
+                if (t.action.includes('to open')) sellOpen += t.amount;
+                if (t.action.includes('to close')) buyClose += t.amount;
             }
         });
         let profit = 0, assignedPaid = 0;
@@ -2420,8 +2420,8 @@ function showMonthlySummary() {
             <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
             <thead><tr>
                 <th style="${thStyle}">Month / Year</th>
-                <th style="${thStyle}">Sell to Open</th>
-                <th style="${thStyle}">Buy to Close</th>
+                <th style="${thStyle}">Sell to Open + Buy to Open</th>
+                <th style="${thStyle}">Buy to Close + Sell to Close</th>
                 <th style="${thStyle}">Cash Flow</th>
                 <th style="${thStyle}">Profit from Closed Options</th>
                 <th style="${thStyle}">Paid Premium Assigned</th>
@@ -2582,8 +2582,8 @@ function showWeeklySummary() {
         let sellOpen = 0, buyClose = 0;
         window.allTransactions.forEach(t => {
             if (t.date >= wkStart && t.date <= wkEnd) {
-                if (t.action.includes('sell') && t.action.includes('to open')) sellOpen += t.amount;
-                if (t.action.includes('buy')  && t.action.includes('to close')) buyClose += t.amount;
+                if (t.action.includes('to open')) sellOpen += t.amount;
+                if (t.action.includes('to close')) buyClose += t.amount;
             }
         });
         let profit = 0, assignedPaid = 0;
@@ -2677,8 +2677,8 @@ function showWeeklySummary() {
             <thead><tr>
                 <th style="${thStyle}">Week / Month</th>
                 <th style="${thStyle}">Calendar Week</th>
-                <th style="${thStyle}">Sell to Open</th>
-                <th style="${thStyle}">Buy to Close</th>
+                <th style="${thStyle}">Sell to Open + Buy to Open</th>
+                <th style="${thStyle}">Buy to Close + Sell to Close</th>
                 <th style="${thStyle}">Cash Flow</th>
                 <th style="${thStyle}">Profit from Closed Options</th>
                 <th style="${thStyle}">Paid Premium Assigned</th>
