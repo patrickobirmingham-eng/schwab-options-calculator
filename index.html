@@ -200,6 +200,61 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
 /* Modal */
 #monthlyModal > div { background: var(--bg-secondary); border: 1px solid var(--border-accent); }
+
+/* ── Mobile-friendly Monthly & Weekly modals ── */
+@media (max-width: 768px) {
+    #monthlyModal, #weeklyModal {
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+    }
+    #monthlyInner, #weeklyInner {
+        position: relative !important;
+        left: auto !important; top: auto !important;
+        width: 100% !important; max-width: 100% !important;
+        height: auto !important; max-height: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 12px 10px !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
+    /* Modal title rows */
+    #monthlyInner > div:first-child,
+    #weeklyInner  > div:first-child {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    #monthlyInner > div:first-child h2,
+    #weeklyInner  > div:first-child h2 {
+        font-size: 0.9rem !important;
+        flex: 1 1 100% !important;
+    }
+    #monthlyInner > div:first-child > div,   /* expand checkbox wrapper */
+    #weeklyInner  > div:first-child > div {
+        flex: 1 1 auto !important;
+        justify-content: flex-start !important;
+    }
+    /* Scrollable table wrappers */
+    #monthlyTableContainer > div,
+    #weeklyTableContainer  > div {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    /* Compact table cells */
+    #monthlyBreakdownTable th,
+    #monthlyBreakdownTable td,
+    #weeklyBreakdownTable  th,
+    #weeklyBreakdownTable  td {
+        padding: 7px 6px !important;
+        font-size: 0.72rem !important;
+        white-space: nowrap !important;
+    }
+    /* Drop colgroup fixed widths on mobile — let content size naturally */
+    #monthlyBreakdownTable colgroup,
+    #weeklyBreakdownTable  colgroup {
+        display: none !important;
+    }
+}
 </style>
 </head>
 
@@ -339,7 +394,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                         </div>
                         <div>
                             <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
-                            <input type="text" id="tsSymbolSearch" placeholder="Search all columns..." oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
+                            <input type="text" id="tsSymbolSearch" placeholder="Search (e.g. ORCL, TTD)" oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:185px;">
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; align-items:flex-end;">
@@ -388,9 +443,9 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <!-- Monthly Summary Modal -->
     <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:98vh; overflow-y:auto; position:relative;">
-            <div style="display:flex; align-items:center; margin-bottom:20px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg><span style="color:#a78bfa;">[-]</span> Monthly <span style="color:#a78bfa;">/</span> <span style="color:#a78bfa;">[+]</span> Annual Cash Flow &amp; Profit Summary</h2>
-                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg><span style="color:#a78bfa;">[-]</span> Monthly <span style="color:#a78bfa;">/</span> <span style="color:#a78bfa;">[+]</span> Annual Cash Flow &amp; Profit Summary</h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
                         <input type="checkbox" id="monthlyExpandAll" onchange="toggleMonthlyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#a78bfa;cursor:pointer;">
                         Fully Expand Table
@@ -405,9 +460,9 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     <!-- Weekly Summary Modal -->
     <div id="weeklyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="weeklyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
-            <div style="display:flex; align-items:center; margin-bottom:20px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg><span style="color:#67e8f9;">[-]</span> Weekly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Monthly Cash Flow &amp; Profit Summary</h2>
-                <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg><span style="color:#67e8f9;">[-]</span> Weekly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Monthly Cash Flow &amp; Profit Summary</h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
                         <input type="checkbox" id="weeklyExpandAll" onchange="toggleWeeklyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#67e8f9;cursor:pointer;">
                         Fully Expand Table
@@ -466,8 +521,8 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                     </div>
                     <div>
                         <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
-                        <input id="assignmentSearch" type="text" placeholder="Search all columns..." oninput="renderAssignmentsTable()"
-                            style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:150px;">
+                        <input id="assignmentSearch" type="text" placeholder="Search (e.g. ORCL, TTD)" oninput="renderAssignmentsTable()"
+                            style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:180px;">
                     </div>
                     <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
                         <div style="font-size:0.75rem; font-weight:600; color:transparent;">.</div>
@@ -494,7 +549,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
     <div id="summary" class="stats" style="display:none;"></div>
     <div id="tableTopBar" style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-        <input type="text" id="searchInput" placeholder="Search table..." oninput="applyFilters()"
+        <input type="text" id="searchInput" placeholder="Search (e.g. ORCL, TTD)" oninput="applyFilters()"
             style="width:220px; padding:7px 12px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem; outline:none;">
         <div style="display:flex; align-items:center; gap:16px;">
             <div id="dateRange" style="font-size:1rem; color:var(--text-secondary); font-weight:500;"></div>
@@ -794,7 +849,8 @@ function applyFilters() {
         return;
     }
 
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchRaw = document.getElementById('searchInput').value;
+    const searchTerms = searchRaw.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
@@ -803,16 +859,18 @@ function applyFilters() {
 
     const allItems = [...finalTrades, ...openPositions];
     const filtered = allItems.filter(item => {
-        if (searchTerm) {
+        if (searchTerms.length > 0) {
             const dateStr = (item.isOpen ? item.openDate : item.closeDate) ? fmtDateMMDDYYYY(item.isOpen ? item.openDate : item.closeDate) : '';
-            const matchesSearch =
-                item.symbol.toLowerCase().includes(searchTerm) ||
-                item.status.toLowerCase().includes(searchTerm) ||
-                (item.putOrCall || '').toLowerCase().includes(searchTerm) ||
-                String(item.contracts).includes(searchTerm) ||
-                dateStr.includes(searchTerm) ||
-                String(item.openingPremium?.toFixed(2) || '').includes(searchTerm) ||
-                String(item.profit?.toFixed(2) || '').includes(searchTerm);
+            const haystack = [
+                item.symbol.toLowerCase(),
+                item.status.toLowerCase(),
+                (item.putOrCall || '').toLowerCase(),
+                String(item.contracts),
+                dateStr,
+                String(item.openingPremium?.toFixed(2) || ''),
+                String(item.profit?.toFixed(2) || ''),
+            ];
+            const matchesSearch = searchTerms.some(term => haystack.some(h => h.includes(term)));
             if (!matchesSearch) return false;
         }
         const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
@@ -838,13 +896,13 @@ function sortRawTable(key) {
 
 function renderRawTable() {
     if (!window.allRawRows) return;
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const searchTerms_raw = document.getElementById('searchInput').value.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
     let rows = window.allRawRows.filter(r => {
-        if (!searchTerm) return true;
+        if (searchTerms_raw.length === 0) return true;
         const sym = (r.Symbol || '').toLowerCase();
         const action = (r.Action || '').toLowerCase();
         const desc = (r.Description || '').toLowerCase();
-        return sym.includes(searchTerm) || action.includes(searchTerm) || desc.includes(searchTerm);
+        return searchTerms_raw.some(term => sym.includes(term) || action.includes(term) || desc.includes(term));
     });
 
     // Sort
@@ -991,7 +1049,7 @@ function render(newSortKey, dataToRender) {
     const endVal = document.getElementById('endDate').value;
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const searchTerm = document.getElementById('searchInput').value.trim();
 
     // Cash Flow: STO received and BTC paid within date range (by transaction date)
     let sellToOpen = 0, buyToClose = 0;
@@ -1551,8 +1609,8 @@ function renderOpenCommitmentsTable() {
         return 0;
     });
 
-    const search = ocSearchValue.toLowerCase().trim();
-    const filtered = search ? sorted.filter(r => {
+    const ocSearchTerms = ocSearchValue.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    const filtered = ocSearchTerms.length > 0 ? sorted.filter(r => {
         const ticker = extractTicker(r.symbol);
         const pd = ocStockPrices[ticker];
         const assignPrice = r.type === 'Put' && r.contracts > 0
@@ -1578,7 +1636,7 @@ function renderOpenCommitmentsTable() {
             currentPrice,
             otmItm,
         ];
-        return vals.some(v => v.toLowerCase().includes(search));
+        return ocSearchTerms.some(term => vals.some(v => v.toLowerCase().includes(term)));
     }) : sorted;
 
     const totalPuts = filtered.reduce((s, r) => s + r.putCommitment, 0);
@@ -1693,8 +1751,8 @@ function renderOpenCommitmentsTable() {
         document.getElementById('openCommitmentsContainer').innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;">
                 <h3 style="color:#0ea5e9;margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">All Open Positions</h3>
-                <input id="commitmentSearch" type="text" placeholder="Search table..." oninput="ocSearchValue=this.value; renderOpenCommitmentsTable()"
-                    style="background:var(--bg-input);border:2px solid #0ea5e9;color:var(--text-primary);padding:6px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:160px;">
+                <input id="commitmentSearch" type="text" placeholder="Search (e.g. ORCL, TTD)" oninput="ocSearchValue=this.value; renderOpenCommitmentsTable()"
+                    style="background:var(--bg-input);border:2px solid #0ea5e9;color:var(--text-primary);padding:6px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:192px;">
             </div>
             <div style="overflow-x:auto;border:1px solid #0ea5e9;border-radius:8px;">
             <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
@@ -1989,7 +2047,7 @@ function renderAssignmentsTable() {
     });
 
     // Full-table search filter (runs after enrichment so all computed columns are searchable)
-    const search = (document.getElementById('assignmentSearch')?.value || '').toLowerCase().trim();
+    const assignSearchTerms = (document.getElementById('assignmentSearch')?.value || '').split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
 
     // Date range filter
     const fromVal = document.getElementById('assignDateFrom')?.value;
@@ -2017,7 +2075,7 @@ function renderAssignmentsTable() {
         }
 
         // Search filter
-        if (search) {
+        if (assignSearchTerms.length > 0) {
             const dateStr = assignDate ? fmtDateMMDDYYYY(assignDate) : '';
             const vals = [
                 dateStr,
@@ -2035,14 +2093,14 @@ function renderAssignmentsTable() {
                 callsSold !== 0 ? callsSold.toFixed(2) : '',
                 pl !== null ? pl.toFixed(2) : '',
             ];
-            if (!vals.some(v => v.toLowerCase().includes(search))) return false;
+            if (!assignSearchTerms.some(term => vals.some(v => v.toLowerCase().includes(term)))) return false;
         }
 
         return true;
     });
 
     if (!filteredEnriched.length) {
-        document.getElementById('assignmentsContainer').innerHTML = `<p style="color:var(--text-secondary);text-align:center;padding:40px;">No results match your search for "<strong>${search}</strong>".</p>`;
+        document.getElementById('assignmentsContainer').innerHTML = `<p style="color:var(--text-secondary);text-align:center;padding:40px;">No results match your search for "<strong>${assignSearchTerms.join(', ')}</strong>".</p>`;
         return;
     }
 
@@ -2354,7 +2412,7 @@ function showMonthlySummary() {
 
 
     const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
-    const tblStyle = `width:100%;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
+    const tblStyle = `width:100%;min-width:540px;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
 
     document.getElementById('monthlyTableContainer').innerHTML = `
         <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
@@ -2375,19 +2433,31 @@ function showMonthlySummary() {
     const modal = document.getElementById('monthlyModal');
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
-    initDraggableModal('monthlyInner', '#6d28d9', 1600);
 
-    // Make window 25% taller than default
-    setTimeout(() => {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+        initDraggableModal('monthlyInner', '#6d28d9', 1600);
+        // Make window 25% taller than default
+        setTimeout(() => {
+            const mi = document.getElementById('monthlyInner');
+            if (mi && mi.style.height) {
+                const currentH = parseFloat(mi.style.height);
+                mi.style.height = Math.min(currentH * 1.25, window.innerHeight - 20) + 'px';
+            }
+        }, 50);
+    } else {
+        // Mobile: reset any previously applied draggable styles
         const mi = document.getElementById('monthlyInner');
-        if (mi && mi.style.height) {
-            const currentH = parseFloat(mi.style.height);
-            mi.style.height = Math.min(currentH * 1.25, window.innerHeight - 20) + 'px';
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
         }
-    }, 50);
+    }
 
-    // Floating sticky header for Monthly Breakdown
-    setTimeout(() => {
+    // Floating sticky header for Monthly Breakdown (desktop only)
+    if (!isMobile) setTimeout(() => {
         const modalInner = document.getElementById('monthlyInner');
         const monthTable = document.getElementById('monthlyBreakdownTable');
         const monthThead = monthTable ? monthTable.querySelector('thead') : null;
@@ -2541,7 +2611,7 @@ function showWeeklySummary() {
     const defaultExpanded = new Set(sortedMonthKeys.filter(k => k.startsWith(String(currentYear))));
 
     const thStyle = `padding:10px 8px;background:${thBg};color:${accentColor};font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid ${accentColor};white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
-    const tblStyle = `width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;`;
+    const tblStyle = `width:100%;min-width:640px;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;`;
     const bdBase = `border-bottom:1px solid ${borderColor};`;
 
     let html = '';
@@ -2620,10 +2690,22 @@ function showWeeklySummary() {
     const modal = document.getElementById('weeklyModal');
     modal.style.display = 'flex';
     modal.onclick = e => { if (e.target === modal) closeWeeklySummary(); };
-    initDraggableModal('weeklyInner', accentColor, 1600);
 
-    // Floating sticky header
-    setTimeout(() => {
+    const isMobileWk = window.innerWidth <= 768;
+    if (!isMobileWk) {
+        initDraggableModal('weeklyInner', accentColor, 1600);
+    } else {
+        const mi = document.getElementById('weeklyInner');
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
+        }
+    }
+
+    // Floating sticky header (desktop only)
+    if (!isMobileWk) setTimeout(() => {
         const mi = document.getElementById('weeklyInner');
         const wt = document.getElementById('weeklyBreakdownTable');
         const wth = wt ? wt.querySelector('thead') : null;
@@ -2758,7 +2840,7 @@ function tsApplyFilters() {
     const toVal = document.getElementById('tsDateTo').value;
     const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
     const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
-    const search = (document.getElementById('tsSymbolSearch').value || '').toLowerCase().trim();
+    const tsSearchTerms = (document.getElementById('tsSymbolSearch').value || '').split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
     tsFiltered = tsData.filter(r => {
         // If some (but not all) actions are unchecked, filter by checked ones; rows with no Action always pass
         if (checkedActions.length > 0 && checkedActions.length < totalActions) {
@@ -2769,7 +2851,7 @@ function tsApplyFilters() {
             if (fromDate && dateForFilter < fromDate) return false;
             if (toDate && dateForFilter > toDate) return false;
         }
-        if (search) {
+        if (tsSearchTerms.length > 0) {
             const sym = (r.Symbol || '').toLowerCase();
             const act = (r.Action || '').toLowerCase();
             const desc = (r.Description || '').toLowerCase();
@@ -2778,9 +2860,8 @@ function tsApplyFilters() {
             const price = String(r.Price || '').toLowerCase();
             const fees = String(r['Fees & Comm'] || r['Fees'] || '').toLowerCase();
             const amt = String(r.Amount || '').toLowerCase();
-            if (!sym.includes(search) && !act.includes(search) && !desc.includes(search) &&
-                !date.includes(search) && !qty.includes(search) && !price.includes(search) &&
-                !fees.includes(search) && !amt.includes(search)) return false;
+            const haystack = [sym, act, desc, date, qty, price, fees, amt];
+            if (!tsSearchTerms.some(term => haystack.some(h => h.includes(term)))) return false;
         }
         return true;
     });
