@@ -1289,6 +1289,10 @@ function downloadResults() {
     window.URL.revokeObjectURL(url);
 }
 
+// ── Persistent state for Monthly & Weekly modals ──
+const monthlySavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0 };
+const weeklySavedState  = { expandedMonths: null, expandAllChecked: false, scrollTop: 0 };
+
 function toggleMonthlyYear(year) {
     const monthRows = document.querySelectorAll(`.mb-year-${year}`);
     const collapsedRow = document.querySelector(`.mb-year-collapsed-${year}`);
@@ -1304,15 +1308,67 @@ function toggleMonthlyYear(year) {
 }
 
 function closeMonthlySummary() {
-    const _di = document.getElementById('monthlyInner'); if (_di) _di._dragInit = false;
+    // Save expand/collapse state before closing
+    const body = document.getElementById('monthlyBreakdownBody');
+    if (body) {
+        const years = [...new Set([...body.querySelectorAll('tr[class*="mb-year-"]')]
+            .map(r => [...r.classList].find(c => c.startsWith('mb-year-') && !c.includes('collapsed')))
+            .filter(Boolean)
+            .map(c => c.replace('mb-year-', '')))];
+        const expanded = new Set();
+        years.forEach(year => {
+            const monthRows = body.querySelectorAll(`.mb-year-${year}`);
+            if (monthRows.length && monthRows[0].style.display !== 'none') expanded.add(String(year));
+        });
+        monthlySavedState.expandedYears = expanded;
+    }
+    const cb = document.getElementById('monthlyExpandAll');
+    monthlySavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('monthlyInner');
+    monthlySavedState.scrollTop = mi ? mi.scrollTop : 0;
+
+    // Save modal position and size
+    const _di = document.getElementById('monthlyInner');
+    if (_di) {
+        monthlySavedState.modalPos = {
+            left: _di.style.left, top: _di.style.top,
+            width: _di.style.width, height: _di.style.height
+        };
+        _di._dragInit = false;
+    }
     document.getElementById('monthlyModal').style.display = 'none';
-    const cb = document.getElementById('monthlyExpandAll'); if (cb) cb.checked = false;
 }
 
 function closeWeeklySummary() {
-    const _di = document.getElementById('weeklyInner'); if (_di) _di._dragInit = false;
+    // Save expand/collapse state before closing
+    const container = document.getElementById('weeklyTableContainer');
+    if (container) {
+        const keys = [...new Set([...container.querySelectorAll('tr[class*="wk-week-row-"]')]
+            .map(r => [...r.classList].find(c => c.startsWith('wk-week-row-')))
+            .filter(Boolean)
+            .map(c => c.replace('wk-week-row-', '')))];
+        const expanded = new Set();
+        keys.forEach(key => {
+            const weekRows = container.querySelectorAll(`.wk-week-row-${key}`);
+            if (weekRows.length && weekRows[0].style.display !== 'none') expanded.add(key);
+        });
+        weeklySavedState.expandedMonths = expanded;
+    }
+    const cb = document.getElementById('weeklyExpandAll');
+    weeklySavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('weeklyInner');
+    weeklySavedState.scrollTop = mi ? mi.scrollTop : 0;
+
+    // Save modal position and size
+    const _di = document.getElementById('weeklyInner');
+    if (_di) {
+        weeklySavedState.modalPos = {
+            left: _di.style.left, top: _di.style.top,
+            width: _di.style.width, height: _di.style.height
+        };
+        _di._dragInit = false;
+    }
     document.getElementById('weeklyModal').style.display = 'none';
-    const cb = document.getElementById('weeklyExpandAll'); if (cb) cb.checked = false;
 }
 
 function toggleWeeklyMonth(monthKey) {
@@ -2584,8 +2640,10 @@ function showMonthlySummary() {
     // Build per-month data grouped by year (descending)
     const uniqueYears = [...new Set(months.map(m => m.year))].sort((a,b) => b - a);
     const currentYear = now.getFullYear();
-    // Default: only current year expanded
-    const defaultExpandedYears = new Set([String(currentYear)]);
+    // Default: only current year expanded, unless we have saved state
+    const defaultExpandedYears = monthlySavedState.expandedYears
+        ? new Set(monthlySavedState.expandedYears)
+        : new Set([String(currentYear)]);
 
     // Compute monthly rows grouped by year
     const monthlyByYear = {};
@@ -2697,17 +2755,35 @@ function showMonthlySummary() {
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
 
+    // Restore expand-all checkbox state
+    const expandAllCb = document.getElementById('monthlyExpandAll');
+    if (expandAllCb) expandAllCb.checked = monthlySavedState.expandAllChecked;
+
+    // Restore scroll position after render
+    setTimeout(() => {
+        const miScroll = document.getElementById('monthlyInner');
+        if (miScroll && monthlySavedState.scrollTop) miScroll.scrollTop = monthlySavedState.scrollTop;
+    }, 60);
+
     const isMobile = window.innerWidth <= 768;
     if (!isMobile) {
         initDraggableModal('monthlyInner', '#6d28d9', 1600);
-        // Make window 25% taller than default
-        setTimeout(() => {
-            const mi = document.getElementById('monthlyInner');
-            if (mi && mi.style.height) {
-                const currentH = parseFloat(mi.style.height);
-                mi.style.height = Math.min(currentH * 1.25, window.innerHeight - 20) + 'px';
-            }
-        }, 50);
+        const mi = document.getElementById('monthlyInner');
+        // Restore saved position/size if available, otherwise enlarge default
+        if (monthlySavedState.modalPos && mi) {
+            mi.style.left = monthlySavedState.modalPos.left;
+            mi.style.top = monthlySavedState.modalPos.top;
+            mi.style.width = monthlySavedState.modalPos.width;
+            mi.style.height = monthlySavedState.modalPos.height;
+        } else {
+            // Make window 25% taller than default
+            setTimeout(() => {
+                if (mi && mi.style.height) {
+                    const currentH = parseFloat(mi.style.height);
+                    mi.style.height = Math.min(currentH * 1.25, window.innerHeight - 20) + 'px';
+                }
+            }, 50);
+        }
     } else {
         // Mobile: reset any previously applied draggable styles
         const mi = document.getElementById('monthlyInner');
@@ -2870,8 +2946,14 @@ function showWeeklySummary() {
     // Sort months descending
     const sortedMonthKeys = Object.keys(groupedByMonth).sort((a,b) => b.localeCompare(a));
 
-    // Default: expand only months in current year
-    const defaultExpanded = new Set(sortedMonthKeys.filter(k => k.startsWith(String(currentYear))));
+    // Default: expand only months in current year, unless we have saved state
+    let defaultExpanded;
+    if (weeklySavedState.expandedMonths) {
+        // Saved state uses underscore keys (safeKey format); convert mKey (dash) to safeKey for lookup
+        defaultExpanded = new Set(sortedMonthKeys.filter(k => weeklySavedState.expandedMonths.has(k.replace('-','_'))));
+    } else {
+        defaultExpanded = new Set(sortedMonthKeys.filter(k => k.startsWith(String(currentYear))));
+    }
 
     const thStyle = `padding:10px 8px;background:${thBg};color:${accentColor};font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid ${accentColor};white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
     const tblStyle = `width:100%;min-width:640px;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;`;
@@ -2954,9 +3036,27 @@ function showWeeklySummary() {
     modal.style.display = 'flex';
     modal.onclick = e => { if (e.target === modal) closeWeeklySummary(); };
 
+    // Restore expand-all checkbox state
+    const expandAllCbWk = document.getElementById('weeklyExpandAll');
+    if (expandAllCbWk) expandAllCbWk.checked = weeklySavedState.expandAllChecked;
+
+    // Restore scroll position after render
+    setTimeout(() => {
+        const miScroll = document.getElementById('weeklyInner');
+        if (miScroll && weeklySavedState.scrollTop) miScroll.scrollTop = weeklySavedState.scrollTop;
+    }, 60);
+
     const isMobileWk = window.innerWidth <= 768;
     if (!isMobileWk) {
         initDraggableModal('weeklyInner', accentColor, 1600);
+        // Restore saved position/size if available
+        const miWk = document.getElementById('weeklyInner');
+        if (weeklySavedState.modalPos && miWk) {
+            miWk.style.left = weeklySavedState.modalPos.left;
+            miWk.style.top = weeklySavedState.modalPos.top;
+            miWk.style.width = weeklySavedState.modalPos.width;
+            miWk.style.height = weeklySavedState.modalPos.height;
+        }
     } else {
         const mi = document.getElementById('weeklyInner');
         if (mi) {
