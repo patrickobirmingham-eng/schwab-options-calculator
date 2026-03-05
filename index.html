@@ -1363,17 +1363,97 @@ function closeOpenCommitments() {
 // Finnhub API key (embedded)
 const FINNHUB_API_KEY = "d6bjguhr01qp4lhvmct0d6bjguhr01qp4lhvmctg";
 
+// Tradier API key for option quotes
+const TRADIER_API_KEY = "SX80wDUwoNv3uWWsx7MY6ci9ncA3";
+
 // State for Open Commitments sort
 let ocSortKey = 'dte';
 let ocSortDir = 1;
 let ocSearchValue = '';
 let ocParsedRows = [];
 let ocStockPrices = {};   // { TICKER: { price, change, changePct, loading, error } }
+let ocOptionPrices = {};  // { SYMBOL: { price, loading, error } }
 let ocPriceFetchTime = null;
 
 // Extract root ticker from Schwab option symbol e.g. "AAPL 01/17/2025 185.00 P" -> "AAPL"
 function extractTicker(symbol) {
     return symbol.trim().split(/\s+/)[0].toUpperCase();
+}
+
+// Convert Schwab symbol "AAPL 01/17/2025 185.00 P" -> OCC "AAPL250117P00185000"
+function buildOCCSymbol(symbol) {
+    const parts = symbol.trim().split(/\s+/);
+    if (parts.length < 4) return null;
+    const ticker = parts[0].toUpperCase();
+    const dateParts = parts[1].split('/');
+    if (dateParts.length < 3) return null;
+    const mm = dateParts[0].padStart(2, '0');
+    const dd = dateParts[1].padStart(2, '0');
+    const yy = dateParts[2].slice(-2);
+    const optType = parts[3].toUpperCase(); // P or C
+    const strikeRaw = parseFloat(parts[2]);
+    if (isNaN(strikeRaw)) return null;
+    const strikeStr = Math.round(strikeRaw * 1000).toString().padStart(8, '0');
+    return `${ticker}${yy}${mm}${dd}${optType}${strikeStr}`;
+}
+
+// Fetch current option price from Tradier API
+async function fetchOptionPrice(occSymbol) {
+    const url = `https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(occSymbol)}&greeks=false`;
+    const res = await fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${TRADIER_API_KEY}`,
+            'Accept': 'application/json'
+        }
+    });
+    if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${txt.substring(0, 80)}`);
+    }
+    const json = await res.json();
+    const quote = json && json.quotes && json.quotes.quote;
+    if (!quote) throw new Error('No quote data returned');
+    let price = quote.last;
+    if (!price || price <= 0) {
+        const bid = quote.bid || 0;
+        const ask = quote.ask || 0;
+        if (bid > 0 || ask > 0) price = (bid + ask) / 2;
+        else throw new Error('No valid price available');
+    }
+    return { price };
+}
+
+// Fetch option market prices for all open positions using Tradier
+async function refreshOptionPrices() {
+    if (!ocParsedRows.length) return;
+    const ts = document.getElementById('priceTimestamp');
+
+    const symbolMap = {};
+    ocParsedRows.forEach(r => {
+        const occ = buildOCCSymbol(r.symbol);
+        if (occ) symbolMap[occ] = r.symbol;
+    });
+    const occSymbols = Object.keys(symbolMap);
+    if (!occSymbols.length) return;
+
+    occSymbols.forEach(occ => { ocOptionPrices[occ] = { loading: true }; });
+    renderOpenCommitmentsTable();
+
+    if (ts) ts.textContent = `Fetching option prices for ${occSymbols.length} position(s) via Tradier…`;
+
+    for (const occ of occSymbols) {
+        try {
+            const data = await fetchOptionPrice(occ);
+            ocOptionPrices[occ] = { price: data.price, loading: false, error: false };
+        } catch(e) {
+            ocOptionPrices[occ] = { loading: false, error: true, errMsg: e.message };
+        }
+        renderOpenCommitmentsTable();
+        if (occSymbols.length > 1) await new Promise(r => setTimeout(r, 150));
+    }
+
+    ocPriceFetchTime = new Date();
+    renderOpenCommitmentsTable();
 }
 
 function saveFinnhubKey() {
@@ -1490,6 +1570,9 @@ async function refreshStockPrices() {
 
     ocPriceFetchTime = new Date();
     renderOpenCommitmentsTable();
+
+    // Also refresh option market prices via Tradier
+    refreshOptionPrices();
 }
 
 function showOpenCommitments() {
@@ -1539,7 +1622,7 @@ function showOpenCommitments() {
     // Auto-refresh prices once per session for open commitments
     if (!window._pricesRefreshedOC) {
         window._pricesRefreshedOC = true;
-        setTimeout(() => refreshStockPrices(), 200);
+        setTimeout(() => { refreshStockPrices(); }, 200);
     }
 }
 
@@ -1585,6 +1668,32 @@ function renderOpenCommitmentsTable() {
         else if (ocSortKey === 'type') { v1 = a.type; v2 = b.type; }
         else if (ocSortKey === 'contracts') { v1 = a.contracts; v2 = b.contracts; }
         else if (ocSortKey === 'premium') { v1 = a.premiumReceived; v2 = b.premiumReceived; }
+        else if (ocSortKey === 'marketValue') {
+            const getMarketVal = (r) => {
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                return op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
+            };
+            v1 = getMarketVal(a); v2 = getMarketVal(b);
+        }
+        else if (ocSortKey === 'pl') {
+            const getPL = (r) => {
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price) return -Infinity;
+                return r.premiumReceived - op.price * r.contracts * 100;
+            };
+            v1 = getPL(a); v2 = getPL(b);
+        }
+        else if (ocSortKey === 'plPct') {
+            const getPLPct = (r) => {
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price || r.premiumReceived === 0) return -Infinity;
+                return (1 - (op.price * r.contracts * 100) / r.premiumReceived) * 100;
+            };
+            v1 = getPLPct(a); v2 = getPLPct(b);
+        }
         else if (ocSortKey === 'puts') { v1 = a.putCommitment; v2 = b.putCommitment; }
         else if (ocSortKey === 'calls') { v1 = a.callCommitment; v2 = b.callCommitment; }
         else if (ocSortKey === 'price') {
@@ -1642,8 +1751,8 @@ function renderOpenCommitmentsTable() {
     const totalPuts = filtered.reduce((s, r) => s + r.putCommitment, 0);
     const totalCalls = filtered.reduce((s, r) => s + r.callCommitment, 0);
 
-    // 9 columns now (added Current Price)
-    const colW = 'width:8.33%;';
+    // 16 columns now (added P/L and P/L% after Market Value)
+    const colW = 'width:6.25%;';
     const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;position:relative;z-index:2;`;
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
@@ -1651,9 +1760,59 @@ function renderOpenCommitmentsTable() {
     const rowsHtml = filtered.map((r, i) => {
         const ticker = extractTicker(r.symbol);
         const pd = ocStockPrices[ticker];
+        const occ = buildOCCSymbol(r.symbol);
+        const op = occ ? ocOptionPrices[occ] : null;
         // Highlight row if put is at-risk (stock price at or below strike)
         const isAtRisk = r.type === 'Put' && pd && !pd.loading && !pd.error && pd.price <= r.strike;
         const bg = isAtRisk ? (isDark ? 'rgba(248,113,113,0.12)' : 'rgba(220,38,38,0.07)') : (i % 2 === 0 ? rowBg : rowAltBg);
+
+        // Market Value cell
+        let marketValueHtml;
+        if (!op) {
+            marketValueHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        } else if (op.loading) {
+            marketValueHtml = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+        } else if (op.error) {
+            marketValueHtml = `<span style="color:#f87171;font-size:0.75rem;" title="${op.errMsg||'fetch failed'}">Error ⚠</span>`;
+        } else {
+            const marketVal = op.price * r.contracts * 100;
+            marketValueHtml = `<span style="font-weight:700;font-size:0.9rem;color:#f59e0b;">$${marketVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+        }
+
+        // P/L cell: Premium - Market Value
+        let plHtml;
+        if (!op) {
+            plHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        } else if (op.loading) {
+            plHtml = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+        } else if (op.error) {
+            plHtml = `<span style="color:#f87171;font-size:0.75rem;">Error ⚠</span>`;
+        } else {
+            const pl = r.premiumReceived - op.price * r.contracts * 100;
+            const plColor = pl >= 0 ? posColor : negColor;
+            const plSign = pl >= 0 ? '+' : '';
+            plHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${plSign}$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+            if (pl < 0) plHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">-$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+        }
+
+        // P/L % cell: (1 - Market Value / Premium) * 100
+        let plPctHtml;
+        if (!op) {
+            plPctHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        } else if (op.loading) {
+            plPctHtml = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+        } else if (op.error) {
+            plPctHtml = `<span style="color:#f87171;font-size:0.75rem;">Error ⚠</span>`;
+        } else if (r.premiumReceived === 0) {
+            plPctHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        } else {
+            const marketVal = op.price * r.contracts * 100;
+            const plPct = (1 - marketVal / r.premiumReceived) * 100;
+            const plPctColor = plPct >= 0 ? posColor : negColor;
+            const plPctSign = plPct >= 0 ? '+' : '';
+            plPctHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plPctColor};">${plPctSign}${plPct.toFixed(2)}%</span>`;
+        }
+
         return `<tr style="background:${bg};">
             <td style="${tdBase}color:${textColor};">${r.date}</td>
             <td style="${tdBase}color:${textColor};font-size:0.8rem;">${r.symbol}</td>
@@ -1666,16 +1825,35 @@ function renderOpenCommitmentsTable() {
             <td style="${tdBase}color:${r.type === 'Put' ? negColor : r.type === 'Call' ? posColor : textColor};font-weight:600;">${r.type}</td>
             <td style="${tdBase}color:${textColor};">${r.contracts}</td>
             <td style="${tdBase}color:#10b981;font-weight:600;">${r.premiumReceived > 0 ? '$' + r.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+            <td style="${tdBase}line-height:1.5;">${marketValueHtml}</td>
+            <td style="${tdBase}">${plHtml}</td>
+            <td style="${tdBase}">${plPctHtml}</td>
             <td style="${tdBase}color:${negColor};font-weight:500;">${fmt(r.putCommitment)}</td>
             <td style="${tdBase}color:${posColor};font-weight:500;">${fmt(r.callCommitment)}</td>
         </tr>`;
     }).join('');
 
     const totalPremium = filtered.reduce((s, r) => s + r.premiumReceived, 0);
+    const totalMarketValue = filtered.reduce((s, r) => {
+        const occ = buildOCCSymbol(r.symbol);
+        const op = occ ? ocOptionPrices[occ] : null;
+        return s + (op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0);
+    }, 0);
+    const totalPL = totalPremium - totalMarketValue;
+    const totalPLColor = totalPL >= 0 ? posColor : negColor;
+    const totalPLStr = totalMarketValue > 0
+        ? (totalPL >= 0 ? `+$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` : `-$${Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`)
+        : '—';
+    const totalPLPctStr = (totalMarketValue > 0 && totalPremium > 0)
+        ? `${((1 - totalMarketValue / totalPremium) * 100).toFixed(2)}%`
+        : '—';
 
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td colspan="10" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
         <td style="padding:12px 8px;text-align:center;color:#10b981;border-top:2px solid #0ea5e9;">${totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="padding:12px 8px;text-align:center;color:#f59e0b;border-top:2px solid #0ea5e9;">${totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="padding:12px 8px;text-align:center;color:${totalPLColor};border-top:2px solid #0ea5e9;">${totalPLStr}</td>
+        <td style="padding:12px 8px;text-align:center;color:${totalPLColor};border-top:2px solid #0ea5e9;">${totalPLPctStr}</td>
         <td style="padding:12px 8px;text-align:center;color:${negColor};border-top:2px solid #0ea5e9;">${totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${posColor};border-top:2px solid #0ea5e9;">${totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
     </tr>`;
@@ -1687,10 +1865,14 @@ function renderOpenCommitmentsTable() {
         const expMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
         const expDate = expMatch ? expMatch[1] : '—';
         const ticker = extractTicker(r.symbol);
-        if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: r.dte, totalPuts: 0, totalCalls: 0, totalPremium: 0, tickers: new Set() };
+        const occ = buildOCCSymbol(r.symbol);
+        const op = occ ? ocOptionPrices[occ] : null;
+        const rowMarketVal = op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
+        if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: r.dte, totalPuts: 0, totalCalls: 0, totalPremium: 0, totalMarketValue: 0, tickers: new Set() };
         expGroups[expDate].totalPuts += r.putCommitment;
         expGroups[expDate].totalCalls += r.callCommitment;
         expGroups[expDate].totalPremium += r.premiumReceived;
+        expGroups[expDate].totalMarketValue += rowMarketVal;
         expGroups[expDate].tickers.add(ticker);
     });
 
@@ -1703,6 +1885,7 @@ function renderOpenCommitmentsTable() {
     const grandPuts = groupRows.reduce((s, g) => s + g.totalPuts, 0);
     const grandCalls = groupRows.reduce((s, g) => s + g.totalCalls, 0);
     const grandPremium = groupRows.reduce((s, g) => s + g.totalPremium, 0);
+    const grandMarketValue = groupRows.reduce((s, g) => s + g.totalMarketValue, 0);
 
     const sumThStyle = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 8px;word-break:break-word;white-space:normal;`;
     const sumTdStyle = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
@@ -1719,18 +1902,63 @@ function renderOpenCommitmentsTable() {
             return `<span style="font-size:0.8rem;"><b>${t}</b> ${fmtPrice(pd.price)} <span style="color:${chgColor};">${sign}${pd.changePct.toFixed(2)}%</span></span>`;
         }).join('<br>');
 
+        // Market Value cell for this group
+        const hasMV = g.totalMarketValue > 0;
+        const mvHtml = hasMV
+            ? `<span style="font-weight:700;color:#f59e0b;">$${g.totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+            : `<span style="color:#64748b;">—</span>`;
+
+        // P/L cell for this group
+        let plHtml;
+        if (!hasMV) {
+            plHtml = `<span style="color:#64748b;">—</span>`;
+        } else {
+            const pl = g.totalPremium - g.totalMarketValue;
+            const plColor = pl >= 0 ? posColor : negColor;
+            const plFmt = pl >= 0
+                ? `+$${pl.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+                : `-$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+            plHtml = `<span style="font-weight:700;color:${plColor};">${plFmt}</span>`;
+        }
+
+        // P/L % cell for this group
+        let plPctHtml;
+        if (!hasMV || g.totalPremium === 0) {
+            plPctHtml = `<span style="color:#64748b;">—</span>`;
+        } else {
+            const plPct = (1 - g.totalMarketValue / g.totalPremium) * 100;
+            const plPctColor = plPct >= 0 ? posColor : negColor;
+            const plPctSign = plPct >= 0 ? '+' : '';
+            plPctHtml = `<span style="font-weight:700;color:${plPctColor};">${plPctSign}${plPct.toFixed(2)}%</span>`;
+        }
+
         return `<tr style="background:${i % 2 === 0 ? rowBg : rowAltBg};">
             <td style="${sumTdStyle}color:${textColor};">${g.expDate}</td>
             <td style="${sumTdStyle}color:${warnColor};font-weight:600;">${g.dte !== '' ? g.dte : '—'}</td>
             <td style="${sumTdStyle}color:#10b981;font-weight:600;">${g.totalPremium > 0 ? '$' + g.totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+            <td style="${sumTdStyle}">${mvHtml}</td>
+            <td style="${sumTdStyle}">${plHtml}</td>
+            <td style="${sumTdStyle}">${plPctHtml}</td>
             <td style="${sumTdStyle}color:${negColor};font-weight:500;">${g.totalPuts > 0 ? '$' + g.totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
             <td style="${sumTdStyle}color:${posColor};font-weight:500;">${g.totalCalls > 0 ? '$' + g.totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         </tr>`;
     }).join('');
 
+    const grandPL = grandPremium - grandMarketValue;
+    const grandPLColor = grandPL >= 0 ? posColor : negColor;
+    const grandPLStr = grandMarketValue > 0
+        ? (grandPL >= 0 ? `+$${grandPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` : `-$${Math.abs(grandPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`)
+        : '—';
+    const grandPLPctStr = (grandMarketValue > 0 && grandPremium > 0)
+        ? `${((grandPL >= 0 ? '+' : '') + ((1 - grandMarketValue / grandPremium) * 100).toFixed(2))}%`
+        : '—';
+
     const summaryTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
         <td style="${sumTdStyle}color:#10b981;border-top:2px solid #0ea5e9;">${grandPremium > 0 ? '$' + grandPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}color:#f59e0b;border-top:2px solid #0ea5e9;">${grandMarketValue > 0 ? '$' + grandMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}color:${grandPLColor};border-top:2px solid #0ea5e9;">${grandPLStr}</td>
+        <td style="${sumTdStyle}color:${grandPLColor};border-top:2px solid #0ea5e9;">${grandPLPctStr}</td>
         <td style="${sumTdStyle}color:${negColor};border-top:2px solid #0ea5e9;">${grandPuts > 0 ? '$' + grandPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="${sumTdStyle}color:${posColor};border-top:2px solid #0ea5e9;">${grandCalls > 0 ? '$' + grandCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
     </tr>`;
@@ -1758,7 +1986,7 @@ function renderOpenCommitmentsTable() {
             <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
                 <colgroup>
                     <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
-                    <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
+                    <col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}"><col style="${colW}">
                 </colgroup>
                 <thead id="ocDetailThead" style="position:sticky;top:0;z-index:2;"><tr>
                     <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
@@ -1772,6 +2000,9 @@ function renderOpenCommitmentsTable() {
                     <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('premium')">Premium${arrow('premium')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('marketValue')" style="color:#f59e0b;">Market Value${arrow('marketValue')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('pl')">Profit / Loss${arrow('pl')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('plPct')">Profit / Loss %${arrow('plPct')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
                 </tr></thead>
@@ -1781,15 +2012,18 @@ function renderOpenCommitmentsTable() {
             <h3 style="color:#0ea5e9;margin:28px 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
             <div style="overflow-x:auto;margin-bottom:28px;">
             <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
-                <colgroup><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
+                <colgroup><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"></colgroup>
                 <thead><tr>
                     <th style="${sumThStyle}">Strike Date</th>
                     <th style="${sumThStyle}">Days Till Expiration</th>
                     <th style="${sumThStyle}">Premium</th>
+                    <th style="${sumThStyle}">Market Value</th>
+                    <th style="${sumThStyle}">Profit / Loss</th>
+                    <th style="${sumThStyle}">Profit / Loss %</th>
                     <th style="${sumThStyle}">Total Commitments (Puts)</th>
                     <th style="${sumThStyle}">Total Commitments (Calls)</th>
                 </tr></thead>
-                <tbody>${summaryRowsHtml}${summaryTotalRow}</tbody>
+                <tbody id="ocSummaryBody">${summaryRowsHtml}${summaryTotalRow}</tbody>
             </table>
             </div>`;
     } else {
@@ -1806,11 +2040,18 @@ function renderOpenCommitmentsTable() {
             <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('premium')">Premium${arrow('premium')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('marketValue')">Market Value${arrow('marketValue')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('pl')">Profit / Loss${arrow('pl')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('plPct')">Profit / Loss %${arrow('plPct')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>`;
     }
 
     document.getElementById('ocPositionsBody').innerHTML = rowsHtml + totalRow;
+
+    // Always refresh the summary tbody so market value / P&L update as prices arrive
+    const summaryTbody = document.getElementById('ocSummaryBody');
+    if (summaryTbody) summaryTbody.innerHTML = summaryRowsHtml + summaryTotalRow;
 
     // Set up scroll-based thead pin after DOM updates
     setTimeout(() => {
