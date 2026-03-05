@@ -171,6 +171,7 @@ table { width: 100%; border-collapse: collapse; background: var(--bg-secondary);
 thead tr { position: sticky; top: 0; z-index: 20; }
 th { background: var(--bg-tertiary); color: var(--text-muted); padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #6d28d9; box-shadow: 0 3px 6px var(--shadow); position: relative; transition: background 0.3s; }
 th .resizer { position: absolute; top: 0; right: 0; width: 5px; cursor: col-resize; user-select: none; height: 100%; background: transparent; }
+tfoot td { background: var(--bg-tertiary); padding: 12px 15px; font-size: 0.85rem; text-align: center; }
 th .resizer:hover { background: #6d28d9; }
 td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; text-align: center; color: var(--text-primary); transition: border-color 0.3s, color 0.3s; }
 .pos { color: #16a34a; } 
@@ -566,6 +567,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         <table>
             <thead><tr id="headerRow"></tr></thead>
             <tbody id="tableBody"></tbody>
+            <tfoot id="tableFoot"></tfoot>
         </table>
     </div>
 </div>
@@ -1186,6 +1188,26 @@ function render(newSortKey, dataToRender) {
             <td class="${returnClass}">${returnPct}</td>
         </tr>`;
     }).join('');
+
+    // Compute totals for Premium Received / Paid and Profit / Loss
+    let totalPremium = 0;
+    let totalProfit = 0;
+    displayData.forEach(p => {
+        const premVal = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
+        totalPremium += premVal;
+        if (!p.isOpen) {
+            totalProfit += p.profit;
+        }
+    });
+    const premTotalClass = totalPremium >= 0 ? 'pos' : 'neg';
+    const profitTotalClass = totalProfit >= 0 ? 'pos' : 'neg';
+    document.getElementById('tableFoot').innerHTML = `
+        <tr style="font-weight:700;border-top:2px solid #6d28d9;">
+            <td colspan="6" style="text-align:right;padding-right:15px;font-size:0.85rem;">TOTAL</td>
+            <td class="${premTotalClass}" style="font-size:0.85rem;">$${totalPremium.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${profitTotalClass}" style="font-size:0.85rem;">$${totalProfit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td></td>
+        </tr>`;
 }
 
 function toISODate(d) { return d.toISOString().split('T')[0]; }
@@ -1849,7 +1871,7 @@ function renderOpenCommitmentsTable() {
         : '—';
 
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="10" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td colspan="10" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Total</td>
         <td style="padding:12px 8px;text-align:center;color:#10b981;border-top:2px solid #0ea5e9;">${totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:#f59e0b;border-top:2px solid #0ea5e9;">${totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${totalPLColor};border-top:2px solid #0ea5e9;">${totalPLStr}</td>
@@ -1954,7 +1976,7 @@ function renderOpenCommitmentsTable() {
         : '—';
 
     const summaryTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Totals</td>
+        <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Total</td>
         <td style="${sumTdStyle}color:#10b981;border-top:2px solid #0ea5e9;">${grandPremium > 0 ? '$' + grandPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="${sumTdStyle}color:#f59e0b;border-top:2px solid #0ea5e9;">${grandMarketValue > 0 ? '$' + grandMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="${sumTdStyle}color:${grandPLColor};border-top:2px solid #0ea5e9;">${grandPLStr}</td>
@@ -2433,7 +2455,7 @@ function renderAssignmentsTable() {
     }).join('');
 
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="5" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #f59e0b;">Totals</td>
+        <td colspan="5" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #f59e0b;">Total</td>
         <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${negColor};">${fmtU(totPremium)}</td>
         <td colspan="3" style="padding:12px 8px;border-top:2px solid #f59e0b;"></td>
         <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${textColor};">${fmtU(totCostBasis)}</td>
