@@ -427,15 +427,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                     <button onclick="closeOpenCommitments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
                 </div>
             </div>
-            <!-- Finnhub API key setup bar -->
-            <div id="apiKeyBar" style="background:rgba(16,185,129,0.08);border:1px solid #10b981;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span style="font-size:0.8rem;color:var(--text-secondary);flex-shrink:0;">🔑 Finnhub API Key:</span>
-                <input id="finnhubKeyInput" type="text" value="d6bjguhr01qp4lhvmct0d6bjguhr01qp4lhvmctg" readonly
-                    style="flex:1;min-width:220px;background:var(--bg-input);border:1px solid #10b981;color:var(--text-secondary);padding:6px 10px;border-radius:6px;font-size:0.8rem;outline:none;cursor:default;">
-                <button onclick="saveFinnhubKey()" style="background:#0ea5e9;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">Save Key</button>
-                <button onclick="testFinnhubKey()" style="background:#7c3aed;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:bold;white-space:nowrap;">🧪 Test Key</button>
-                <a href="https://finnhub.io/register" target="_blank" style="font-size:0.75rem;color:#0ea5e9;white-space:nowrap;">Get free key ↗</a>
-            </div>
+
             <div id="priceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:8px;text-align:right;"></div>
             <div id="openCommitmentsContainer"></div>
         </div>
@@ -1534,66 +1526,7 @@ async function refreshOptionPrices() {
     renderOpenCommitmentsTable();
 }
 
-function saveFinnhubKey() {
-    const key = document.getElementById('finnhubKeyInput').value.trim();
-    if (!key) { alert('Please enter a Finnhub API key.'); return; }
-    // key embedded in code
-    const bar = document.getElementById('apiKeyBar');
-    if (bar) {
-        bar.style.borderColor = '#10b981';
-        bar.style.background = 'rgba(16,185,129,0.1)';
-    }
-    const ts = document.getElementById('priceTimestamp');
-    if (ts) ts.textContent = '✅ Key saved! Click Refresh Prices to load quotes.';
-}
 
-function loadSavedFinnhubKey() {
-    const saved = FINNHUB_API_KEY;
-    const input = document.getElementById('finnhubKeyInput');
-    if (saved && input) {
-        input.value = saved;
-        const bar = document.getElementById('apiKeyBar');
-        if (bar) { bar.style.borderColor = '#10b981'; bar.style.background = 'rgba(16,185,129,0.1)'; }
-    }
-}
-
-async function testFinnhubKey() {
-    const input = document.getElementById('finnhubKeyInput');
-    const key = (input?.value || '').trim();
-    const ts = document.getElementById('priceTimestamp');
-    if (!key) { if (ts) ts.textContent = '⚠️ Enter a key first.'; return; }
-    if (ts) ts.textContent = '🧪 Testing key with AAPL…';
-    try {
-        const url = `https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`;
-        const res = await fetch(url);
-        const text = await res.text();
-        let parsed;
-        try { parsed = JSON.parse(text); } catch(e) { parsed = null; }
-        if (!res.ok) {
-            if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ HTTP ${res.status} — Raw response: <code>${text.substring(0,200)}</code></span>`;
-            return;
-        }
-        if (!parsed) {
-            if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ Could not parse JSON. Raw: <code>${text.substring(0,200)}</code></span>`;
-            return;
-        }
-        if (parsed.error) {
-            if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ Finnhub error: "${parsed.error}"</span>`;
-            return;
-        }
-        if (!parsed.c || parsed.c === 0) {
-            if (ts) ts.innerHTML = `<span style="color:#fbbf24;">⚠️ Key accepted but no price data. Raw: <code>${JSON.stringify(parsed)}</code></span>`;
-            return;
-        }
-        // Key works!
-        // key embedded in code
-        const bar = document.getElementById('apiKeyBar');
-        if (bar) { bar.style.borderColor = '#10b981'; bar.style.background = 'rgba(16,185,129,0.1)'; }
-        if (ts) ts.innerHTML = `<span style="color:#4ade80;">✅ Key works! AAPL = $${parsed.c.toFixed(2)} (change: ${parsed.d >= 0 ? '+' : ''}${parsed.d?.toFixed(2)}, ${parsed.dp?.toFixed(2)}%). Key saved — click Refresh Prices.</span>`;
-    } catch(e) {
-        if (ts) ts.innerHTML = `<span style="color:#f87171;">❌ Network error: ${e.message}. Are you opening this file from your local disk (file://)? Try hosting it locally with a simple server.</span>`;
-    }
-}
 
 async function fetchSinglePrice(ticker) {
     const key = FINNHUB_API_KEY;
@@ -1620,8 +1553,7 @@ async function refreshStockPrices() {
     const key = FINNHUB_API_KEY;
     if (!key) {
         const ts = document.getElementById('priceTimestamp');
-        if (ts) ts.textContent = '⚠️ Please enter and save your Finnhub API key above first.';
-        document.getElementById('finnhubKeyInput')?.focus();
+        if (ts) ts.textContent = '⚠️ Finnhub API key is not configured.';
         return;
     }
 
@@ -1695,7 +1627,6 @@ function showOpenCommitments() {
     modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
     initDraggableModal('ocInner', '#0ea5e9', 1400);
-    setTimeout(loadSavedFinnhubKey, 50); // restore saved key into input
 
     // Auto-refresh prices once per session for open commitments
     if (!window._pricesRefreshedOC) {
