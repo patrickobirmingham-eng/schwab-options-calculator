@@ -1767,11 +1767,11 @@ function renderOpenCommitmentsTable() {
             v1 = pa && pa.price ? pa.price : 0; v2 = pb && pb.price ? pb.price : 0;
         }
         else if (ocSortKey === 'assignPrice') {
-            v1 = a.type === 'Put' && a.contracts > 0 ? (a.putCommitment - a.premiumReceived) / (a.contracts * 100) : 0;
-            v2 = b.type === 'Put' && b.contracts > 0 ? (b.putCommitment - b.premiumReceived) / (b.contracts * 100) : 0;
+            v1 = a.type === 'Put' && a.contracts > 0 ? a.strike - (a.premiumReceived / (a.contracts * 100)) : 0;
+            v2 = b.type === 'Put' && b.contracts > 0 ? b.strike - (b.premiumReceived / (b.contracts * 100)) : 0;
         }
         else if (ocSortKey === 'pctFromStrike') {
-            const getPct = (r) => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return -Infinity; if (r.type === 'Put') { const ap = r.contracts > 0 ? (r.putCommitment - r.premiumReceived) / (r.contracts * 100) : null; return ap !== null ? (1 - ap / p.price) * 100 : -Infinity; } if (r.type === 'Call') return r.strike ? (r.strike / p.price - 1) * 100 : -Infinity; return -Infinity; };
+            const getPct = (r) => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return -Infinity; if (r.type === 'Put') { const ap = r.contracts > 0 ? r.strike - (r.premiumReceived / (r.contracts * 100)) : null; return ap !== null ? (1 - ap / p.price) * 100 : -Infinity; } if (r.type === 'Call') return r.strike ? (r.strike / p.price - 1) * 100 : -Infinity; return -Infinity; };
             v1 = getPct(a); v2 = getPct(b);
         }
         else if (ocSortKey === 'otmitm') {
@@ -1788,7 +1788,7 @@ function renderOpenCommitmentsTable() {
         const ticker = extractTicker(r.symbol);
         const pd = ocStockPrices[ticker];
         const assignPrice = r.type === 'Put' && r.contracts > 0
-            ? ((r.putCommitment - r.premiumReceived) / (r.contracts * 100)).toFixed(2)
+            ? (r.strike - (r.premiumReceived / (r.contracts * 100))).toFixed(2)
             : '';
         const currentPrice = pd && !pd.loading && !pd.error ? pd.price.toFixed(2) : '';
         const otmItm = pd && !pd.loading && !pd.error
@@ -2017,7 +2017,7 @@ function renderOpenCommitmentsTable() {
                         <td style="${innerTd}">${r.dte !== '' ? r.dte : '—'}</td>
                         <td style="${innerTd}font-weight:600;">${r.strikeDisplay}</td>
                         <td style="${innerTd}line-height:1.5;">${priceCell(ticker)}</td>
-                        <td style="${innerTd}">${r.type==='Put'&&r.contracts>0?'$'+((r.putCommitment-r.premiumReceived)/(r.contracts*100)).toFixed(2):'—'}</td>
+                        <td style="${innerTd}">${r.type==='Put'&&r.contracts>0?'$'+(r.strike-(r.premiumReceived/(r.contracts*100))).toFixed(2):'—'}</td>
                         <td style="${innerTd}">—</td>
                         <td style="${innerTd}">—</td>
                         <td style="${innerTd}font-weight:600;">${r.type}</td>
@@ -2166,8 +2166,8 @@ function renderOpenCommitmentsTable() {
                         <td style="${legTd}font-size:0.85rem;">${leg.dte !== '' ? leg.dte : '—'}</td>
                         <td style="${legTd}font-size:0.85rem;">$${leg.strike.toFixed(2)}</td>
                         <td style="${legTd}line-height:1.5;">${priceCell(legTicker)}</td>
-                        <td style="${legTd}font-size:0.85rem;">${leg.type === 'Put' && leg.contracts > 0 ? '$' + ((leg.putCommitment - leg.premiumReceived) / (leg.contracts * 100)).toFixed(2) : '—'}</td>
-                        <td style="${legTd}font-size:0.85rem;">${(() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; const ap = leg.contracts > 0 ? (leg.putCommitment - leg.premiumReceived) / (leg.contracts * 100) : null; if (ap===null) return '—'; const pct=(1-ap/p.price)*100; return (pct>=0?'+':'')+pct.toFixed(1)+'%'; })()}</td>
+                        <td style="${legTd}font-size:0.85rem;">${leg.type === 'Put' && leg.contracts > 0 ? '$' + (leg.strike - (leg.premiumReceived / (leg.contracts * 100))).toFixed(2) : '—'}</td>
+                        <td style="${legTd}font-size:0.85rem;">${(() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; const ap = leg.contracts > 0 ? leg.strike - (leg.premiumReceived / (leg.contracts * 100)) : null; if (ap===null) return '—'; const pct=(1-ap/p.price)*100; return (pct>=0?'+':'')+pct.toFixed(1)+'%'; })()}</td>
                         <td style="${legTd}font-size:0.85rem;">${(() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; return p.price > leg.strike ? 'OTM' : 'ITM'; })()}</td>
                         <td style="${legTd}font-size:0.85rem;">Put</td>
                         <td style="${legTd}font-size:0.85rem;">${leg.contracts}</td>
