@@ -1652,7 +1652,9 @@ function showOpenCommitments() {
         const dte = calcDTE(p.symbol);
         const premiumReceived = Math.abs(p.openingPremium || 0);
         const action = (p.status || '').toLowerCase().includes('buy') ? 'BTO' : 'STO';
-        return { dateObj, date, symbol: p.symbol, action, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte, premiumReceived };
+        const strikeDateMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+        const strikeDate = strikeDateMatch ? strikeDateMatch[1] : '—';
+        return { dateObj, date, symbol: p.symbol, strikeDate, action, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte, premiumReceived };
     });
 
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1727,6 +1729,7 @@ function renderOpenCommitmentsTable() {
         let v1, v2;
         if (ocSortKey === 'date') { v1 = a.dateObj ? a.dateObj.getTime() : 0; v2 = b.dateObj ? b.dateObj.getTime() : 0; }
         else if (ocSortKey === 'symbol') { v1 = a.symbol.toLowerCase(); v2 = b.symbol.toLowerCase(); }
+        else if (ocSortKey === 'strikeDate') { const parseSD = (r) => { const m = r.strikeDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? new Date(m[3], m[1]-1, m[2]).getTime() : 0; }; v1 = parseSD(a); v2 = parseSD(b); }
         else if (ocSortKey === 'action') { v1 = a.action; v2 = b.action; }
         else if (ocSortKey === 'dte') { v1 = a.dte !== '' ? parseInt(a.dte) : 9999; v2 = b.dte !== '' ? parseInt(b.dte) : 9999; }
         else if (ocSortKey === 'strike') { v1 = a.strike || 0; v2 = b.strike || 0; }
@@ -1797,6 +1800,7 @@ function renderOpenCommitmentsTable() {
         const vals = [
             r.date,
             r.symbol,
+            r.strikeDate,
             ticker,
             r.dte !== '' ? String(r.dte) : '',
             r.strikeDisplay,
@@ -1818,8 +1822,8 @@ function renderOpenCommitmentsTable() {
     let totalPuts = 0;
     let totalCalls = 0;
 
-    // 16 columns now (added P/L and P/L% after Market Value)
-    const colW = 'width:6.25%;';
+    // 18 columns now (added Strike Date after Symbol)
+    const colW = 'width:5.56%;';
     const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;position:relative;z-index:2;`;
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
@@ -1983,6 +1987,7 @@ function renderOpenCommitmentsTable() {
             rowsHtml += `<tr style="background:${bg};${rows.length > 1 ? 'border-left:4px solid ' + (isDark ? '#fff' : '#000') + ';' : ''}">
                 <td style="${tdBase}color:${textColor};">${r0.date}${rows.length > 1 ? `<br><span style="font-size:0.7rem;color:#64748b;">${rows.length} entries</span>` : ''}</td>
                 <td style="${tdBase}color:${textColor};font-size:0.8rem;">${r0.symbol}</td>
+                <td style="${tdBase}color:${warnColor};">${r0.strikeDate}</td>
                 <td style="${tdBase}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r0.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};color:${isDark?'#fff':'#000'};">${r0.action}</span></td>
                 <td style="${tdBase}color:${warnColor};">${r0.dte !== '' ? r0.dte : '—'}</td>
                 <td style="${tdBase}color:#a78bfa;font-weight:600;">${r0.strikeDisplay}</td>
@@ -2013,6 +2018,7 @@ function renderOpenCommitmentsTable() {
                     return `<tr style="background:${legBg};">
                         <td style="${innerTd}">${r.date}</td>
                         <td style="${innerTd}white-space:normal;word-break:break-word;overflow-wrap:break-word;">${r.symbol}</td>
+                        <td style="${innerTd}">${r.strikeDate}</td>
                         <td style="${innerTd}"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${r.action}</span></td>
                         <td style="${innerTd}">${r.dte !== '' ? r.dte : '—'}</td>
                         <td style="${innerTd}font-weight:600;">${r.strikeDisplay}</td>
@@ -2031,11 +2037,12 @@ function renderOpenCommitmentsTable() {
                     </tr>`;
                 }).join('');
 
-                rowsHtml += `<tr><td colspan="17" style="padding:0;border-bottom:2px solid ${boxColor};">
+                rowsHtml += `<tr><td colspan="18" style="padding:0;border-bottom:2px solid ${boxColor};">
                     <table style="width:100%;border-collapse:collapse;background:${legBg};border:2px solid ${boxColor};border-radius:4px;box-sizing:border-box;table-layout:fixed;font-size:0.88rem;">
                         <colgroup>
                             <col style="width:7%">  <!-- Date -->
-                            <col style="width:10%"> <!-- Symbol -->
+                            <col style="width:9%"> <!-- Symbol -->
+                            <col style="width:6%"> <!-- Strike Date -->
                             <col style="width:4%">  <!-- Action -->
                             <col style="width:4%">  <!-- DTE -->
                             <col style="width:5%">  <!-- Strike -->
@@ -2122,6 +2129,7 @@ function renderOpenCommitmentsTable() {
             rowsHtml += `<tr style="background:${spreadBg};border-left:4px solid #0ea5e9;">
                 <td style="${tdBase}color:${textColor};">${sto.date}</td>
                 <td style="${tdBase}color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;">${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} P</span></td>
+                <td style="${tdBase}color:${warnColor};">${expiry}</td>
                 <td style="${tdBase}text-align:center;">
                     <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">BPS</span>
                 </td>
@@ -2162,6 +2170,7 @@ function renderOpenCommitmentsTable() {
                     rowsHtml += `<tr style="${trStyle}">
                         <td style="${legTd}font-size:0.78rem;">${leg.date}</td>
                         <td style="${legTd}font-size:0.75rem;">${indent}${leg.symbol}</td>
+                        <td style="${legTd}font-size:0.85rem;">${leg.strikeDate}</td>
                         <td style="${legTd}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${leg.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${leg.action}</span></td>
                         <td style="${legTd}font-size:0.85rem;">${leg.dte !== '' ? leg.dte : '—'}</td>
                         <td style="${legTd}font-size:0.85rem;">$${leg.strike.toFixed(2)}</td>
@@ -2215,7 +2224,7 @@ function renderOpenCommitmentsTable() {
         : '—';
 
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="11" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Total</td>
+        <td colspan="12" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Total</td>
         <td style="padding:12px 8px;text-align:center;color:#10b981;border-top:2px solid #0ea5e9;">${totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:#f59e0b;border-top:2px solid #0ea5e9;">${totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
         <td style="padding:12px 8px;text-align:center;color:${totalPLColor};border-top:2px solid #0ea5e9;">${totalPLStr}</td>
@@ -2375,7 +2384,8 @@ function renderOpenCommitmentsTable() {
             <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
                 <colgroup>
                     <col style="width:7%">  <!-- Transaction Date -->
-                    <col style="width:10%"> <!-- Symbol -->
+                    <col style="width:9%"> <!-- Symbol -->
+                    <col style="width:6%"> <!-- Strike Date -->
                     <col style="width:4%">  <!-- Action -->
                     <col style="width:4%">  <!-- DTE -->
                     <col style="width:5%">  <!-- Strike Price -->
@@ -2395,6 +2405,7 @@ function renderOpenCommitmentsTable() {
                 <thead id="ocDetailThead" style="position:sticky;top:0;z-index:2;"><tr>
                     <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
+                    <th style="${thBase}" onclick="sortOpenCommitments('strikeDate')">Strike Date${arrow('strikeDate')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('action')">Action${arrow('action')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('dte')">DTE${arrow('dte')}</th>
                     <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
@@ -2436,6 +2447,7 @@ function renderOpenCommitmentsTable() {
         document.getElementById('ocDetailThead').querySelector('tr').innerHTML = `
             <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
+            <th style="${thBase}" onclick="sortOpenCommitments('strikeDate')">Strike Date${arrow('strikeDate')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('action')">Action${arrow('action')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('dte')">DTE${arrow('dte')}</th>
             <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
