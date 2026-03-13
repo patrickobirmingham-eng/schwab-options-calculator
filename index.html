@@ -1725,61 +1725,272 @@ function renderOpenCommitmentsTable() {
     };
 
     // Sort
+    // ── Step 1: BPS pair map ─────────────────────────────────────────────────
+    // Keeps spread legs together, ranked by the spread-level value rather than
+    // each individual leg's value.
+    const bpsSortMap = new Map(); // row → { sto, bto, netPremium, stoOp, btoOp }
+    {
+        const rows = ocParsedRows;
+        const usedBps = new Set();
+        for (let i = 0; i < rows.length; i++) {
+            if (usedBps.has(i)) continue;
+            const r = rows[i];
+            if (r.type !== 'Put') continue;
+            const ticker = extractTicker(r.symbol);
+            const expiry = (r.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            for (let j = i + 1; j < rows.length; j++) {
+                if (usedBps.has(j)) continue;
+                const other = rows[j];
+                if (other.type !== 'Put') continue;
+                if (extractTicker(other.symbol) !== ticker) continue;
+                const expOther = (other.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+                if (expOther !== expiry) continue;
+                if (other.contracts !== r.contracts) continue;
+                const isPair = (r.action === 'STO' && other.action === 'BTO') ||
+                               (r.action === 'BTO'  && other.action === 'STO');
+                if (!isPair) continue;
+                const sto = r.action === 'STO' ? r : other;
+                const bto = r.action === 'BTO' ? r : other;
+                const netPremium = sto.premiumReceived - bto.premiumReceived;
+                const stoOcc = buildOCCSymbol(sto.symbol);
+                const btoOcc = buildOCCSymbol(bto.symbol);
+                const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+                const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+                const pairInfo = { sto, bto, netPremium, stoOp, btoOp };
+                bpsSortMap.set(r,     pairInfo);
+                bpsSortMap.set(other, pairInfo);
+                usedBps.add(i);
+                usedBps.add(j);
+                break;
+            }
+        }
+    }
+
+    // ── Step 2: Group average map ────────────────────────────────────────────
+    // Rows that share the same OCC symbol (and are not BPS legs) form a display
+    // group. When collapsed, the group row shows aggregated values; sorting should
+    // use the AVERAGE of those values so the group is ranked as a unit.
+    const groupAvgMap = new Map(); // row → { avgDte, avgStrike, avgPremium, avgPuts, avgCalls,
+                                   //         avgMV, avgPL, avgPLPct, avgAssignPrice, avgPctFromStrike,
+                                   //         avgDateTs, avgStrikeDateTs, totalContracts }
+    {
+        // Build symbol → [rows] map (skip BPS legs)
+        const symGroups = {};
+        ocParsedRows.forEach(r => {
+            if (bpsSortMap.has(r)) return; // BPS legs handled separately
+            const key = r.symbol.trim();
+            if (!symGroups[key]) symGroups[key] = [];
+            symGroups[key].push(r);
+        });
+
+        const parseSD = (r) => {
+            const m = r.strikeDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            return m ? new Date(m[3], m[1]-1, m[2]).getTime() : 0;
+        };
+
+        Object.values(symGroups).forEach(rows => {
+            const n = rows.length;
+            const totalContracts = rows.reduce((s, r) => s + r.contracts, 0);
+
+            // Simple numeric averages
+            const avgDte          = rows.reduce((s, r) => s + (r.dte !== '' ? parseInt(r.dte) : 9999), 0) / n;
+            const avgStrike       = rows.reduce((s, r) => s + (r.strike || 0), 0) / n;
+            const avgPremium      = rows.reduce((s, r) => s + r.premiumReceived, 0) / n;
+            const avgPuts         = rows.reduce((s, r) => s + r.putCommitment, 0) / n;
+            const avgCalls        = rows.reduce((s, r) => s + r.callCommitment, 0) / n;
+            const avgDateTs       = rows.reduce((s, r) => s + (r.dateObj ? r.dateObj.getTime() : 0), 0) / n;
+            const avgStrikeDateTs = rows.reduce((s, r) => s + parseSD(r), 0) / n;
+
+            // Market-value dependent averages — only count rows with priced options
+            let mvSum = 0, plSum = 0, plPctSum = 0, mvCount = 0;
+            rows.forEach(r => {
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price) return;
+                const mv = op.price * r.contracts * 100;
+                mvSum   += mv;
+                plSum   += r.premiumReceived - mv;
+                if (r.premiumReceived !== 0) plPctSum += (1 - mv / r.premiumReceived) * 100;
+                mvCount++;
+            });
+            const avgMV    = mvCount > 0 ? mvSum    / mvCount : -Infinity;
+            const avgPL    = mvCount > 0 ? plSum    / mvCount : -Infinity;
+            const avgPLPct = mvCount > 0 ? plPctSum / mvCount : -Infinity;
+
+            // Assignment price / pctFromStrike averages
+            let apSum = 0, apCount = 0, pfsSum = 0, pfsCount = 0;
+            rows.forEach(r => {
+                if (r.type === 'Put' && r.contracts > 0) {
+                    const ap = r.strike - (r.premiumReceived / (r.contracts * 100));
+                    apSum += ap; apCount++;
+                    const p = ocStockPrices[extractTicker(r.symbol)];
+                    if (p && !p.loading && !p.error && p.price) {
+                        pfsSum += (1 - ap / p.price) * 100; pfsCount++;
+                    }
+                } else if (r.type === 'Call' && r.strike) {
+                    const p = ocStockPrices[extractTicker(r.symbol)];
+                    if (p && !p.loading && !p.error && p.price) {
+                        pfsSum += (r.strike / p.price - 1) * 100; pfsCount++;
+                    }
+                }
+            });
+            const avgAssignPrice    = apCount  > 0 ? apSum  / apCount  : 0;
+            const avgPctFromStrike  = pfsCount > 0 ? pfsSum / pfsCount : -Infinity;
+
+            const info = { avgDte, avgStrike, avgPremium, avgPuts, avgCalls,
+                           avgMV, avgPL, avgPLPct, avgAssignPrice, avgPctFromStrike,
+                           avgDateTs, avgStrikeDateTs, totalContracts };
+            rows.forEach(r => groupAvgMap.set(r, info));
+        });
+    }
+
     const sorted = [...ocParsedRows].sort((a, b) => {
         let v1, v2;
-        if (ocSortKey === 'date') { v1 = a.dateObj ? a.dateObj.getTime() : 0; v2 = b.dateObj ? b.dateObj.getTime() : 0; }
+
+        // Helpers: resolve the sort value for a row, checking group avg → BPS pair → individual
+        const ga = groupAvgMap.get(a), gb = groupAvgMap.get(b);
+        const pa = bpsSortMap.get(a),  pb = bpsSortMap.get(b);
+
+        if (ocSortKey === 'date') {
+            v1 = ga ? ga.avgDateTs : (a.dateObj ? a.dateObj.getTime() : 0);
+            v2 = gb ? gb.avgDateTs : (b.dateObj ? b.dateObj.getTime() : 0);
+        }
         else if (ocSortKey === 'symbol') { v1 = a.symbol.toLowerCase(); v2 = b.symbol.toLowerCase(); }
-        else if (ocSortKey === 'strikeDate') { const parseSD = (r) => { const m = r.strikeDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? new Date(m[3], m[1]-1, m[2]).getTime() : 0; }; v1 = parseSD(a); v2 = parseSD(b); }
-        else if (ocSortKey === 'action') { v1 = a.action; v2 = b.action; }
-        else if (ocSortKey === 'dte') { v1 = a.dte !== '' ? parseInt(a.dte) : 9999; v2 = b.dte !== '' ? parseInt(b.dte) : 9999; }
-        else if (ocSortKey === 'strike') { v1 = a.strike || 0; v2 = b.strike || 0; }
+        else if (ocSortKey === 'strikeDate') {
+            const parseSD = (r) => { const m = r.strikeDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? new Date(m[3], m[1]-1, m[2]).getTime() : 0; };
+            v1 = ga ? ga.avgStrikeDateTs : parseSD(a);
+            v2 = gb ? gb.avgStrikeDateTs : parseSD(b);
+        }
+        else if (ocSortKey === 'action') {
+            // Groups: rank by r0 action; BPS: rank as STO's action
+            v1 = pa ? pa.sto.action : a.action;
+            v2 = pb ? pb.sto.action : b.action;
+        }
+        else if (ocSortKey === 'dte') {
+            v1 = ga ? ga.avgDte : (a.dte !== '' ? parseInt(a.dte) : 9999);
+            v2 = gb ? gb.avgDte : (b.dte !== '' ? parseInt(b.dte) : 9999);
+        }
+        else if (ocSortKey === 'strike') {
+            // BPS: STO strike; group: average strike; standalone: own strike
+            v1 = pa ? pa.sto.strike : (ga ? ga.avgStrike : (a.strike || 0));
+            v2 = pb ? pb.sto.strike : (gb ? gb.avgStrike : (b.strike || 0));
+        }
         else if (ocSortKey === 'type') { v1 = a.type; v2 = b.type; }
-        else if (ocSortKey === 'contracts') { v1 = a.contracts; v2 = b.contracts; }
-        else if (ocSortKey === 'premium') { v1 = a.premiumReceived; v2 = b.premiumReceived; }
+        else if (ocSortKey === 'contracts') {
+            // Groups: sort by total contracts so larger positions rank accordingly
+            v1 = ga ? ga.totalContracts : a.contracts;
+            v2 = gb ? gb.totalContracts : b.contracts;
+        }
+        else if (ocSortKey === 'premium') {
+            v1 = pa ? pa.netPremium : (ga ? ga.avgPremium : a.premiumReceived);
+            v2 = pb ? pb.netPremium : (gb ? gb.avgPremium : b.premiumReceived);
+        }
+        else if (ocSortKey === 'puts') {
+            v1 = pa ? pa.sto.putCommitment : (ga ? ga.avgPuts : a.putCommitment);
+            v2 = pb ? pb.sto.putCommitment : (gb ? gb.avgPuts : b.putCommitment);
+        }
         else if (ocSortKey === 'marketValue') {
-            const getMarketVal = (r) => {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { stoOp, btoOp, sto } = pair;
+                    if (stoOp && btoOp && !stoOp.loading && !btoOp.loading &&
+                        !stoOp.error && !btoOp.error && stoOp.price && btoOp.price)
+                        return (stoOp.price - btoOp.price) * sto.contracts * 100;
+                    return 0;
+                }
+                if (g) return g.avgMV === -Infinity ? 0 : g.avgMV;
                 const occ = buildOCCSymbol(r.symbol);
                 const op = occ ? ocOptionPrices[occ] : null;
                 return op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
             };
-            v1 = getMarketVal(a); v2 = getMarketVal(b);
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
         else if (ocSortKey === 'pl') {
-            const getPL = (r) => {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { stoOp, btoOp, sto, netPremium } = pair;
+                    if (stoOp && btoOp && !stoOp.loading && !btoOp.loading &&
+                        !stoOp.error && !btoOp.error && stoOp.price && btoOp.price)
+                        return netPremium - (stoOp.price - btoOp.price) * sto.contracts * 100;
+                    return -Infinity;
+                }
+                if (g) return g.avgPL;
                 const occ = buildOCCSymbol(r.symbol);
                 const op = occ ? ocOptionPrices[occ] : null;
                 if (!op || op.loading || op.error || !op.price) return -Infinity;
                 return r.premiumReceived - op.price * r.contracts * 100;
             };
-            v1 = getPL(a); v2 = getPL(b);
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
         else if (ocSortKey === 'plPct') {
-            const getPLPct = (r) => {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { stoOp, btoOp, sto, netPremium } = pair;
+                    if (stoOp && btoOp && !stoOp.loading && !btoOp.loading &&
+                        !stoOp.error && !btoOp.error && stoOp.price && btoOp.price && netPremium !== 0) {
+                        const netMV = (stoOp.price - btoOp.price) * sto.contracts * 100;
+                        return (1 - netMV / netPremium) * 100;
+                    }
+                    return -Infinity;
+                }
+                if (g) return g.avgPLPct;
                 const occ = buildOCCSymbol(r.symbol);
                 const op = occ ? ocOptionPrices[occ] : null;
                 if (!op || op.loading || op.error || !op.price || r.premiumReceived === 0) return -Infinity;
                 return (1 - (op.price * r.contracts * 100) / r.premiumReceived) * 100;
             };
-            v1 = getPLPct(a); v2 = getPLPct(b);
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
-        else if (ocSortKey === 'puts') { v1 = a.putCommitment; v2 = b.putCommitment; }
-        else if (ocSortKey === 'calls') { v1 = a.callCommitment; v2 = b.callCommitment; }
+        else if (ocSortKey === 'calls') {
+            v1 = ga ? ga.avgCalls : a.callCommitment;
+            v2 = gb ? gb.avgCalls : b.callCommitment;
+        }
         else if (ocSortKey === 'price') {
-            const pa = ocStockPrices[extractTicker(a.symbol)];
-            const pb = ocStockPrices[extractTicker(b.symbol)];
-            v1 = pa && pa.price ? pa.price : 0; v2 = pb && pb.price ? pb.price : 0;
+            // Same ticker for all rows in a group — no averaging needed
+            const ppa = ocStockPrices[extractTicker(a.symbol)];
+            const ppb = ocStockPrices[extractTicker(b.symbol)];
+            v1 = ppa && ppa.price ? ppa.price : 0; v2 = ppb && ppb.price ? ppb.price : 0;
         }
         else if (ocSortKey === 'assignPrice') {
-            v1 = a.type === 'Put' && a.contracts > 0 ? a.strike - (a.premiumReceived / (a.contracts * 100)) : 0;
-            v2 = b.type === 'Put' && b.contracts > 0 ? b.strike - (b.premiumReceived / (b.contracts * 100)) : 0;
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { sto, netPremium } = pair;
+                    return sto.contracts > 0 ? sto.strike - (netPremium / (sto.contracts * 100)) : 0;
+                }
+                if (g) return g.avgAssignPrice;
+                return r.type === 'Put' && r.contracts > 0 ? r.strike - (r.premiumReceived / (r.contracts * 100)) : 0;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
         else if (ocSortKey === 'pctFromStrike') {
-            const getPct = (r) => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return -Infinity; if (r.type === 'Put') { const ap = r.contracts > 0 ? r.strike - (r.premiumReceived / (r.contracts * 100)) : null; return ap !== null ? (1 - ap / p.price) * 100 : -Infinity; } if (r.type === 'Call') return r.strike ? (r.strike / p.price - 1) * 100 : -Infinity; return -Infinity; };
-            v1 = getPct(a); v2 = getPct(b);
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { sto, netPremium } = pair;
+                    const p = ocStockPrices[extractTicker(r.symbol)];
+                    if (!p || p.loading || p.error || !p.price) return -Infinity;
+                    const be = sto.contracts > 0 ? sto.strike - (netPremium / (sto.contracts * 100)) : null;
+                    return be !== null ? (1 - be / p.price) * 100 : -Infinity;
+                }
+                if (g) return g.avgPctFromStrike;
+                const p = ocStockPrices[extractTicker(r.symbol)];
+                if (!p || p.loading || p.error || !p.price) return -Infinity;
+                if (r.type === 'Put') { const ap = r.contracts > 0 ? r.strike - (r.premiumReceived / (r.contracts * 100)) : null; return ap !== null ? (1 - ap / p.price) * 100 : -Infinity; }
+                if (r.type === 'Call') return r.strike ? (r.strike / p.price - 1) * 100 : -Infinity;
+                return -Infinity;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
         else if (ocSortKey === 'otmitm') {
-            const getOtm = (r) => { const p = ocStockPrices[extractTicker(r.symbol)]; if (!p || p.loading || p.error || !p.price) return -1; if (r.type === 'Put') return p.price > r.strike ? 1 : 0; if (r.type === 'Call') return p.price < r.strike ? 1 : 0; return -1; };
-            v1 = getOtm(a); v2 = getOtm(b);
+            // BPS: use STO strike; group: use average strike; standalone: own strike
+            const getVal = (r, g, pair) => {
+                const p = ocStockPrices[extractTicker(r.symbol)];
+                if (!p || p.loading || p.error || !p.price) return -1;
+                const strike = pair ? pair.sto.strike : (g ? g.avgStrike : r.strike);
+                if (r.type === 'Put' || pair) return p.price > strike ? 1 : 0;
+                if (r.type === 'Call') return p.price < strike ? 1 : 0;
+                return -1;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
         if (v1 < v2) return -ocSortDir;
         if (v1 > v2) return ocSortDir;
