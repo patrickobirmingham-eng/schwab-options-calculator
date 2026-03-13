@@ -256,6 +256,13 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
         display: none !important;
     }
 }
+
+/* Open Commitments drag-to-reorder column highlight */
+th.oc-drop-target {
+    outline: 3px solid #f59e0b !important;
+    outline-offset: -2px;
+    background: rgba(245,158,11,0.18) !important;
+}
 </style>
 </head>
 
@@ -424,6 +431,7 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Commitments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <button id="refreshPricesBtn" onclick="refreshStockPrices()" style="background:#0ea5e9;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
+                    <button onclick="resetOcColumnOrder()" title="Restore default column order" style="background:#334155;color:#94a3b8;border:1px solid #475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.8rem;">↺ Reset Columns</button>
                     <button onclick="closeOpenCommitments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
                 </div>
             </div>
@@ -1487,6 +1495,86 @@ let ocPriceFetchTime = null;
 let ocSpreadExpanded = new Set(); // tracks which spread rows are expanded
 let ocGroupExpanded = new Set();  // tracks which same-symbol groups are expanded
 
+// ── Column config & drag-to-reorder for Open Commitments table ───────────────
+const OC_COLUMNS = [
+    { key: 'date',          label: 'Transaction Date',    width: '7%'  },
+    { key: 'symbol',        label: 'Symbol',              width: '9%'  },
+    { key: 'strikeDate',    label: 'Strike Date',         width: '6%'  },
+    { key: 'action',        label: 'Action',              width: '4%'  },
+    { key: 'dte',           label: 'DTE',                 width: '4%'  },
+    { key: 'strike',        label: 'Strike Price',        width: '5%'  },
+    { key: 'price',         label: 'Current Price',       width: '6%'  },
+    { key: 'assignPrice',   label: 'Assignment Price',    width: '6%'  },
+    { key: 'pctFromStrike', label: '% From Strike',       width: '6%'  },
+    { key: 'otmitm',        label: 'OTM / ITM',           width: '5%'  },
+    { key: 'type',          label: 'Put or Call',         width: '5%'  },
+    { key: 'contracts',     label: '# of Contracts',      width: '5%'  },
+    { key: 'premium',       label: 'Premium',             width: '6%'  },
+    { key: 'marketValue',   label: 'Market Value',        width: '6%'  },
+    { key: 'pl',            label: 'Profit / Loss',       width: '6%'  },
+    { key: 'plPct',         label: 'Profit / Loss %',     width: '5%'  },
+    { key: 'puts',          label: 'Commitments (Puts)',  width: '7%'  },
+    { key: 'calls',         label: 'Commitments (Calls)', width: '7%'  },
+];
+const OC_DEFAULT_ORDER = OC_COLUMNS.map(c => c.key);
+let ocColumnOrder = (() => {
+    try {
+        const saved = JSON.parse(localStorage.getItem('ocColumnOrder') || 'null');
+        if (Array.isArray(saved) && saved.length === OC_DEFAULT_ORDER.length &&
+            OC_DEFAULT_ORDER.every(k => saved.includes(k))) return saved;
+    } catch(e) {}
+    return [...OC_DEFAULT_ORDER];
+})();
+function saveOcColumnOrder() {
+    try { localStorage.setItem('ocColumnOrder', JSON.stringify(ocColumnOrder)); } catch(e) {}
+}
+function resetOcColumnOrder() {
+    ocColumnOrder = [...OC_DEFAULT_ORDER];
+    saveOcColumnOrder();
+    renderOpenCommitmentsTable();
+}
+
+// Initialise drag-to-reorder on the OC thead after each render
+function initOcColumnDrag() {
+    const thead = document.getElementById('ocDetailThead');
+    if (!thead) return;
+    const ths = Array.from(thead.querySelectorAll('th'));
+    let dragSrcIdx = null;
+
+    ths.forEach((th, idx) => {
+        th.draggable = true;
+        th.style.cursor = 'grab';
+
+        th.addEventListener('dragstart', e => {
+            dragSrcIdx = idx;
+            th.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', idx);
+        });
+        th.addEventListener('dragend', () => {
+            th.style.opacity = '';
+            ths.forEach(t => t.classList.remove('oc-drop-target'));
+        });
+        th.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            ths.forEach(t => t.classList.remove('oc-drop-target'));
+            if (idx !== dragSrcIdx) th.classList.add('oc-drop-target');
+        });
+        th.addEventListener('dragleave', () => th.classList.remove('oc-drop-target'));
+        th.addEventListener('drop', e => {
+            e.preventDefault();
+            th.classList.remove('oc-drop-target');
+            if (dragSrcIdx === null || dragSrcIdx === idx) return;
+            // Reorder: move column from dragSrcIdx to idx
+            const moved = ocColumnOrder.splice(dragSrcIdx, 1)[0];
+            ocColumnOrder.splice(idx, 0, moved);
+            saveOcColumnOrder();
+            renderOpenCommitmentsTable();
+        });
+    });
+}
+
 // Extract root ticker from Schwab option symbol e.g. "AAPL 01/17/2025 185.00 P" -> "AAPL"
 function extractTicker(symbol) {
     return symbol.trim().split(/\s+/)[0].toUpperCase();
@@ -2136,6 +2224,17 @@ function renderOpenCommitmentsTable() {
         return { mv, plH, plPctH };
     };
 
+    // Helper: emit a <tr> from a cell-map { colKey: htmlString } in current column order
+    const renderRow = (cellMap, trStyle) => {
+        const cells = ocColumnOrder.map(k => {
+            const cell = cellMap[k] !== undefined ? cellMap[k] : { content: '—', style: tdBase };
+            return `<td style="${cell.style}">${cell.content}</td>`;
+        }).join('');
+        return `<tr style="${trStyle}">${cells}</tr>`;
+    };
+    // Shorthand: cell with tdBase + optional extra style
+    const C = (content, extra = '') => ({ content, style: tdBase + extra });
+
     groupedDisplayItems.forEach(item => {
 
         // ────────── GROUP ROW (one or many positions with same symbol) ────────
@@ -2193,83 +2292,71 @@ function renderOpenCommitmentsTable() {
             const bg = isAtRisk ? (isDark ? 'rgba(248,113,113,0.12)' : 'rgba(220,38,38,0.07)') : (rowIndex % 2 === 0 ? rowBg : rowAltBg);
             rowIndex++;
 
-            // Summary row
             const btnStyle = `cursor:pointer;background:rgba(14,165,233,0.2);border:1px solid #0ea5e9;color:${isDark?'#fff':'#000'};border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:700;white-space:normal;`;
-            rowsHtml += `<tr style="background:${bg};${rows.length > 1 ? 'border-left:4px solid ' + (isDark ? '#fff' : '#000') + ';' : ''}">
-                <td style="${tdBase}color:${textColor};">${r0.date}${rows.length > 1 ? `<br><span style="font-size:0.7rem;color:#64748b;">${rows.length} entries</span>` : ''}</td>
-                <td style="${tdBase}color:${textColor};font-size:0.8rem;">${r0.symbol}</td>
-                <td style="${tdBase}color:${warnColor};">${r0.strikeDate}</td>
-                <td style="${tdBase}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r0.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};color:${isDark?'#fff':'#000'};">${r0.action}</span></td>
-                <td style="${tdBase}color:${warnColor};">${r0.dte !== '' ? r0.dte : '—'}</td>
-                <td style="${tdBase}color:#a78bfa;font-weight:600;">${r0.strikeDisplay}</td>
-                <td style="${tdBase}line-height:1.5;">${priceCell(ticker)}</td>
-                <td style="${tdBase}color:#e879f9;font-weight:600;">${r0.type === 'Put' && totalContracts > 0 ? '$' + ((totalPutCommit - totalPremium) / (totalContracts * 100)).toFixed(2) : '—'}</td>
-                <td style="${tdBase}font-weight:700;">${pctFromStrikeHtml}</td>
-                <td style="${tdBase}font-weight:700;">${otmItmHtml}</td>
-                <td style="${tdBase}color:${r0.type === 'Put' ? negColor : r0.type === 'Call' ? posColor : textColor};font-weight:600;">${r0.type}</td>
-                <td style="${tdBase}color:${textColor};font-weight:700;">${totalContracts}</td>
-                <td style="${tdBase}color:#10b981;font-weight:600;">${totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-                <td style="${tdBase}line-height:1.5;">${mvHtml}</td>
-                <td style="${tdBase}">${plHtml}</td>
-                <td style="${tdBase}">${plPctHtml}</td>
-                <td style="${tdBase}color:${negColor};font-weight:500;">${fmt(totalPutCommit)}</td>
-                <td style="${tdBase}color:${posColor};font-weight:500;">${rows.length > 1
+            const groupCells = {
+                date:          C(`${r0.date}${rows.length > 1 ? `<br><span style="font-size:0.7rem;color:#64748b;">${rows.length} entries</span>` : ''}`, `color:${textColor};`),
+                symbol:        C(r0.symbol, `color:${textColor};font-size:0.8rem;`),
+                strikeDate:    C(r0.strikeDate, `color:${warnColor};`),
+                action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r0.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};color:${isDark?'#fff':'#000'};">${r0.action}</span>`),
+                dte:           C(r0.dte !== '' ? r0.dte : '—', `color:${warnColor};`),
+                strike:        C(r0.strikeDisplay, `color:#a78bfa;font-weight:600;`),
+                price:         C(priceCell(ticker), `line-height:1.5;`),
+                assignPrice:   C(r0.type === 'Put' && totalContracts > 0 ? '$' + ((totalPutCommit - totalPremium) / (totalContracts * 100)).toFixed(2) : '—', `color:#e879f9;font-weight:600;`),
+                pctFromStrike: C(pctFromStrikeHtml, `font-weight:700;`),
+                otmitm:        C(otmItmHtml, `font-weight:700;`),
+                type:          C(r0.type, `color:${r0.type === 'Put' ? negColor : r0.type === 'Call' ? posColor : textColor};font-weight:600;`),
+                contracts:     C(String(totalContracts), `color:${textColor};font-weight:700;`),
+                premium:       C(totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', `color:#10b981;font-weight:600;`),
+                marketValue:   C(mvHtml, `line-height:1.5;`),
+                pl:            C(plHtml),
+                plPct:         C(plPctHtml),
+                puts:          C(fmt(totalPutCommit), `color:${negColor};font-weight:500;`),
+                calls:         C(rows.length > 1
                     ? `${fmt(totalCallCommit)}<br><button onclick="toggleGroup('${item.groupId.replace(/'/g,"\\'")}');event.stopPropagation();" style="${btnStyle}">${isExpanded ? '▲ Hide' : '▼ Positions (' + rows.length + ')'}</button>`
-                    : fmt(totalCallCommit)}</td>
-            </tr>`;
+                    : fmt(totalCallCommit), `color:${posColor};font-weight:500;`),
+            };
+            rowsHtml += renderRow(groupCells, `background:${bg};${rows.length > 1 ? 'border-left:4px solid ' + (isDark ? '#fff' : '#000') + ';' : ''}`);
 
-            // Expanded individual position rows — wrapped in one blue box via a single colspan row
+            // Expanded individual position rows — inner table respects column order
             if (isExpanded && rows.length > 1) {
                 const boxColor = isDark ? '#fff' : '#000';
                 const legBg = isDark ? 'rgba(14,165,233,0.06)' : 'rgba(14,165,233,0.04)';
                 const innerTd = `padding:10px 8px;text-align:center;font-size:0.88rem;border-bottom:1px solid ${borderColor};`;
+                const IC = (content, extra = '') => ({ content, style: innerTd + extra });
 
                 const innerRows = rows.map(r => {
                     const { mv: lmv, plH: lpl, plPctH: lplpct } = legPriceHtml(r);
-                    return `<tr style="background:${legBg};">
-                        <td style="${innerTd}">${r.date}</td>
-                        <td style="${innerTd}white-space:normal;word-break:break-word;overflow-wrap:break-word;">${r.symbol}</td>
-                        <td style="${innerTd}">${r.strikeDate}</td>
-                        <td style="${innerTd}"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${r.action}</span></td>
-                        <td style="${innerTd}">${r.dte !== '' ? r.dte : '—'}</td>
-                        <td style="${innerTd}font-weight:600;">${r.strikeDisplay}</td>
-                        <td style="${innerTd}line-height:1.5;">${priceCell(ticker)}</td>
-                        <td style="${innerTd}">${r.type==='Put'&&r.contracts>0?'$'+(r.strike-(r.premiumReceived/(r.contracts*100))).toFixed(2):'—'}</td>
-                        <td style="${innerTd}">—</td>
-                        <td style="${innerTd}">—</td>
-                        <td style="${innerTd}font-weight:600;">${r.type}</td>
-                        <td style="${innerTd}">${r.contracts}</td>
-                        <td style="${innerTd}">${r.premiumReceived>0?'$'+r.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}):'—'}</td>
-                        <td style="${innerTd}">${lmv}</td>
-                        <td style="${innerTd}">${lpl}</td>
-                        <td style="${innerTd}">${lplpct}</td>
-                        <td style="${innerTd}">${fmt(r.putCommitment)}</td>
-                        <td style="${innerTd}">${fmt(r.callCommitment)}</td>
-                    </tr>`;
+                    const iCells = {
+                        date:          IC(r.date),
+                        symbol:        IC(r.symbol, `white-space:normal;word-break:break-word;overflow-wrap:break-word;`),
+                        strikeDate:    IC(r.strikeDate),
+                        action:        IC(`<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${r.action}</span>`),
+                        dte:           IC(r.dte !== '' ? r.dte : '—'),
+                        strike:        IC(r.strikeDisplay, `font-weight:600;`),
+                        price:         IC(priceCell(ticker), `line-height:1.5;`),
+                        assignPrice:   IC(r.type==='Put'&&r.contracts>0?'$'+(r.strike-(r.premiumReceived/(r.contracts*100))).toFixed(2):'—'),
+                        pctFromStrike: IC('—'),
+                        otmitm:        IC('—'),
+                        type:          IC(r.type, `font-weight:600;`),
+                        contracts:     IC(String(r.contracts)),
+                        premium:       IC(r.premiumReceived>0?'$'+r.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}):'—'),
+                        marketValue:   IC(lmv),
+                        pl:            IC(lpl),
+                        plPct:         IC(lplpct),
+                        puts:          IC(fmt(r.putCommitment)),
+                        calls:         IC(fmt(r.callCommitment)),
+                    };
+                    const cells = ocColumnOrder.map(k => {
+                        const cell = iCells[k] !== undefined ? iCells[k] : { content: '—', style: innerTd };
+                        return `<td style="${cell.style}">${cell.content}</td>`;
+                    }).join('');
+                    return `<tr style="background:${legBg};">${cells}</tr>`;
                 }).join('');
 
-                rowsHtml += `<tr><td colspan="18" style="padding:0;border-bottom:2px solid ${boxColor};">
+                const cgCols = ocColumnOrder.map(k => { const c = OC_COLUMNS.find(x => x.key === k); return `<col style="width:${c?c.width:'6%'}">`; }).join('');
+                rowsHtml += `<tr><td colspan="${ocColumnOrder.length}" style="padding:0;border-bottom:2px solid ${boxColor};">
                     <table style="width:100%;border-collapse:collapse;background:${legBg};border:2px solid ${boxColor};border-radius:4px;box-sizing:border-box;table-layout:fixed;font-size:0.88rem;">
-                        <colgroup>
-                            <col style="width:7%">  <!-- Date -->
-                            <col style="width:9%"> <!-- Symbol -->
-                            <col style="width:6%"> <!-- Strike Date -->
-                            <col style="width:4%">  <!-- Action -->
-                            <col style="width:4%">  <!-- DTE -->
-                            <col style="width:5%">  <!-- Strike -->
-                            <col style="width:6%">  <!-- Current -->
-                            <col style="width:6%">  <!-- Assignment -->
-                            <col style="width:6%">  <!-- % From -->
-                            <col style="width:5%">  <!-- OTM/ITM -->
-                            <col style="width:5%">  <!-- Type -->
-                            <col style="width:5%">  <!-- Contracts -->
-                            <col style="width:6%">  <!-- Premium -->
-                            <col style="width:6%">  <!-- MV -->
-                            <col style="width:6%">  <!-- P/L -->
-                            <col style="width:5%">  <!-- P/L% -->
-                            <col style="width:7%">  <!-- Puts -->
-                            <col style="width:7%">  <!-- Calls -->
-                        </colgroup>
+                        <colgroup>${cgCols}</colgroup>
                         ${innerRows}
                     </table>
                 </td></tr>`;
@@ -2337,30 +2424,27 @@ function renderOpenCommitmentsTable() {
             const safeId = spreadId.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
             // ── Spread summary row ──
-            rowsHtml += `<tr style="background:${spreadBg};border-left:4px solid #0ea5e9;">
-                <td style="${tdBase}color:${textColor};">${sto.date}</td>
-                <td style="${tdBase}color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;">${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} P</span></td>
-                <td style="${tdBase}color:${warnColor};">${expiry}</td>
-                <td style="${tdBase}text-align:center;">
-                    <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">BPS</span>
-                </td>
-                <td style="${tdBase}color:${warnColor};font-weight:600;">${sto.dte !== '' ? sto.dte : '—'}</td>
-                <td style="${tdBase}color:#a78bfa;font-weight:700;font-size:0.78rem;white-space:normal;">$${sto.strike.toFixed(2)}<br>$${bto.strike.toFixed(2)}</td>
-                <td style="${tdBase}line-height:1.5;">${priceCell(ticker)}</td>
-                <td style="${tdBase}color:#e879f9;font-weight:700;">$${breakeven.toFixed(2)}<br><span style="font-size:0.65rem;color:#64748b;">Breakeven</span></td>
-                <td style="${tdBase}font-weight:700;">${pctBreakevenHtml}<br><span style="font-size:0.65rem;color:#64748b;">from B/E</span></td>
-                <td style="${tdBase}font-weight:700;">${otmItmHtml}<br><span style="font-size:0.65rem;color:#64748b;">short leg</span></td>
-                <td style="${tdBase}color:${negColor};font-weight:600;">Put</td>
-                <td style="${tdBase}color:${textColor};">${contracts}</td>
-                <td style="${tdBase}color:#10b981;font-weight:700;">${netPremium > 0 ? '$' + netPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}<br><span style="font-size:0.65rem;color:#64748b;">net credit</span></td>
-                <td style="${tdBase}line-height:1.5;">${spreadMVHtml}</td>
-                <td style="${tdBase}">${spreadPlHtml}</td>
-                <td style="${tdBase}">${spreadPlPctHtml}</td>
-                <td style="${tdBase}color:${negColor};font-weight:500;">$${item.spreadMaxLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-                <td style="${tdBase}text-align:center;">
-                    <button onclick="toggleSpread('${safeId}')" style="background:rgba(14,165,233,0.15);border:1px solid #0ea5e9;color:#0ea5e9;padding:4px 11px;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;white-space:nowrap;">${isExpanded ? '▲ Hide' : '▼ Legs'}</button>
-                </td>
-            </tr>`;
+            const spreadCells = {
+                date:          C(sto.date, `color:${textColor};`),
+                symbol:        C(`${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} P</span>`, `color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;`),
+                strikeDate:    C(expiry, `color:${warnColor};`),
+                action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">BPS</span>`),
+                dte:           C(sto.dte !== '' ? sto.dte : '—', `color:${warnColor};font-weight:600;`),
+                strike:        C(`$${sto.strike.toFixed(2)}<br>$${bto.strike.toFixed(2)}`, `color:#a78bfa;font-weight:700;font-size:0.78rem;white-space:normal;`),
+                price:         C(priceCell(ticker), `line-height:1.5;`),
+                assignPrice:   C(`$${breakeven.toFixed(2)}<br><span style="font-size:0.65rem;color:#64748b;">Breakeven</span>`, `color:#e879f9;font-weight:700;`),
+                pctFromStrike: C(`${pctBreakevenHtml}<br><span style="font-size:0.65rem;color:#64748b;">from B/E</span>`, `font-weight:700;`),
+                otmitm:        C(`${otmItmHtml}<br><span style="font-size:0.65rem;color:#64748b;">short leg</span>`, `font-weight:700;`),
+                type:          C('Put', `color:${negColor};font-weight:600;`),
+                contracts:     C(String(contracts), `color:${textColor};`),
+                premium:       C(`${netPremium > 0 ? '$' + netPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}<br><span style="font-size:0.65rem;color:#64748b;">net credit</span>`, `color:#10b981;font-weight:700;`),
+                marketValue:   C(spreadMVHtml, `line-height:1.5;`),
+                pl:            C(spreadPlHtml),
+                plPct:         C(spreadPlPctHtml),
+                puts:          C(`$${item.spreadMaxLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`, `color:${negColor};font-weight:500;`),
+                calls:         C(`<button onclick="toggleSpread('${safeId}')" style="background:rgba(14,165,233,0.15);border:1px solid #0ea5e9;color:#0ea5e9;padding:4px 11px;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;white-space:nowrap;">${isExpanded ? '▲ Hide' : '▼ Legs'}</button>`, `text-align:center;`),
+            };
+            rowsHtml += renderRow(spreadCells, `background:${spreadBg};border-left:4px solid #0ea5e9;`);
 
             // ── Expanded leg rows ──
             if (isExpanded) {
@@ -2371,33 +2455,38 @@ function renderOpenCommitmentsTable() {
                     const { mv: legMV, plH: legPl, plPctH: legPlPct } = legPriceHtml(leg);
                     const legBg = isDark ? 'rgba(14,165,233,0.04)' : 'rgba(14,165,233,0.03)';
                     const indent = '<span style="color:#0ea5e9;margin-right:3px;">↳</span>';
-                    const boxColor = '#0ea5e9'; // blue
+                    const boxColor = '#0ea5e9';
                     const topBorder    = isFirst ? `border-top:2px solid ${boxColor};` : '';
                     const bottomBorder = isLast  ? `border-bottom:2px solid ${boxColor} !important;` : 'border-bottom:none;';
                     const trStyle = `background:${legBg};${topBorder}${bottomBorder}border-left:2px solid ${boxColor};border-right:2px solid ${boxColor};`;
-                    // td base without bottom border so box border shows cleanly
                     const legTd = `padding:10px 8px;border-bottom:${isLast ? 'none' : '1px solid '+borderColor};text-align:center;`;
+                    const LC = (content, extra = '') => ({ content, style: legTd + extra });
 
-                    rowsHtml += `<tr style="${trStyle}">
-                        <td style="${legTd}font-size:0.78rem;">${leg.date}</td>
-                        <td style="${legTd}font-size:0.75rem;">${indent}${leg.symbol}</td>
-                        <td style="${legTd}font-size:0.85rem;">${leg.strikeDate}</td>
-                        <td style="${legTd}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${leg.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${leg.action}</span></td>
-                        <td style="${legTd}font-size:0.85rem;">${leg.dte !== '' ? leg.dte : '—'}</td>
-                        <td style="${legTd}font-size:0.85rem;">$${leg.strike.toFixed(2)}</td>
-                        <td style="${legTd}line-height:1.5;">${priceCell(legTicker)}</td>
-                        <td style="${legTd}font-size:0.85rem;">${leg.type === 'Put' && leg.contracts > 0 ? '$' + (leg.strike - (leg.premiumReceived / (leg.contracts * 100))).toFixed(2) : '—'}</td>
-                        <td style="${legTd}font-size:0.85rem;">${(() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; const ap = leg.contracts > 0 ? leg.strike - (leg.premiumReceived / (leg.contracts * 100)) : null; if (ap===null) return '—'; const pct=(1-ap/p.price)*100; return (pct>=0?'+':'')+pct.toFixed(1)+'%'; })()}</td>
-                        <td style="${legTd}font-size:0.85rem;">${(() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; return p.price > leg.strike ? 'OTM' : 'ITM'; })()}</td>
-                        <td style="${legTd}font-size:0.85rem;">Put</td>
-                        <td style="${legTd}font-size:0.85rem;">${leg.contracts}</td>
-                        <td style="${legTd}font-size:0.85rem;">${leg.premiumReceived > 0 ? '$' + leg.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-                        <td style="${legTd}line-height:1.5;">${legMV}</td>
-                        <td style="${legTd}">${legPl}</td>
-                        <td style="${legTd}">${legPlPct}</td>
-                        <td style="${legTd}font-size:0.85rem;">—</td>
-                        <td style="${legTd}font-size:0.85rem;">—</td>
-                    </tr>`;
+                    const legCells = {
+                        date:          LC(leg.date, `font-size:0.78rem;`),
+                        symbol:        LC(`${indent}${leg.symbol}`, `font-size:0.75rem;`),
+                        strikeDate:    LC(leg.strikeDate, `font-size:0.85rem;`),
+                        action:        LC(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${leg.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${leg.action}</span>`),
+                        dte:           LC(leg.dte !== '' ? leg.dte : '—', `font-size:0.85rem;`),
+                        strike:        LC(`$${leg.strike.toFixed(2)}`, `font-size:0.85rem;`),
+                        price:         LC(priceCell(legTicker), `line-height:1.5;`),
+                        assignPrice:   LC(leg.type === 'Put' && leg.contracts > 0 ? '$' + (leg.strike - (leg.premiumReceived / (leg.contracts * 100))).toFixed(2) : '—', `font-size:0.85rem;`),
+                        pctFromStrike: LC((() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; const ap = leg.contracts > 0 ? leg.strike - (leg.premiumReceived / (leg.contracts * 100)) : null; if (ap===null) return '—'; const pct=(1-ap/p.price)*100; return (pct>=0?'+':'')+pct.toFixed(1)+'%'; })(), `font-size:0.85rem;`),
+                        otmitm:        LC((() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; return p.price > leg.strike ? 'OTM' : 'ITM'; })(), `font-size:0.85rem;`),
+                        type:          LC('Put', `font-size:0.85rem;`),
+                        contracts:     LC(String(leg.contracts), `font-size:0.85rem;`),
+                        premium:       LC(leg.premiumReceived > 0 ? '$' + leg.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', `font-size:0.85rem;`),
+                        marketValue:   LC(legMV, `line-height:1.5;`),
+                        pl:            LC(legPl),
+                        plPct:         LC(legPlPct),
+                        puts:          LC('—', `font-size:0.85rem;`),
+                        calls:         LC('—', `font-size:0.85rem;`),
+                    };
+                    const cells = ocColumnOrder.map(k => {
+                        const cell = legCells[k] !== undefined ? legCells[k] : { content: '—', style: legTd };
+                        return `<td style="${cell.style}">${cell.content}</td>`;
+                    }).join('');
+                    rowsHtml += `<tr style="${trStyle}">${cells}</tr>`;
                 });
             }
         }
@@ -2434,15 +2523,30 @@ function renderOpenCommitmentsTable() {
         ? `${((1 - totalMarketValue / totalPremium) * 100).toFixed(2)}%`
         : '—';
 
-    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
-        <td colspan="12" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Total</td>
-        <td style="padding:12px 8px;text-align:center;color:#10b981;border-top:2px solid #0ea5e9;">${totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-        <td style="padding:12px 8px;text-align:center;color:#f59e0b;border-top:2px solid #0ea5e9;">${totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-        <td style="padding:12px 8px;text-align:center;color:${totalPLColor};border-top:2px solid #0ea5e9;">${totalPLStr}</td>
-        <td style="padding:12px 8px;text-align:center;color:${totalPLColor};border-top:2px solid #0ea5e9;">${totalPLPctStr}</td>
-        <td style="padding:12px 8px;text-align:center;color:${negColor};border-top:2px solid #0ea5e9;">${totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-        <td style="padding:12px 8px;text-align:center;color:${posColor};border-top:2px solid #0ea5e9;">${totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
-    </tr>`;
+    // Total row — spans up to the first numeric column, then individual cells per column
+    const totalCellValues = {
+        premium:     { content: totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: '#10b981' },
+        marketValue: { content: totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: '#f59e0b' },
+        pl:          { content: totalPLStr, color: totalPLColor },
+        plPct:       { content: totalPLPctStr, color: totalPLColor },
+        puts:        { content: totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: negColor },
+        calls:       { content: totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: posColor },
+    };
+    const totalNumericKeys = new Set(Object.keys(totalCellValues));
+    // Find the first column in current order that has a total value
+    const firstNumIdx = ocColumnOrder.findIndex(k => totalNumericKeys.has(k));
+    const totalRowCells = ocColumnOrder.map((k, i) => {
+        const tdS = `padding:12px 8px;text-align:center;border-top:2px solid #0ea5e9;`;
+        if (i < firstNumIdx) return ''; // will be covered by colspan
+        if (i === firstNumIdx) {
+            return `<td colspan="${firstNumIdx + 1}" style="${tdS}text-align:right;color:#a78bfa;">Total</td>`;
+        }
+        if (totalCellValues[k]) {
+            return `<td style="${tdS}color:${totalCellValues[k].color};">${totalCellValues[k].content}</td>`;
+        }
+        return `<td style="${tdS}color:${textColor};">—</td>`;
+    }).join('');
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">${totalRowCells}</tr>`;
 
     // --- Summary table grouped by expiration date ---
     // Use displayItems so BPS spreads contribute net values, not both legs independently
@@ -2593,45 +2697,9 @@ function renderOpenCommitmentsTable() {
             </div>
             <div style="overflow-x:auto;border:1px solid #0ea5e9;border-radius:8px;">
             <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
-                <colgroup>
-                    <col style="width:7%">  <!-- Transaction Date -->
-                    <col style="width:9%"> <!-- Symbol -->
-                    <col style="width:6%"> <!-- Strike Date -->
-                    <col style="width:4%">  <!-- Action -->
-                    <col style="width:4%">  <!-- DTE -->
-                    <col style="width:5%">  <!-- Strike Price -->
-                    <col style="width:6%">  <!-- Current Price -->
-                    <col style="width:6%">  <!-- Assignment Price -->
-                    <col style="width:6%">  <!-- % From Strike -->
-                    <col style="width:5%">  <!-- OTM/ITM -->
-                    <col style="width:5%">  <!-- Put or Call -->
-                    <col style="width:5%">  <!-- # of Contracts -->
-                    <col style="width:6%">  <!-- Premium -->
-                    <col style="width:6%">  <!-- Market Value -->
-                    <col style="width:6%">  <!-- Profit / Loss -->
-                    <col style="width:5%">  <!-- Profit / Loss % -->
-                    <col style="width:7%">  <!-- Commitments (Puts) -->
-                    <col style="width:7%">  <!-- Commitments (Calls) -->
-                </colgroup>
+                <colgroup>${ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<col style="width:${c?c.width:'6%'}">`}).join('')}</colgroup>
                 <thead id="ocDetailThead" style="position:sticky;top:0;z-index:2;"><tr>
-                    <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('strikeDate')">Strike Date${arrow('strikeDate')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('action')">Action${arrow('action')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('dte')">DTE${arrow('dte')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('assignPrice')">Assignment Price${arrow('assignPrice')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('pctFromStrike')">% From Strike Price${arrow('pctFromStrike')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('premium')">Premium${arrow('premium')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('marketValue')" style="color:#f59e0b;">Market Value${arrow('marketValue')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('pl')">Profit / Loss${arrow('pl')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('plPct')">Profit / Loss %${arrow('plPct')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
-                    <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>
+                    ${ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<th style="${thBase}" onclick="sortOpenCommitments('${k}')" title="Drag to reorder">${c?c.label:k}${arrow(k)}</th>`}).join('')}
                 </tr></thead>
                 <tbody id="ocPositionsBody"></tbody>
             </table>
@@ -2654,26 +2722,12 @@ function renderOpenCommitmentsTable() {
             </table>
             </div>`;
     } else {
-        // Just update the thead arrows (sort indicators) without destroying the input
-        document.getElementById('ocDetailThead').querySelector('tr').innerHTML = `
-            <th style="${thBase}" onclick="sortOpenCommitments('date')">Transaction Date${arrow('date')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('symbol')">Symbol${arrow('symbol')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('strikeDate')">Strike Date${arrow('strikeDate')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('action')">Action${arrow('action')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('dte')">DTE${arrow('dte')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('strike')">Strike Price${arrow('strike')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('price')">Current Price${arrow('price')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('assignPrice')">Assignment Price${arrow('assignPrice')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('pctFromStrike')">% From Strike Price${arrow('pctFromStrike')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('otmitm')">OTM / ITM${arrow('otmitm')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('type')">Put or Call${arrow('type')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('contracts')"># of Contracts${arrow('contracts')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('premium')">Premium${arrow('premium')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('marketValue')">Market Value${arrow('marketValue')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('pl')">Profit / Loss${arrow('pl')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('plPct')">Profit / Loss %${arrow('plPct')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('puts')">Commitments (Puts)${arrow('puts')}</th>
-            <th style="${thBase}" onclick="sortOpenCommitments('calls')">Commitments (Calls)${arrow('calls')}</th>`;
+        // Update thead arrows and column order (handles sort + drag reorder)
+        document.getElementById('ocDetailThead').querySelector('tr').innerHTML =
+            ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<th style="${thBase}" onclick="sortOpenCommitments('${k}')" title="Drag to reorder">${c?c.label:k}${arrow(k)}</th>`}).join('');
+        // Also update colgroup widths to match current order
+        const cg = document.querySelector('#ocPositionsTable colgroup');
+        if (cg) cg.innerHTML = ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<col style="width:${c?c.width:'6%'}">`}).join('');
     }
 
     document.getElementById('ocPositionsBody').innerHTML = rowsHtml + totalRow;
@@ -2716,6 +2770,9 @@ function renderOpenCommitmentsTable() {
 
         modalInner.addEventListener('scroll', modalInner._ocScrollHandler);
     }, 50);
+
+    // Attach drag-to-reorder listeners to the newly rendered thead
+    setTimeout(initOcColumnDrag, 0);
 }
 
 // ============================================================
