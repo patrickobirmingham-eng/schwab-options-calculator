@@ -2525,7 +2525,7 @@ function renderOpenCommitmentsTable() {
 
     // Total row — spans up to the first numeric column, then individual cells per column
     const totalCellValues = {
-        premium:     { content: totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: '#10b981' },
+        premium:     { content: (totalPremium >= 0 ? '$' : '-$') + Math.abs(totalPremium).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), color: totalPremium >= 0 ? '#10b981' : negColor },
         marketValue: { content: totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: '#f59e0b' },
         pl:          { content: totalPLStr, color: totalPLColor },
         plPct:       { content: totalPLPctStr, color: totalPLColor },
@@ -2539,7 +2539,14 @@ function renderOpenCommitmentsTable() {
         const tdS = `padding:12px 8px;text-align:center;border-top:2px solid #0ea5e9;`;
         if (i < firstNumIdx) return ''; // will be covered by colspan
         if (i === firstNumIdx) {
-            return `<td colspan="${firstNumIdx + 1}" style="${tdS}text-align:right;color:#a78bfa;">Total</td>`;
+            // Span the non-numeric label columns, then emit the first numeric column's value as its own cell
+            const labelTd = firstNumIdx > 0
+                ? `<td colspan="${firstNumIdx}" style="${tdS}text-align:right;color:#a78bfa;">Total</td>`
+                : `<td style="${tdS}text-align:right;color:#a78bfa;">Total</td>`;
+            const valTd = totalCellValues[k]
+                ? `<td style="${tdS}color:${totalCellValues[k].color};font-weight:bold;">${totalCellValues[k].content}</td>`
+                : `<td style="${tdS}color:${textColor};">—</td>`;
+            return labelTd + valTd;
         }
         if (totalCellValues[k]) {
             return `<td style="${tdS}color:${totalCellValues[k].color};">${totalCellValues[k].content}</td>`;
