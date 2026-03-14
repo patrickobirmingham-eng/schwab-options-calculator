@@ -407,6 +407,7 @@ th.oc-drop-target {
                     </div>
                     <div style="display:flex; gap:8px; align-items:flex-end;">
                         <button onclick="tsReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                        <button onclick="showMonthlyDataTable()" style="background:#0891b2;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">📅 Monthly / Annual Data Table</button>
                         <button onclick="tsDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
                     </div>
                 </div>
@@ -425,6 +426,28 @@ th.oc-drop-target {
             </div>
         </div>
     </div>
+
+    <!-- Monthly Data Table Modal -->
+    <div id="monthlyDataModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1100; justify-content:center; align-items:center;">
+        <div id="monthlyDataInner" style="border-radius:16px; padding:24px; max-width:1700px; width:97vw; height:90vh; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color:#0891b2; font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    <span style="color:#67e8f9;">[-]</span> Monthly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Annual Data Table
+                </h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="mdtExpandAll" onchange="mdtToggleExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#0891b2;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="mdtDownload()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download</button>
+                <button onclick="closeMonthlyDataTable()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="monthlyDataTableContainer" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;"></div>
+        </div>
+    </div>
+
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
@@ -3264,7 +3287,7 @@ function showMonthlySummary() {
     // Default: only current year expanded, unless we have saved state
     const defaultExpandedYears = monthlySavedState.expandedYears
         ? new Set(monthlySavedState.expandedYears)
-        : new Set([String(currentYear)]);
+        : new Set([String(currentYear), String(currentYear - 1)]);
 
     // Compute monthly rows grouped by year
     const monthlyByYear = {};
@@ -3397,12 +3420,15 @@ function showMonthlySummary() {
             mi.style.width = monthlySavedState.modalPos.width;
             mi.style.height = monthlySavedState.modalPos.height;
         } else {
-            // Make window 25% taller than default
+            // Double height + center in viewport
             setTimeout(() => {
-                if (mi && mi.style.height) {
-                    const currentH = parseFloat(mi.style.height);
-                    mi.style.height = Math.min(currentH * 1.25, window.innerHeight - 20) + 'px';
-                }
+                const vw = window.innerWidth, vh = window.innerHeight;
+                const w = Math.min(Math.round(vw * 0.95), 1600);
+                const h = Math.min(Math.round(vh * 0.90), vh - 20);
+                mi.style.width  = w + 'px';
+                mi.style.height = h + 'px';
+                mi.style.left   = Math.round((vw - w) / 2) + 'px';
+                mi.style.top    = Math.round((vh - h) / 2) + 'px';
             }, 50);
         }
     } else {
@@ -3995,6 +4021,338 @@ function tsRenderTable() {
             <td style="${tdBase}color:${amtColor};font-weight:600;">${r.Amount != null && r.Amount !== '' ? fmtAmt(amt) : ''}</td>
         </tr>`;
     }).join('');
+}
+
+// ============================================================
+// MONTHLY DATA TABLE
+// ============================================================
+const MDT_ACTIONS = [
+    { key: 'Sell to Open',        label: 'Sell to Open',        color: '#4ade80' },
+    { key: 'Buy to Open',         label: 'Buy to Open',         color: '#f87171' },
+    { key: 'Buy to Close',        label: 'Buy to Close',        color: '#f87171' },
+    { key: 'Sell to Close',       label: 'Sell to Close',       color: '#4ade80' },
+    { key: 'Cash Dividend',       label: 'Cash Dividend',       color: '#4ade80' },
+    { key: 'Qualified Dividend',  label: 'Qualified Dividend',  color: '#4ade80' },
+    { key: 'Reinvest Dividend',   label: 'Reinvest Dividend',   color: '#4ade80' },
+    { key: 'Buy',                 label: 'Buy',                 color: '#f87171' },
+    { key: 'Sell',                label: 'Sell',                color: '#4ade80' },
+    { key: 'Margin Interest',     label: 'Margin Interest',     color: '#f87171' },
+    { key: '__fees__',            label: 'Total Fees & Comm',   color: '#f87171' },
+    { key: 'Bank Interest',       label: 'Bank Interest',       color: '#4ade80' },
+    { key: 'MoneyLink Transfer',  label: 'MoneyLink Transfer',  color: '#a78bfa' },
+    { key: 'Moneylink Adj',       label: 'Moneylink Adj',       color: '#a78bfa' },
+    { key: 'ADR Mgmt Fee',        label: 'ADR Mgmt Fee',        color: '#f87171' },
+    { key: 'Journaled Shares',    label: 'Journaled Shares',    color: '#a78bfa' },
+    { key: 'Internal Transfer',   label: 'Internal Transfer',   color: '#a78bfa' },
+    { key: 'Bond Interest',       label: 'Bond Interest',       color: '#4ade80' },
+];
+
+let mdtSavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0, modalPos: null };
+let mdtTableCache = null; // stores { allMonths, monthData, yearData, grandTotals, uniqueYears } for download
+
+function showMonthlyDataTable() {
+    if (!window.allRawRows || window.allRawRows.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+
+    const modalInner = document.getElementById('monthlyDataInner');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = '1px solid #0891b2';
+
+    const rows = window.allRawRows;
+
+    // Collect all months present in data
+    const monthSet = new Set();
+    rows.forEach(r => {
+        if (r.parsedDate) {
+            const y = r.parsedDate.getFullYear();
+            const m = r.parsedDate.getMonth();
+            monthSet.add(`${y}-${String(m).padStart(2,'0')}`);
+        }
+    });
+    const allMonths = [...monthSet].sort().reverse(); // newest first
+
+    const uniqueYears = [...new Set(allMonths.map(k => parseInt(k.split('-')[0])))].sort((a,b) => b-a);
+    const currentYear = new Date().getFullYear();
+    const defaultExpandedYears = mdtSavedState.expandedYears
+        ? new Set(mdtSavedState.expandedYears)
+        : new Set([String(currentYear), String(currentYear - 1)]);
+
+    const fmtAmt = (n) => {
+        if (n === 0) return '<span style="color:#64748b;">—</span>';
+        return `<span style="color:${n > 0 ? posColor : negColor};font-weight:600;">${n >= 0 ? '$' : '-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+    };
+    const fmtTotal = (n) => {
+        if (n === 0) return '<span style="color:#64748b;">—</span>';
+        return `${n >= 0 ? '$' : '-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    };
+
+    // Build per-month aggregates
+    const monthData = {}; // key -> { action_key -> total, __fees__ -> total }
+    rows.forEach(r => {
+        if (!r.parsedDate) return;
+        const y = r.parsedDate.getFullYear();
+        const m = r.parsedDate.getMonth();
+        const key = `${y}-${String(m).padStart(2,'0')}`;
+        if (!monthData[key]) {
+            monthData[key] = {};
+            MDT_ACTIONS.forEach(a => { monthData[key][a.key] = 0; });
+        }
+        const action = (r.Action || '').trim();
+        // Match action (case-insensitive)
+        const match = MDT_ACTIONS.find(a => a.key !== '__fees__' && a.key.toLowerCase() === action.toLowerCase());
+        if (match) monthData[key][match.key] += cleanNum(r.Amount);
+        // Always accumulate fees
+        monthData[key]['__fees__'] += cleanNum(r['Fees & Comm'] || r['Fees'] || 0);
+    });
+
+    // Build per-year aggregates
+    const yearData = {};
+    uniqueYears.forEach(y => {
+        yearData[y] = {};
+        MDT_ACTIONS.forEach(a => { yearData[y][a.key] = 0; });
+        Object.keys(monthData).forEach(k => {
+            if (parseInt(k.split('-')[0]) === y) {
+                MDT_ACTIONS.forEach(a => { yearData[y][a.key] += monthData[k][a.key]; });
+            }
+        });
+    });
+
+    // Grand totals
+    const grandTotals = {};
+    MDT_ACTIONS.forEach(a => { grandTotals[a.key] = 0; });
+    Object.values(monthData).forEach(md => {
+        MDT_ACTIONS.forEach(a => { grandTotals[a.key] += md[a.key]; });
+    });
+
+    // Cache computed data for download
+    mdtTableCache = { allMonths, monthData, yearData, grandTotals, uniqueYears };
+
+    // Fixed pixel widths per column to prevent number overlap
+    const COL_MONTH_W = 110; // px
+    const COL_DATA_W  = 115; // px — wide enough for e.g. "$12,345.67"
+    const tableMinWidth = COL_MONTH_W + MDT_ACTIONS.length * COL_DATA_W;
+
+    const thStyle = `padding:8px 6px;background:${thBg};color:#0891b2;font-size:0.7rem;letter-spacing:0.03em;border-bottom:2px solid #0891b2;white-space:nowrap;text-align:center;vertical-align:middle;min-width:${COL_DATA_W}px;`;
+    const tblStyle = `width:100%;min-width:${tableMinWidth}px;border-collapse:collapse;background:${rowBg};font-size:0.82rem;table-layout:fixed;`;
+
+    const fmtMonthLabel = (key) => {
+        const [y, m] = key.split('-');
+        return new Date(parseInt(y), parseInt(m), 1).toLocaleDateString('en-US', {month:'short', year:'numeric'});
+    };
+
+    const buildMonthRow = (key, isFirst, isExpanded) => {
+        const year = parseInt(key.split('-')[0]);
+        const topBorder = isFirst ? `border-top:2px solid #0891b2;` : '';
+        const botBorder = `border-bottom:1px solid ${borderColor};`;
+        const toggleBtn = isFirst
+            ? `<button onclick="mdtToggleYear(${year})" id="mdtbtn-${year}" style="background:none;border:none;cursor:pointer;color:#0891b2;font-size:1rem;padding:0;line-height:1;position:absolute;left:6px;top:50%;transform:translateY(-50%);" title="Collapse/expand ${year}">${isExpanded ? '➖' : '➕'}</button>`
+            : '';
+        const md = monthData[key] || {};
+        let cells = `<td style="color:${textColor};text-align:center;padding:8px 10px;${topBorder}${botBorder}font-weight:500;position:sticky;left:0;z-index:1;background:${rowBg};white-space:nowrap;min-width:${COL_MONTH_W}px;">${toggleBtn}${fmtMonthLabel(key)}</td>`;
+        MDT_ACTIONS.forEach(a => {
+            cells += `<td style="padding:8px 6px;${topBorder}${botBorder}text-align:center;white-space:nowrap;min-width:${COL_DATA_W}px;">${fmtAmt(md[a.key] || 0)}</td>`;
+        });
+        return `<tr class="mdt-month-row mdt-year-${year}" style="background:${rowBg};display:${isExpanded ? 'table-row' : 'none'};">${cells}</tr>`;
+    };
+
+    const buildYearCollapsedRow = (year, isExpanded) => {
+        const yd = yearData[year] || {};
+        const topBorder = `border-top:2px solid #0891b2;`;
+        const botBorder = `border-bottom:1px solid ${borderColor};`;
+        let cells = `<td style="color:${textColor};text-align:center;padding:8px 10px;${topBorder}${botBorder}font-weight:700;position:sticky;left:0;z-index:1;background:${rowAltBg};white-space:nowrap;min-width:${COL_MONTH_W}px;">
+            <button onclick="mdtToggleYear(${year})" id="mdtbtn-${year}" style="background:none;border:none;cursor:pointer;color:#0891b2;font-size:1rem;padding:0;line-height:1;position:absolute;left:6px;top:50%;transform:translateY(-50%);" title="Expand ${year}">➕</button>${year}
+        </td>`;
+        MDT_ACTIONS.forEach(a => {
+            const val = yd[a.key] || 0;
+            const color = val > 0 ? posColor : val < 0 ? negColor : '#64748b';
+            cells += `<td style="padding:8px 6px;${topBorder}${botBorder}text-align:center;color:${color};font-weight:600;white-space:nowrap;min-width:${COL_DATA_W}px;">${val !== 0 ? (val>=0?'$':'-$')+Math.abs(val).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>`;
+        });
+        return `<tr class="mdt-year-collapsed-${year}" style="background:${rowAltBg};display:${isExpanded ? 'none' : 'table-row'};">${cells}</tr>`;
+    };
+
+    const buildAllRows = () => {
+        let html = '';
+        uniqueYears.forEach(year => {
+            const isExpanded = defaultExpandedYears.has(String(year));
+            const yearMonths = allMonths.filter(k => parseInt(k.split('-')[0]) === year);
+            yearMonths.forEach((key, idx) => {
+                html += buildMonthRow(key, idx === 0, isExpanded);
+            });
+            html += buildYearCollapsedRow(year, isExpanded);
+        });
+        return html;
+    };
+
+    // Grand total row
+    let totalCells = `<td style="text-align:center;padding:10px 10px;color:#a78bfa;font-weight:bold;border-top:2px solid #0891b2;white-space:nowrap;position:sticky;left:0;z-index:1;background:${totalRowBg};min-width:${COL_MONTH_W}px;">Total</td>`;
+    MDT_ACTIONS.forEach(a => {
+        const val = grandTotals[a.key];
+        const color = val > 0 ? posColor : val < 0 ? negColor : '#64748b';
+        totalCells += `<td style="padding:10px 6px;border-top:2px solid #0891b2;text-align:center;color:${color};font-weight:bold;white-space:nowrap;min-width:${COL_DATA_W}px;">${val !== 0 ? (val>=0?'$':'-$')+Math.abs(val).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>`;
+    });
+    const totalRow = `<tr style="background:${totalRowBg};">${totalCells}</tr>`;
+
+    const colgroup = `<col style="width:${COL_MONTH_W}px;min-width:${COL_MONTH_W}px;">` + MDT_ACTIONS.map(() => `<col style="width:${COL_DATA_W}px;min-width:${COL_DATA_W}px;">`).join('');
+    const headerCells = MDT_ACTIONS.map(a => `<th style="${thStyle}">${a.label}</th>`).join('');
+
+    document.getElementById('monthlyDataTableContainer').innerHTML = `
+        <div style="overflow-x:auto;overflow-y:auto;flex:1;border:1px solid ${borderColor};border-radius:8px;min-height:0;">
+        <table id="mdtBreakdownTable" style="${tblStyle}">
+            <colgroup>${colgroup}</colgroup>
+            <thead style="position:sticky;top:0;z-index:2;"><tr>
+                <th style="padding:8px 10px;background:${thBg};color:#0891b2;font-size:0.7rem;letter-spacing:0.03em;border-bottom:2px solid #0891b2;white-space:nowrap;text-align:center;vertical-align:middle;min-width:${COL_MONTH_W}px;position:sticky;left:0;z-index:3;">Month / Year</th>
+                ${headerCells}
+            </tr></thead>
+            <tbody id="mdtBreakdownBody">${buildAllRows()}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('monthlyDataModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeMonthlyDataTable(); };
+
+    const expandAllCb = document.getElementById('mdtExpandAll');
+    if (expandAllCb) expandAllCb.checked = mdtSavedState.expandAllChecked;
+
+    setTimeout(() => {
+        const mi = document.getElementById('monthlyDataInner');
+        if (mi && mdtSavedState.scrollTop) mi.scrollTop = mdtSavedState.scrollTop;
+    }, 60);
+
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+        initDraggableModal('monthlyDataInner', '#0891b2', 1700);
+        const mi = document.getElementById('monthlyDataInner');
+        if (mdtSavedState.modalPos && mi) {
+            mi.style.left   = mdtSavedState.modalPos.left;
+            mi.style.top    = mdtSavedState.modalPos.top;
+            mi.style.width  = mdtSavedState.modalPos.width;
+            mi.style.height = mdtSavedState.modalPos.height;
+        } else if (mi) {
+            // Double height + center: use 90vh, centered in viewport
+            setTimeout(() => {
+                const vw = window.innerWidth, vh = window.innerHeight;
+                const w = Math.min(Math.round(vw * 0.97), 1700);
+                const h = Math.min(Math.round(vh * 0.90), vh - 20);
+                mi.style.width  = w + 'px';
+                mi.style.height = h + 'px';
+                mi.style.left   = Math.round((vw - w) / 2) + 'px';
+                mi.style.top    = Math.round((vh - h) / 2) + 'px';
+            }, 30);
+        }
+    } else {
+        const mi = document.getElementById('monthlyDataInner');
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
+        }
+    }
+}
+
+function mdtToggleYear(year) {
+    const monthRows = document.querySelectorAll(`.mdt-year-${year}`);
+    const collapsedRow = document.querySelector(`.mdt-year-collapsed-${year}`);
+    if (!monthRows.length || !collapsedRow) return;
+    const isExpanded = monthRows[0].style.display !== 'none';
+    monthRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    collapsedRow.style.display = isExpanded ? 'table-row' : 'none';
+    document.querySelectorAll(`#mdtbtn-${year}`).forEach(btn => {
+        btn.textContent = isExpanded ? '➕' : '➖';
+        btn.title = isExpanded ? `Expand ${year}` : `Collapse ${year}`;
+    });
+}
+
+function mdtToggleExpandAll(checked) {
+    const body = document.getElementById('mdtBreakdownBody');
+    if (!body) return;
+    const years = [...new Set([...body.querySelectorAll('tr[class*="mdt-year-"]')]
+        .map(r => [...r.classList].find(c => c.startsWith('mdt-year-') && !c.includes('collapsed')))
+        .filter(Boolean)
+        .map(c => c.replace('mdt-year-', '')))];
+    years.forEach(year => {
+        const monthRows = body.querySelectorAll(`.mdt-year-${year}`);
+        if (!monthRows.length) return;
+        const isCurrentlyExpanded = monthRows[0].style.display !== 'none';
+        if (checked && !isCurrentlyExpanded) mdtToggleYear(parseInt(year));
+        else if (!checked && isCurrentlyExpanded) {
+            const currentYear = new Date().getFullYear().toString();
+            const priorYear = String(new Date().getFullYear() - 1);
+            if (year !== currentYear && year !== priorYear) mdtToggleYear(parseInt(year));
+        }
+    });
+}
+
+function closeMonthlyDataTable() {
+    const body = document.getElementById('mdtBreakdownBody');
+    if (body) {
+        const years = [...new Set([...body.querySelectorAll('tr[class*="mdt-year-"]')]
+            .map(r => [...r.classList].find(c => c.startsWith('mdt-year-') && !c.includes('collapsed')))
+            .filter(Boolean)
+            .map(c => c.replace('mdt-year-', '')))];
+        const expanded = new Set();
+        years.forEach(year => {
+            const monthRows = body.querySelectorAll(`.mdt-year-${year}`);
+            if (monthRows.length && monthRows[0].style.display !== 'none') expanded.add(String(year));
+        });
+        mdtSavedState.expandedYears = expanded;
+    }
+    const cb = document.getElementById('mdtExpandAll');
+    mdtSavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('monthlyDataInner');
+    mdtSavedState.scrollTop = mi ? mi.scrollTop : 0;
+    if (mi) {
+        mdtSavedState.modalPos = { left: mi.style.left, top: mi.style.top, width: mi.style.width, height: mi.style.height };
+        mi._dragInit = false;
+    }
+    document.getElementById('monthlyDataModal').style.display = 'none';
+}
+
+
+function mdtDownload() {
+    if (!mdtTableCache) { alert('No data to download.'); return; }
+    const { allMonths, monthData, grandTotals } = mdtTableCache;
+
+    const fmtMonthLabel = (key) => {
+        const [y, m] = key.split('-');
+        return new Date(parseInt(y), parseInt(m), 1).toLocaleDateString('en-US', {month:'short', year:'numeric'});
+    };
+    const fmtVal = (n) => n === 0 ? '' : parseFloat(n.toFixed(2));
+
+    // Header row
+    const headers = ['Month / Year', ...MDT_ACTIONS.map(a => a.label)];
+
+    // Data rows — all months newest-first
+    const dataRows = allMonths.map(key => {
+        const md = monthData[key] || {};
+        return [fmtMonthLabel(key), ...MDT_ACTIONS.map(a => fmtVal(md[a.key] || 0))];
+    });
+
+    // Total row
+    const totalRow = ['TOTAL', ...MDT_ACTIONS.map(a => fmtVal(grandTotals[a.key] || 0))];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows, totalRow]);
+
+    // Column widths
+    ws['!cols'] = [{ wch: 14 }, ...MDT_ACTIONS.map(() => ({ wch: 18 }))];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Data Table');
+    XLSX.writeFile(wb, `monthly_data_table_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function tsDownload() {
