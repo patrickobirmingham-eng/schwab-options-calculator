@@ -453,6 +453,10 @@ th.oc-drop-target {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Commitments</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="ocExpandAll" onchange="toggleOcExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer;">
+                        Expand All
+                    </label>
                     <button id="refreshPricesBtn" onclick="refreshStockPrices()" style="background:#0ea5e9;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
                     <button onclick="downloadOpenCommitments()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
                     <button onclick="resetOcColumnOrder()" title="Restore default column order" style="background:#334155;color:#94a3b8;border:1px solid #475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.8rem;">↺ Reset Columns</button>
@@ -1020,8 +1024,9 @@ function renderRawTable() {
             <td>${r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')}</td>
             <td>${(() => {
                 const a = (r.Action || '').toLowerCase();
-                if (a === 'sell to open') return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:rgba(139,92,246,0.6);color:#a78bfa;font-weight:600;">' + (r.Action||'') + '</span>';
-                if (a === 'buy to open')  return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:rgba(16,185,129,0.6);color:#4ade80;font-weight:600;">'  + (r.Action||'') + '</span>';
+                const badgeTxt = isDark ? '#fff' : '#000';
+                if (a === 'sell to open') return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:rgba(139,92,246,0.6);color:' + badgeTxt + ';font-weight:600;">' + (r.Action||'') + '</span>';
+                if (a === 'buy to open')  return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:rgba(16,185,129,0.6);color:' + badgeTxt + ';font-weight:600;">'  + (r.Action||'') + '</span>';
                 return '<span class="tag">' + (r.Action||'') + '</span>';
             })()}</td>
             <td>${r.Symbol || ''}</td>
@@ -1997,6 +2002,45 @@ function toggleGroup(groupId) {
     renderOpenCommitmentsTable();
 }
 
+function toggleOcExpandAll(checked) {
+    // Expand/collapse all groups (multi-position same-symbol groups)
+    ocParsedRows.forEach(r => {
+        const key = r.symbol.trim();
+        if (checked) ocGroupExpanded.add(key);
+        else ocGroupExpanded.delete(key);
+    });
+    // Expand/collapse all BPS spreads
+    // We need to reconstruct spread IDs the same way renderOpenCommitmentsTable does
+    const usedBps = new Set();
+    for (let i = 0; i < ocParsedRows.length; i++) {
+        if (usedBps.has(i)) continue;
+        const a = ocParsedRows[i];
+        if (a.type !== 'Put') continue;
+        const tickerA = extractTicker(a.symbol);
+        const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+        for (let j = i + 1; j < ocParsedRows.length; j++) {
+            if (usedBps.has(j)) continue;
+            const b = ocParsedRows[j];
+            if (b.type !== 'Put') continue;
+            if (extractTicker(b.symbol) !== tickerA) continue;
+            const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            if (expB !== expA) continue;
+            if (b.contracts !== a.contracts) continue;
+            const isPair = (a.action === 'STO' && b.action === 'BTO') || (a.action === 'BTO' && b.action === 'STO');
+            if (!isPair) continue;
+            const sto = a.action === 'STO' ? a : b;
+            const bto = a.action === 'BTO' ? a : b;
+            const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
+            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}`;
+            if (checked) ocSpreadExpanded.add(spreadId);
+            else ocSpreadExpanded.delete(spreadId);
+            usedBps.add(i); usedBps.add(j);
+            break;
+        }
+    }
+    renderOpenCommitmentsTable();
+}
+
 function renderOpenCommitmentsTable() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const textColor = isDark ? '#f8fafc' : '#0f172a';
@@ -2108,8 +2152,9 @@ function renderOpenCommitmentsTable() {
                 if (!op || op.loading || op.error || !op.price) return;
                 const mv = op.price * r.contracts * 100;
                 mvSum   += mv;
-                plSum   += r.premiumReceived - mv;
-                if (r.premiumReceived !== 0) plPctSum += (1 - mv / r.premiumReceived) * 100;
+                const rowPL = r.action === 'BTO' ? mv - r.premiumReceived : r.premiumReceived - mv;
+                plSum   += rowPL;
+                if (r.premiumReceived !== 0) plPctSum += r.action === 'BTO' ? (mv / r.premiumReceived - 1) * 100 : (1 - mv / r.premiumReceived) * 100;
                 mvCount++;
             });
             const avgMV    = mvCount > 0 ? mvSum    / mvCount : -Infinity;
@@ -2217,7 +2262,8 @@ function renderOpenCommitmentsTable() {
                 const occ = buildOCCSymbol(r.symbol);
                 const op = occ ? ocOptionPrices[occ] : null;
                 if (!op || op.loading || op.error || !op.price) return -Infinity;
-                return r.premiumReceived - op.price * r.contracts * 100;
+                const mv = op.price * r.contracts * 100;
+                return r.action === 'BTO' ? mv - r.premiumReceived : r.premiumReceived - mv;
             };
             v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
@@ -2236,7 +2282,8 @@ function renderOpenCommitmentsTable() {
                 const occ = buildOCCSymbol(r.symbol);
                 const op = occ ? ocOptionPrices[occ] : null;
                 if (!op || op.loading || op.error || !op.price || r.premiumReceived === 0) return -Infinity;
-                return (1 - (op.price * r.contracts * 100) / r.premiumReceived) * 100;
+                const mv = op.price * r.contracts * 100;
+                return r.action === 'BTO' ? (mv / r.premiumReceived - 1) * 100 : (1 - mv / r.premiumReceived) * 100;
             };
             v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
@@ -2423,11 +2470,12 @@ function renderOpenCommitmentsTable() {
         } else {
             const mVal = op.price * leg.contracts * 100;
             mv = `<span style="font-weight:700;font-size:0.9rem;color:#f59e0b;">$${mVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
-            const pl = leg.premiumReceived - mVal;
+            const isBTO = leg.action === 'BTO';
+            const pl = isBTO ? mVal - leg.premiumReceived : leg.premiumReceived - mVal;
             const plColor = pl >= 0 ? posColor : negColor;
             plH = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${pl>=0?'+':'-'}$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
             if (leg.premiumReceived > 0) {
-                const pct = (1 - mVal / leg.premiumReceived) * 100;
+                const pct = isBTO ? (mVal / leg.premiumReceived - 1) * 100 : (1 - mVal / leg.premiumReceived) * 100;
                 const pctColor = pct >= 0 ? posColor : negColor;
                 plPctH = `<span style="font-weight:700;font-size:0.9rem;color:${pctColor};">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`;
             } else { plPctH = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
@@ -2475,11 +2523,18 @@ function renderOpenCommitmentsTable() {
             let plHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
             let plPctHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
             if (mvReady) {
-                const pl = totalPremium - totalMV;
-                const plColor = pl >= 0 ? posColor : negColor;
-                plHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${pl>=0?'+':'-'}$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+                // Compute per-row P/L respecting BTO vs STO direction
+                let totalPL = 0;
+                rows.forEach(r => {
+                    const occ = buildOCCSymbol(r.symbol);
+                    const op = occ ? ocOptionPrices[occ] : null;
+                    const mv = op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
+                    totalPL += r.action === 'BTO' ? mv - r.premiumReceived : r.premiumReceived - mv;
+                });
+                const plColor = totalPL >= 0 ? posColor : negColor;
+                plHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${totalPL>=0?'+':'-'}$${Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
                 if (totalPremium > 0) {
-                    const pct = (1 - totalMV / totalPremium) * 100;
+                    const pct = (totalPL / totalPremium) * 100;
                     plPctHtml = `<span style="font-weight:700;font-size:0.9rem;color:${pct>=0?posColor:negColor};">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`;
                 }
             }
