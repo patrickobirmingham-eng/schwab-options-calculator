@@ -255,6 +255,22 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     #weeklyBreakdownTable  colgroup {
         display: none !important;
     }
+    /* Realized Gain/Loss modal mobile */
+    #rglModal {
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+    }
+    #rglInner {
+        position: relative !important;
+        left: auto !important; top: auto !important;
+        width: 100% !important; max-width: 100% !important;
+        height: auto !important; max-height: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 12px 10px !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
 }
 
 /* Open Commitments drag-to-reorder column highlight */
@@ -352,6 +368,7 @@ th.oc-drop-target {
         <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
         <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
         <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
+        <button onclick="showRealizedGainLoss()" style="background:#a855f7;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
     </div>
 
     <!-- Transaction Data Sorter Modal -->
@@ -424,6 +441,134 @@ th.oc-drop-target {
                     <tbody id="tsSorterBody"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- Realized Gain / Loss Modal -->
+    <div id="rglModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:flex-start; overflow-y:auto;">
+        <div id="rglInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color:#a855f7; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                    Realized Gain / Loss
+                </h2>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <button onclick="document.getElementById('rglFilePicker').click()" style="background:#a855f7;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 20h16" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg>
+                        Upload New File
+                    </button>
+                    <input type="file" id="rglFilePicker" accept=".csv,.xlsx" style="display:none">
+                    <button onclick="closeRgl()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+
+            <!-- Upload prompt (shown when no data) -->
+            <div id="rglUploadPrompt" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:340px; gap:20px;">
+                <div style="background:rgba(168,85,247,0.08); border:2px dashed #a855f7; border-radius:12px; padding:50px 60px; text-align:center; cursor:pointer;" onclick="document.getElementById('rglFilePicker').click()">
+                    <div style="font-size:3rem; margin-bottom:12px;">📈</div>
+                    <p style="font-size:1.2rem; color:var(--text-primary); font-weight:600; margin-bottom:8px;">Upload Realized Gain / Loss Transactions</p>
+                    <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:6px;">Schwab Realized Gain/Loss Lot Details CSV export</p>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:4px;">Columns: Symbol | Name | Closed Date | Opened Date | Quantity | Proceeds/Share | Cost/Share | Proceeds | Cost Basis | Gain/Loss ($) | Gain/Loss (%) | Term</p>
+                    <p style="font-size:0.85rem; color:var(--text-secondary);">Supports .csv and .xlsx files</p>
+                </div>
+                <p id="rglUploadedFileName" style="font-size:0.9rem; color:#a855f7; display:none;"></p>
+            </div>
+
+            <!-- Data section (shown after upload) -->
+            <div id="rglDataSection" style="display:none;">
+                <!-- Summary cards -->
+                <div id="rglSummarySection" style="margin-bottom:16px;">
+                    <div id="rglSummaryGrid" style="display:flex; flex-wrap:wrap; gap:12px; align-items:stretch; justify-content:center;"></div>
+                </div>
+
+                <!-- Filters -->
+                <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <!-- Term filter checkboxes -->
+                    <div style="margin-bottom:14px;">
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; text-align:center;">Term Filter</div>
+                        <div id="rglTermCheckboxes" style="display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center;">
+                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
+                                <input type="checkbox" value="Short Term" onchange="rglApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#f59e0b;"> Short Term
+                            </label>
+                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
+                                <input type="checkbox" value="Long Term" onchange="rglApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#38bdf8;"> Long Term
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Date + secondary filters row -->
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:center;">
+                        <div style="display:contents;">
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                                <select id="rglDatePreset" onchange="rglApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                                    <option value="all">All</option>
+                                    <option value="today">Today</option>
+                                    <option value="last7">Last 7 Days</option>
+                                    <option value="currentMonth">Current Month</option>
+                                    <option value="lastMonth">Last Month</option>
+                                    <option value="currentYear">Current Year</option>
+                                    <option value="lastYear">Last Year</option>
+                                    <option value="last3Months">Last 3 Months</option>
+                                    <option value="last6Months">Last 6 Months</option>
+                                    <option value="last12Months">Last 12 Months</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date (Transaction)</div>
+                                <input type="date" id="rglDateFrom" onchange="rglApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date (Transaction)</div>
+                                <input type="date" id="rglDateTo" onchange="rglApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                                <input type="text" id="rglSymbolSearch" placeholder="Search (e.g. ORCL, NVDA)" oninput="rglApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:185px;">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:flex-end;">
+                            <button onclick="rglReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                            <button onclick="showRglMonthlyDataTable()" style="background:#0891b2;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">📅 Monthly / Annual Data Table</button>
+                            <button onclick="rglDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date range bar -->
+                <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:8px; flex-wrap:wrap;">
+                    <div id="rglDateRangeBar" style="font-size:0.82rem; color:var(--text-secondary); font-weight:500; letter-spacing:0.03em;"></div>
+                </div>
+
+                <!-- Table -->
+                <div style="overflow-x:auto; overflow-y:auto; max-height:55vh; border-radius:8px;">
+                    <table id="rglSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
+                        <thead style="position:sticky; top:0; z-index:10;"><tr id="rglSorterHead"></tr></thead>
+                        <tbody id="rglSorterBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RGL Monthly Data Table Modal (z-index 1200 so it sits above rglModal at 1000) -->
+    <div id="rglMonthlyDataModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1200; justify-content:center; align-items:center;">
+        <div id="rglMonthlyDataInner" style="border-radius:16px; padding:24px; max-width:1500px; width:97vw; height:90vh; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color:#0891b2; font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                    <span style="color:#c084fc;">[-]</span> Monthly <span style="color:#c084fc;">/</span> <span style="color:#c084fc;">[+]</span> Annual Realized Gain / Loss Table
+                </h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="rglMdtExpandAll" onchange="rglMdtToggleExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#a855f7;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="rglMdtDownload()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download</button>
+                <button onclick="closeRglMonthlyDataTable()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="rglMonthlyDataTableContainer" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;"></div>
         </div>
     </div>
 
@@ -4615,6 +4760,590 @@ function tsDownload() {
     XLSX.utils.book_append_sheet(wb, ws, 'Filtered Results');
     XLSX.writeFile(wb, `transaction_sorter_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
+
+// ============================================================
+// REALIZED GAIN / LOSS SORTER
+// ============================================================
+// ============================================================
+// REALIZED GAIN / LOSS SORTER
+// ============================================================
+let rglData = [];
+let rglFiltered = [];
+let rglSortKey = 'parsedDate';
+let rglSortDir = -1;
+let rglMdtSavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0 };
+let rglMdtTableCache = null;
+
+const rglState = { checkedTerms:[], datePreset:'all', dateFrom:'', dateTo:'', symbolSearch:'' };
+
+// Helper: parse a date string like MM/DD/YYYY
+function rglParseDate(str) {
+    if (!str) return null;
+    if (str instanceof Date) return isNaN(str) ? null : str;
+    const s = String(str).trim();
+    const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mdy) return new Date(parseInt(mdy[3]), parseInt(mdy[1])-1, parseInt(mdy[2]));
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+}
+
+// Helper: strip $ , % from a string and return a float
+function rglCleanNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    const s = String(v).replace(/[$,%\s]/g,'');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+}
+
+function showRealizedGainLoss() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const inner = document.getElementById('rglInner');
+    inner.style.background = isDark ? '#1e293b' : '#ffffff';
+    inner.style.border = '1px solid #a855f7';
+    // Force same height as Transaction Data Sorter so initDraggableModal reads the right size
+    inner.style.minHeight = Math.round(window.innerHeight * 0.90) + 'px';
+
+    const modal = document.getElementById('rglModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeRgl(); };
+
+    if (rglData.length > 0) {
+        document.getElementById('rglUploadPrompt').style.display = 'none';
+        document.getElementById('rglDataSection').style.display = 'block';
+        rglRestoreState();
+        rglApplyFilters();
+    } else {
+        document.getElementById('rglUploadPrompt').style.display = 'flex';
+        document.getElementById('rglDataSection').style.display = 'none';
+    }
+
+    initDraggableModal('rglInner', '#a855f7', 1400);
+}
+
+function closeRgl() {
+    const _di = document.getElementById('rglInner'); if (_di) _di._dragInit = false;
+    rglSaveState();
+    document.getElementById('rglModal').style.display = 'none';
+    document.getElementById('rglMonthlyDataModal').style.display = 'none';
+}
+
+function rglSaveState() {
+    if (!document.getElementById('rglTermCheckboxes')) return;
+    rglState.checkedTerms = Array.from(document.querySelectorAll('#rglTermCheckboxes input:checked')).map(cb => cb.value);
+    rglState.datePreset = document.getElementById('rglDatePreset').value;
+    rglState.dateFrom = document.getElementById('rglDateFrom').value;
+    rglState.dateTo = document.getElementById('rglDateTo').value;
+    rglState.symbolSearch = document.getElementById('rglSymbolSearch').value;
+}
+
+function rglRestoreState() {
+    document.getElementById('rglDatePreset').value = rglState.datePreset || 'all';
+    document.getElementById('rglDateFrom').value = rglState.dateFrom || '';
+    document.getElementById('rglDateTo').value = rglState.dateTo || '';
+    document.getElementById('rglSymbolSearch').value = rglState.symbolSearch || '';
+    document.querySelectorAll('#rglTermCheckboxes input').forEach(cb => {
+        cb.checked = rglState.checkedTerms.includes(cb.value);
+    });
+}
+
+function rglApplyDatePreset() {
+    const preset = document.getElementById('rglDatePreset').value;
+    if (preset === 'all') {
+        document.getElementById('rglDateFrom').value = '';
+        document.getElementById('rglDateTo').value = '';
+    } else {
+        const today = new Date(); today.setHours(0,0,0,0);
+        let from, to;
+        switch(preset) {
+            case 'today':        from=new Date(today); to=new Date(today); break;
+            case 'last7':        from=new Date(today); from.setDate(today.getDate()-6); to=new Date(today); break;
+            case 'currentMonth': from=new Date(today.getFullYear(),today.getMonth(),1); to=new Date(today); break;
+            case 'lastMonth':    from=new Date(today.getFullYear(),today.getMonth()-1,1); to=new Date(today.getFullYear(),today.getMonth(),0); break;
+            case 'last3Months':  from=new Date(today); from.setMonth(today.getMonth()-3); to=new Date(today); break;
+            case 'last6Months':  from=new Date(today); from.setMonth(today.getMonth()-6); to=new Date(today); break;
+            case 'last12Months': from=new Date(today); from.setMonth(today.getMonth()-12); to=new Date(today); break;
+            case 'lastYear':     from=new Date(today.getFullYear()-1,0,1); to=new Date(today.getFullYear()-1,11,31); break;
+            case 'currentYear':  from=new Date(today.getFullYear(),0,1); to=new Date(today); break;
+        }
+        const fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        document.getElementById('rglDateFrom').value = fmtD(from);
+        document.getElementById('rglDateTo').value = fmtD(to);
+    }
+    rglApplyFilters();
+}
+
+function rglApplyFilters() {
+    const checkedTerms = Array.from(document.querySelectorAll('#rglTermCheckboxes input:checked')).map(cb => cb.value);
+    const totalTerms = document.querySelectorAll('#rglTermCheckboxes input').length;
+    const fromVal = document.getElementById('rglDateFrom').value;
+    const toVal = document.getElementById('rglDateTo').value;
+    const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    const toDate   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+    const searchTerms = (document.getElementById('rglSymbolSearch').value || '').split(',').map(t=>t.trim().toLowerCase()).filter(t=>t);
+
+    rglFiltered = rglData.filter(r => {
+        if (checkedTerms.length > 0 && checkedTerms.length < totalTerms) {
+            if (!checkedTerms.includes(r.Term || '')) return false;
+        }
+        if (r.parsedDate) {
+            if (fromDate && r.parsedDate < fromDate) return false;
+            if (toDate   && r.parsedDate > toDate)   return false;
+        }
+        if (searchTerms.length > 0) {
+            const haystack = [
+                (r.Symbol||'').toLowerCase(),
+                (r.Name||'').toLowerCase(),
+                (r['Closed Date']||'').toLowerCase(),
+                (r['Opened Date']||'').toLowerCase(),
+                (r.Term||'').toLowerCase(),
+                String(r.Quantity||'').toLowerCase(),
+                String(r['Gain/Loss ($)']||'').toLowerCase(),
+                String(r['Gain/Loss (%)']||'').toLowerCase(),
+                String(r.Proceeds||'').toLowerCase(),
+                String(r['Cost Basis (CB)']||'').toLowerCase(),
+            ];
+            if (!searchTerms.some(t => haystack.some(h => h.includes(t)))) return false;
+        }
+        return true;
+    });
+    rglRenderSummary();
+    rglRenderTable();
+}
+
+function rglReset() {
+    document.querySelectorAll('#rglTermCheckboxes input').forEach(cb => cb.checked = false);
+    document.getElementById('rglDatePreset').value = 'all';
+    document.getElementById('rglDateFrom').value = '';
+    document.getElementById('rglDateTo').value = '';
+    document.getElementById('rglSymbolSearch').value = '';
+    Object.assign(rglState,{checkedTerms:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
+    rglFiltered = [...rglData];
+    rglSortKey = 'parsedDate'; rglSortDir = -1;
+    rglRenderSummary(); rglRenderTable();
+}
+
+function rglRenderSummary() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const cardBg = isDark ? '#0f172a' : '#f8fafc';
+    const fmt = n => (n<0?'-$':'$')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Date range bar from full dataset
+    const dates = rglData.map(r=>r.parsedDate).filter(Boolean);
+    if (dates.length > 0) {
+        const min = new Date(Math.min(...dates.map(d=>d.getTime())));
+        const max = new Date(Math.max(...dates.map(d=>d.getTime())));
+        const fd = d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+        document.getElementById('rglDateRangeBar').innerHTML =
+            `<span style="display:inline-flex;align-items:center;gap:6px;">Available Transaction Date Range: <span style="color:var(--text-primary);font-weight:600;">${fd(min)}</span><span style="font-size:2em;line-height:1;position:relative;top:-0.05em;">→</span><span style="color:var(--text-primary);font-weight:600;">${fd(max)}</span></span>`;
+    } else {
+        document.getElementById('rglDateRangeBar').innerHTML = '';
+    }
+
+    const totalGL   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Gain/Loss ($)']),0);
+    const totalST   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Short Term Gain/Loss']),0);
+    const totalLT   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Long Term Gain/Loss']),0);
+    const totalProc = rglFiltered.reduce((s,r)=>s+rglCleanNum(r.Proceeds),0);
+    const totalCB   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Cost Basis (CB)']),0);
+    const totalRows = rglFiltered.length;
+
+    const card = (label, val, color) =>
+        `<div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:130px;">
+            <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${label}</div>
+            <div style="font-size:1.2rem;font-weight:bold;color:${color};">${val}</div>
+         </div>`;
+
+    document.getElementById('rglSummaryGrid').innerHTML =
+        card('Total Gain / Loss', fmt(totalGL), totalGL>=0?'#a855f7':'#ef4444') +
+        card('Short Term G/L', fmt(totalST), totalST>=0?'#f59e0b':'#ef4444') +
+        card('Long Term G/L', fmt(totalLT), totalLT>=0?'#38bdf8':'#ef4444') +
+        card('Total Proceeds', fmt(totalProc), '#10b981') +
+        card('Total Cost Basis', fmt(totalCB), isDark?'#94a3b8':'#475569') +
+        card('Total Rows', totalRows.toLocaleString(), '#a855f7');
+}
+
+function rglSortBy(key) {
+    if (rglSortKey === key) rglSortDir *= -1;
+    else { rglSortKey = key; rglSortDir = 1; }
+    rglRenderTable();
+}
+
+function rglRenderTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const posColor = isDark ? '#c084fc' : '#9333ea';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+
+    const cols = [
+        { lab:'Transaction Date', key:'parsedDate' },
+        { lab:'Closed Date',      key:'parsedClosedDate' },
+        { lab:'Opened Date',      key:'parsedOpenDate' },
+        { lab:'Symbol',           key:'Symbol' },
+        { lab:'Name',             key:'Name' },
+        { lab:'Qty',              key:'Quantity' },
+        { lab:'Proceeds/Share',   key:'Proceeds Per Share' },
+        { lab:'Cost/Share',       key:'Cost Per Share' },
+        { lab:'Proceeds',         key:'Proceeds' },
+        { lab:'Cost Basis',       key:'Cost Basis (CB)' },
+        { lab:'Gain/Loss ($)',    key:'Gain/Loss ($)' },
+        { lab:'Gain/Loss (%)',    key:'Gain/Loss (%)' },
+        { lab:'Term',             key:'Term' },
+        { lab:'Wash Sale?',       key:'Wash Sale?' },
+    ];
+
+    const arrow = key => rglSortKey===key ? (rglSortDir===1?' ▲':' ▼') : ' ↕';
+    const thStyle = `background:${thBg};color:#a855f7;padding:10px 8px;text-align:center;font-size:0.78rem;border-bottom:2px solid #a855f7;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10;`;
+
+    document.getElementById('rglSorterHead').innerHTML = cols.map(c =>
+        `<th onclick="rglSortBy('${c.key}')" style="${thStyle}">${c.lab}${arrow(c.key)}</th>`
+    ).join('');
+
+    const sorted = [...rglFiltered].sort((a,b) => {
+        let v1, v2;
+        if (['parsedDate','parsedClosedDate','parsedOpenDate'].includes(rglSortKey)) {
+            v1=a[rglSortKey]?.getTime()||0; v2=b[rglSortKey]?.getTime()||0;
+        } else if (['Quantity','Proceeds Per Share','Cost Per Share','Proceeds','Cost Basis (CB)','Gain/Loss ($)','Gain/Loss (%)'].includes(rglSortKey)) {
+            v1=rglCleanNum(a[rglSortKey]); v2=rglCleanNum(b[rglSortKey]);
+        } else { v1=(a[rglSortKey]||'').toString().toLowerCase(); v2=(b[rglSortKey]||'').toString().toLowerCase(); }
+        return v1<v2 ? -rglSortDir : v1>v2 ? rglSortDir : 0;
+    });
+
+    const fmtAmt = n => (n>=0?'$':'-$')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtDate = d => d ? `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}` : '';
+    const tdBase = `padding:8px;border-bottom:1px solid ${borderColor};font-size:0.8rem;text-align:center;`;
+
+    document.getElementById('rglSorterBody').innerHTML = sorted.map((r,i) => {
+        const bg = i%2===0 ? rowBg : rowAltBg;
+        const gl = rglCleanNum(r['Gain/Loss ($)']);
+        const glColor = gl>=0 ? posColor : negColor;
+        const glPct = String(r['Gain/Loss (%)']||'').replace(/%/g,'');
+        const glPctNum = parseFloat(glPct);
+        const glPctColor = glPctNum>=0 ? posColor : negColor;
+        const termColor = (r.Term||'').includes('Long') ? '#38bdf8' : '#f59e0b';
+        const pps = rglCleanNum(r['Proceeds Per Share']);
+        const cps = rglCleanNum(r['Cost Per Share']);
+        const proc = rglCleanNum(r.Proceeds);
+        const cb = rglCleanNum(r['Cost Basis (CB)']);
+        const washSale = (r['Wash Sale?']||'').trim();
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:#c084fc;white-space:nowrap;font-weight:600;">${fmtDate(r.parsedDate)}</td>
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${fmtDate(r.parsedClosedDate)}</td>
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${fmtDate(r.parsedOpenDate)}</td>
+            <td style="${tdBase}color:${textColor};font-weight:600;">${r.Symbol||''}</td>
+            <td style="${tdBase}color:${textColor};max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.Name||'').replace(/"/g,'&quot;')}">${r.Name||''}</td>
+            <td style="${tdBase}color:${textColor};">${r.Quantity||''}</td>
+            <td style="${tdBase}color:${textColor};">${pps!==0?'$'+Math.abs(pps).toFixed(2):''}</td>
+            <td style="${tdBase}color:${textColor};">${cps!==0?'$'+Math.abs(cps).toFixed(2):''}</td>
+            <td style="${tdBase}color:${proc>=0?posColor:negColor};font-weight:600;">${proc!==0?fmtAmt(proc):''}</td>
+            <td style="${tdBase}color:${textColor};">${cb!==0?fmtAmt(cb):''}</td>
+            <td style="${tdBase}color:${glColor};font-weight:700;">${gl!==0?fmtAmt(gl):''}</td>
+            <td style="${tdBase}color:${glPctColor};font-weight:600;">${!isNaN(glPctNum)?glPctNum.toFixed(2)+'%':''}</td>
+            <td style="${tdBase}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${termColor};color:#000;font-weight:600;">${r.Term||''}</span></td>
+            <td style="${tdBase}color:${washSale==='Yes'?'#ef4444':textColor};">${washSale}</td>
+        </tr>`;
+    }).join('');
+}
+
+function rglDownload() {
+    if (!rglFiltered.length) { alert('No data to download.'); return; }
+    const exportRows = rglFiltered.map(r => ({
+        'Symbol':              r.Symbol||'',
+        'Name':                r.Name||'',
+        'Closed Date':         r.parsedDate ? `${String(r.parsedDate.getMonth()+1).padStart(2,'0')}/${String(r.parsedDate.getDate()).padStart(2,'0')}/${r.parsedDate.getFullYear()}` : '',
+        'Opened Date':         r.parsedOpenDate ? `${String(r.parsedOpenDate.getMonth()+1).padStart(2,'0')}/${String(r.parsedOpenDate.getDate()).padStart(2,'0')}/${r.parsedOpenDate.getFullYear()}` : '',
+        'Quantity':            r.Quantity||'',
+        'Proceeds Per Share':  r['Proceeds Per Share']||'',
+        'Cost Per Share':      r['Cost Per Share']||'',
+        'Proceeds':            r.Proceeds||'',
+        'Cost Basis (CB)':     r['Cost Basis (CB)']||'',
+        'Gain/Loss ($)':       r['Gain/Loss ($)']||'',
+        'Gain/Loss (%)':       r['Gain/Loss (%)']||'',
+        'Long Term Gain/Loss': r['Long Term Gain/Loss']||'',
+        'Short Term Gain/Loss':r['Short Term Gain/Loss']||'',
+        'Term':                r.Term||'',
+        'Wash Sale?':          r['Wash Sale?']||'',
+        'Disallowed Loss':     r['Disallowed Loss']||'',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Realized Gain Loss');
+    XLSX.writeFile(wb, `realized_gain_loss_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── RGL Monthly / Annual Data Table ──────────────────────────
+const RGL_MDT_COLS = [
+    { key:'gainLoss',  label:'Gain / Loss ($)',        color:'#c084fc' },
+    { key:'stGL',      label:'Short Term G/L ($)',      color:'#f59e0b' },
+    { key:'ltGL',      label:'Long Term G/L ($)',       color:'#38bdf8' },
+    { key:'proceeds',  label:'Proceeds ($)',            color:'#10b981' },
+    { key:'costBasis', label:'Cost Basis ($)',          color:'#94a3b8' },
+    { key:'trades',    label:'# of Trades',            color:'#a855f7' },
+];
+
+function showRglMonthlyDataTable() {
+    if (!rglData.length) { alert('No data loaded.'); return; }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg   = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg      = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg     = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg  = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg= isDark ? '#334155' : '#e2e8f0';
+    const borderColor= isDark ? '#334155' : '#cbd5e1';
+    const posColor  = isDark ? '#c084fc' : '#9333ea';
+    const negColor  = isDark ? '#f87171' : '#dc2626';
+
+    const inner = document.getElementById('rglMonthlyDataInner');
+    inner.style.background = modalBg;
+    inner.style.border = '1px solid #a855f7';
+
+    // Build month aggregates
+    const monthSet = new Set();
+    rglFiltered.forEach(r => {
+        if (r.parsedDate) {
+            const y=r.parsedDate.getFullYear(), m=r.parsedDate.getMonth();
+            monthSet.add(`${y}-${String(m).padStart(2,'0')}`);
+        }
+    });
+    const allMonths = [...monthSet].sort().reverse();
+    const uniqueYears = [...new Set(allMonths.map(k=>parseInt(k.split('-')[0])))].sort((a,b)=>b-a);
+    const currentYear = new Date().getFullYear();
+
+    const defaultExpandedYears = rglMdtSavedState.expandedYears
+        ? new Set(rglMdtSavedState.expandedYears)
+        : new Set([String(currentYear), String(currentYear-1)]);
+
+    const monthData = {};
+    rglFiltered.forEach(r => {
+        if (!r.parsedDate) return;
+        const y=r.parsedDate.getFullYear(), m=r.parsedDate.getMonth();
+        const key=`${y}-${String(m).padStart(2,'0')}`;
+        if (!monthData[key]) monthData[key]={gainLoss:0,stGL:0,ltGL:0,proceeds:0,costBasis:0,trades:0};
+        monthData[key].gainLoss   += rglCleanNum(r['Gain/Loss ($)']);
+        monthData[key].stGL       += rglCleanNum(r['Short Term Gain/Loss']);
+        monthData[key].ltGL       += rglCleanNum(r['Long Term Gain/Loss']);
+        monthData[key].proceeds   += rglCleanNum(r.Proceeds);
+        monthData[key].costBasis  += rglCleanNum(r['Cost Basis (CB)']);
+        monthData[key].trades     += 1;
+    });
+
+    const yearData = {};
+    uniqueYears.forEach(y => {
+        yearData[y]={gainLoss:0,stGL:0,ltGL:0,proceeds:0,costBasis:0,trades:0};
+        Object.keys(monthData).forEach(k => {
+            if (parseInt(k.split('-')[0])===y) {
+                RGL_MDT_COLS.forEach(c => { yearData[y][c.key]+=monthData[k][c.key]||0; });
+            }
+        });
+    });
+
+    const grandTotals={gainLoss:0,stGL:0,ltGL:0,proceeds:0,costBasis:0,trades:0};
+    Object.values(monthData).forEach(md => { RGL_MDT_COLS.forEach(c=>{grandTotals[c.key]+=md[c.key]||0;}); });
+
+    rglMdtTableCache = { allMonths, monthData, yearData, grandTotals, uniqueYears };
+
+    const fmtAmt = n => {
+        if (n===0) return '<span style="color:#64748b;">—</span>';
+        return `<span style="color:${n>0?posColor:negColor};font-weight:600;">${n>=0?'$':'-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+    };
+    const fmtTotal = n => n===0 ? '—' : `${n>=0?'$':'-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    const fmtCount = n => n===0?'<span style="color:#64748b;">—</span>':`<span style="color:#a855f7;font-weight:600;">${n}</span>`;
+    const fmtCountTotal = n => n===0?'—':String(n);
+
+    const fmtMonthLabel = key => {
+        const [y,m]=key.split('-');
+        return new Date(parseInt(y),parseInt(m),1).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    };
+
+    const expandedYears = new Set(rglMdtSavedState.expandAllChecked ? uniqueYears.map(String) : [...defaultExpandedYears]);
+
+    const thStyle   = `background:${thBg};padding:10px 12px;text-align:center;font-size:0.78rem;border-bottom:2px solid #a855f7;white-space:nowrap;position:sticky;top:0;z-index:10;`;
+    const yearStyle = `padding:12px 14px;font-size:0.85rem;font-weight:700;text-align:center;cursor:pointer;user-select:none;border-bottom:1px solid ${borderColor};`;
+    const tdStyle   = `padding:10px 12px;border-bottom:1px solid ${borderColor};font-size:0.82rem;text-align:center;`;
+
+    const buildTable = (expandedSet) => {
+        let html='';
+        uniqueYears.forEach(y => {
+            const yd=yearData[y]||{};
+            const expanded=expandedSet.has(String(y));
+            const icon=expanded?'▼':'▶';
+            html+=`<tr data-year-row="${y}" onclick="rglMdtToggleYear(${y})" style="background:${isDark?'#1e293b':'#f1f5f9'};">
+                <td style="${yearStyle}color:#a855f7;">${icon} ${y}</td>
+                ${RGL_MDT_COLS.map(c=>c.key==='trades'
+                    ? `<td style="${yearStyle}color:#a855f7;">${yd[c.key]||0}</td>`
+                    : `<td style="${yearStyle}${c.key==='gainLoss'?'color:'+(yd[c.key]>=0?posColor:negColor)+';':''}">${fmtTotal(yd[c.key]||0)}</td>`
+                ).join('')}
+            </tr>`;
+            if (expanded) {
+                allMonths.filter(k=>parseInt(k.split('-')[0])===y).forEach((key,mi) => {
+                    const md=monthData[key]||{};
+                    const mbg = mi%2===0 ? rowBg : rowAltBg;
+                    html+=`<tr style="background:${mbg};">
+                        <td style="${tdStyle}color:${textColor};padding-left:28px;">${fmtMonthLabel(key)}</td>
+                        ${RGL_MDT_COLS.map(c=>c.key==='trades'?`<td style="${tdStyle}">${fmtCount(md[c.key]||0)}</td>`:`<td style="${tdStyle}">${fmtAmt(md[c.key]||0)}</td>`).join('')}
+                    </tr>`;
+                });
+            }
+        });
+        // Grand total row
+        html+=`<tr style="background:${totalRowBg};font-weight:700;">
+            <td style="padding:12px 14px;text-align:center;font-size:0.85rem;color:#a855f7;">TOTAL</td>
+            ${RGL_MDT_COLS.map(c=>c.key==='trades'
+                ? `<td style="padding:12px 14px;font-size:0.85rem;text-align:center;color:#a855f7;">${fmtCountTotal(grandTotals[c.key]||0)}</td>`
+                : `<td style="padding:12px 14px;font-size:0.85rem;text-align:center;color:${(grandTotals[c.key]||0)>=0?posColor:negColor};">${fmtTotal(grandTotals[c.key]||0)}</td>`
+            ).join('')}
+        </tr>`;
+        return html;
+    };
+
+    const colWidths = ['18%','14%','14%','14%','14%','13%','13%'];
+    const tblStyle  = `width:100%;border-collapse:collapse;font-size:0.83rem;table-layout:fixed;`;
+
+    document.getElementById('rglMonthlyDataTableContainer').innerHTML = `
+        <div style="overflow:auto;flex:1;border:1px solid ${borderColor};border-radius:8px;">
+        <table id="rglMdtTable" style="${tblStyle}">
+            <colgroup>${colWidths.map(w=>`<col style="width:${w}">`).join('')}</colgroup>
+            <thead><tr>
+                <th style="${thStyle}color:#a855f7;">Month / Year</th>
+                ${RGL_MDT_COLS.map(c=>`<th style="${thStyle}color:${c.color};">${c.label}</th>`).join('')}
+            </tr></thead>
+            <tbody id="rglMdtBody">${buildTable(expandedYears)}</tbody>
+        </table>
+        </div>`;
+
+    // Attach toggle function inline
+    window.rglMdtToggleYear = function(year) {
+        if (expandedYears.has(String(year))) expandedYears.delete(String(year));
+        else expandedYears.add(String(year));
+        rglMdtSavedState.expandedYears = [...expandedYears];
+        document.getElementById('rglMdtBody').innerHTML = buildTable(expandedYears);
+    };
+
+    const modal = document.getElementById('rglMonthlyDataModal');
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target===modal) closeRglMonthlyDataTable(); };
+
+    // Restore expand-all checkbox
+    const cb = document.getElementById('rglMdtExpandAll');
+    if (cb) cb.checked = rglMdtSavedState.expandAllChecked;
+
+    initDraggableModal('rglMonthlyDataInner','#a855f7',1500);
+}
+
+function closeRglMonthlyDataTable() {
+    const _di=document.getElementById('rglMonthlyDataInner'); if(_di) _di._dragInit=false;
+    document.getElementById('rglMonthlyDataModal').style.display='none';
+}
+
+function rglMdtToggleExpandAll(checked) {
+    rglMdtSavedState.expandAllChecked = checked;
+    if (!rglMdtTableCache) return;
+    const {allMonths, monthData, yearData, grandTotals, uniqueYears} = rglMdtTableCache;
+    const expandedYears = checked ? new Set(uniqueYears.map(String)) : new Set();
+    if (!checked) rglMdtSavedState.expandedYears = [];
+    // Re-open the modal to re-render
+    showRglMonthlyDataTable();
+}
+
+function rglMdtDownload() {
+    if (!rglMdtTableCache) { alert('No data to download.'); return; }
+    const {allMonths, monthData, yearData, grandTotals, uniqueYears} = rglMdtTableCache;
+    const fmtML = key => { const [y,m]=key.split('-'); return new Date(parseInt(y),parseInt(m),1).toLocaleDateString('en-US',{month:'short',year:'numeric'}); };
+    const fmtV  = n => n===0 ? '' : parseFloat(n.toFixed(2));
+    const headers = ['Month / Year', ...RGL_MDT_COLS.map(c=>c.label)];
+    const dataRows = allMonths.map(key => {
+        const md=monthData[key]||{};
+        return [fmtML(key), ...RGL_MDT_COLS.map(c=>fmtV(md[c.key]||0))];
+    });
+    const totalRow = ['TOTAL', ...RGL_MDT_COLS.map(c=>fmtV(grandTotals[c.key]||0))];
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([headers,...dataRows,totalRow]);
+    ws['!cols']=[{wch:14},...RGL_MDT_COLS.map(()=>({wch:20}))];
+    XLSX.utils.book_append_sheet(wb,ws,'Monthly Realized GL');
+    XLSX.writeFile(wb,`realized_gain_loss_monthly_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── File parsing for RGL ──────────────────────────────────────
+(function() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const picker = document.getElementById('rglFilePicker');
+        if (!picker) return;
+        picker.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            document.getElementById('rglUploadedFileName').textContent = '📄 ' + file.name;
+            document.getElementById('rglUploadedFileName').style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type:'array', cellDates:true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                    // sheet_to_json with header:1 gives us raw rows as arrays
+                    const rawRows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+
+                    // Find the header row — the one that contains "Symbol" and "Closed Date"
+                    let headerIdx = -1;
+                    for (let i=0; i<Math.min(rawRows.length,10); i++) {
+                        const row = rawRows[i].map(c=>String(c).trim());
+                        if (row.includes('Symbol') && (row.includes('Closed Date') || row.includes('Gain/Loss ($)'))) {
+                            headerIdx = i; break;
+                        }
+                    }
+                    if (headerIdx === -1) headerIdx = 1; // fallback: row 1 is header (row 0 is title)
+
+                    const headers = rawRows[headerIdx].map(c=>String(c).trim());
+                    const dataRows = rawRows.slice(headerIdx+1);
+
+                    rglData = dataRows
+                        .map(row => {
+                            if (!row || row.every(c=>c===''||c===null||c===undefined)) return null;
+                            const r = {};
+                            headers.forEach((h,i) => { r[h] = row[i] !== undefined ? String(row[i]).trim() : ''; });
+                            r.parsedDate     = rglParseDate(r['Transaction Closed Date'] || r['Closed Date']);
+                            r.parsedClosedDate = rglParseDate(r['Closed Date']);
+                            r.parsedOpenDate = rglParseDate(r['Opened Date']);
+                            // Strip currency symbols/commas for numeric fields
+                            ['Proceeds Per Share','Cost Per Share','Proceeds','Cost Basis (CB)',
+                             'Gain/Loss ($)','Long Term Gain/Loss','Short Term Gain/Loss',
+                             'Unadjusted Cost Basis','Disallowed Loss'].forEach(k => {
+                                if (r[k]) r[k] = r[k].replace(/[$,\s]/g,'');
+                            });
+                            return r;
+                        })
+                        .filter(r => r && r.Symbol && r.Symbol.trim() !== '');
+
+                    rglFiltered = [...rglData];
+                    rglSortKey = 'parsedDate'; rglSortDir = -1;
+                    Object.assign(rglState,{checkedTerms:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
+                    rglMdtSavedState = { expandedYears:null, expandAllChecked:false, scrollTop:0 };
+
+                    document.getElementById('rglUploadPrompt').style.display = 'none';
+                    document.getElementById('rglDataSection').style.display = 'block';
+
+                    rglApplyFilters();
+
+                    const inner = document.getElementById('rglInner');
+                    if (inner) {
+                        inner._dragInit = false;
+                        inner.style.minHeight = Math.round(window.innerHeight * 0.90) + 'px';
+                    }
+                    initDraggableModal('rglInner','#a855f7',1400);
+                } catch(err) {
+                    alert('Error reading file: ' + err.message);
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            this.value = '';
+        });
+    });
+})();
 
 // ============================================================
 // DRAG + RESIZE UTILITY FOR MODAL WINDOWS
