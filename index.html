@@ -1616,34 +1616,122 @@ function downloadWeeklySummary() {
 function downloadOpenCommitments() {
     if (!ocParsedRows.length) { alert('No open commitments data.'); return; }
     const fmtN = n => n !== 0 ? +n.toFixed(2) : '';
+
+    // ── Bull Put Spread detection (mirrors renderOpenCommitmentsTable) ───────
+    const filtered = ocParsedRows;
+    const usedIndices = new Set();
+    const displayItems = [];
+    for (let i = 0; i < filtered.length; i++) {
+        if (usedIndices.has(i)) continue;
+        const a = filtered[i];
+        let matched = -1;
+        if (a.type === 'Put') {
+            const tickerA = extractTicker(a.symbol);
+            const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            for (let j = i + 1; j < filtered.length; j++) {
+                if (usedIndices.has(j)) continue;
+                const b = filtered[j];
+                if (b.type !== 'Put') continue;
+                if (extractTicker(b.symbol) !== tickerA) continue;
+                const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+                if (expB !== expA) continue;
+                if (b.contracts !== a.contracts) continue;
+                const isPair = (a.action === 'STO' && b.action === 'BTO') || (a.action === 'BTO' && b.action === 'STO');
+                if (!isPair) continue;
+                matched = j;
+                break;
+            }
+        }
+        if (matched !== -1) {
+            const b = filtered[matched];
+            const sto = a.action === 'STO' ? a : b;
+            const bto = a.action === 'BTO' ? a : b;
+            const spreadNetPremium = sto.premiumReceived - bto.premiumReceived;
+            const spreadMaxLoss = (sto.strike - bto.strike) * sto.contracts * 100 - spreadNetPremium;
+            displayItems.push({ kind: 'spread', sto, bto, spreadMaxLoss });
+            usedIndices.add(i);
+            usedIndices.add(matched);
+        } else {
+            displayItems.push({ kind: 'standalone', row: a });
+            usedIndices.add(i);
+        }
+    }
+
+    // ── Build download rows ──────────────────────────────────────────────────
     const headers = ['Date','Symbol','Strike Date','Action','DTE','Strike Price',
                      'Current Price','Assignment Price','% From Strike','OTM/ITM',
                      'Put or Call','# Contracts','Premium','Market Value','P/L','P/L %',
                      'Commitments (Puts)','Commitments (Calls)'];
     const rows = [headers];
-    ocParsedRows.forEach(r => {
-        const ticker = extractTicker(r.symbol);
-        const pd = ocStockPrices[ticker];
-        const occ = buildOCCSymbol(r.symbol);
-        const op = occ ? ocOptionPrices[occ] : null;
-        const currentPrice = pd && !pd.loading && !pd.error ? +pd.price.toFixed(2) : '';
-        const mv = op && !op.loading && !op.error && op.price ? +(op.price * r.contracts * 100).toFixed(2) : '';
-        const pl = mv !== '' ? +(r.premiumReceived - mv).toFixed(2) : '';
-        const plPct = mv !== '' && r.premiumReceived !== 0 ? +((1 - mv / r.premiumReceived) * 100).toFixed(2) : '';
-        const ap = r.type === 'Put' && r.contracts > 0 ? +(r.strike - (r.premiumReceived / (r.contracts * 100))).toFixed(2) : '';
-        const pfs = ap !== '' && pd && !pd.loading && !pd.error && pd.price
-            ? +((1 - ap / pd.price) * 100).toFixed(2) : '';
-        const otm = pd && !pd.loading && !pd.error && pd.price
-            ? (r.type==='Put' ? (pd.price>r.strike?'OTM':'ITM') : r.type==='Call' ? (pd.price<r.strike?'OTM':'ITM') : '') : '';
-        rows.push([
-            r.date, r.symbol, r.strikeDate, r.action,
-            r.dte !== '' ? r.dte : '', r.strike ? +r.strike.toFixed(2) : '',
-            currentPrice, ap, pfs !== '' ? pfs + '%' : '', otm,
-            r.type, r.contracts,
-            fmtN(r.premiumReceived), mv, pl, plPct !== '' ? plPct + '%' : '',
-            fmtN(r.putCommitment), fmtN(r.callCommitment)
-        ]);
+
+    displayItems.forEach(item => {
+        if (item.kind === 'spread') {
+            // Bull Put Spread — output one summary row using max loss as commitment
+            const { sto, bto, spreadMaxLoss } = item;
+            const ticker = extractTicker(sto.symbol);
+            const pd = ocStockPrices[ticker];
+            const stoOcc = buildOCCSymbol(sto.symbol);
+            const btoOcc = buildOCCSymbol(bto.symbol);
+            const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+            const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+            const currentPrice = pd && !pd.loading && !pd.error ? +pd.price.toFixed(2) : '';
+            const netPremium = sto.premiumReceived - bto.premiumReceived;
+            const breakeven = +(sto.strike - (netPremium / (sto.contracts * 100))).toFixed(2);
+            const pfsBreakeven = currentPrice !== '' ? +((currentPrice / breakeven - 1) * 100).toFixed(2) : '';
+            const otm = currentPrice !== '' ? (currentPrice > sto.strike ? 'OTM' : 'ITM') : '';
+            let mv = '', pl = '', plPct = '';
+            if (stoOp && btoOp && !stoOp.loading && !btoOp.loading && !stoOp.error && !btoOp.error && stoOp.price && btoOp.price) {
+                mv = +((stoOp.price - btoOp.price) * sto.contracts * 100).toFixed(2);
+                pl = +(netPremium - mv).toFixed(2);
+                plPct = netPremium !== 0 ? +((1 - mv / netPremium) * 100).toFixed(2) : '';
+            }
+            rows.push([
+                sto.date,
+                `${ticker} BPS ${sto.strike}/${bto.strike}`,
+                sto.strikeDate,
+                'BPS',
+                sto.dte !== '' ? sto.dte : '',
+                `${sto.strike.toFixed(2)} / ${bto.strike.toFixed(2)}`,
+                currentPrice,
+                breakeven,
+                pfsBreakeven !== '' ? pfsBreakeven + '%' : '',
+                otm,
+                'Put',
+                sto.contracts,
+                fmtN(netPremium),
+                mv,
+                pl,
+                plPct !== '' ? plPct + '%' : '',
+                fmtN(spreadMaxLoss),   // ← Max Loss (not STO+BTO sum)
+                ''
+            ]);
+        } else {
+            // Standalone row — unchanged behaviour
+            const r = item.row;
+            const ticker = extractTicker(r.symbol);
+            const pd = ocStockPrices[ticker];
+            const occ = buildOCCSymbol(r.symbol);
+            const op = occ ? ocOptionPrices[occ] : null;
+            const currentPrice = pd && !pd.loading && !pd.error ? +pd.price.toFixed(2) : '';
+            const mv = op && !op.loading && !op.error && op.price ? +(op.price * r.contracts * 100).toFixed(2) : '';
+            const pl = mv !== '' ? +(r.premiumReceived - mv).toFixed(2) : '';
+            const plPct = mv !== '' && r.premiumReceived !== 0 ? +((1 - mv / r.premiumReceived) * 100).toFixed(2) : '';
+            const ap = r.type === 'Put' && r.contracts > 0 ? +(r.strike - (r.premiumReceived / (r.contracts * 100))).toFixed(2) : '';
+            const pfs = ap !== '' && pd && !pd.loading && !pd.error && pd.price
+                ? +((1 - ap / pd.price) * 100).toFixed(2) : '';
+            const otm = pd && !pd.loading && !pd.error && pd.price
+                ? (r.type==='Put' ? (pd.price>r.strike?'OTM':'ITM') : r.type==='Call' ? (pd.price<r.strike?'OTM':'ITM') : '') : '';
+            rows.push([
+                r.date, r.symbol, r.strikeDate, r.action,
+                r.dte !== '' ? r.dte : '', r.strike ? +r.strike.toFixed(2) : '',
+                currentPrice, ap, pfs !== '' ? pfs + '%' : '', otm,
+                r.type, r.contracts,
+                fmtN(r.premiumReceived), mv, pl, plPct !== '' ? plPct + '%' : '',
+                fmtN(r.putCommitment), fmtN(r.callCommitment)
+            ]);
+        }
     });
+
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{wch:12},{wch:28},{wch:12},{wch:8},{wch:6},{wch:10},
