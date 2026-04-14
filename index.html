@@ -5128,7 +5128,7 @@ function rglRenderTable() {
             <td style="${tdBase}color:${proc>=0?posColor:negColor};font-weight:600;">${proc!==0?fmtAmt(proc):''}</td>
             <td style="${tdBase}color:${textColor};">${cb!==0?fmtAmt(cb):''}</td>
             <td style="${tdBase}color:${glColor};font-weight:700;">${gl!==0?fmtAmt(gl):''}</td>
-            <td style="${tdBase}color:${glPctColor};font-weight:600;">${!isNaN(glPctNum)?glPctNum.toFixed(2)+'%':''}</td>
+            <td style="${tdBase}color:${glPctColor};font-weight:600;">${!isNaN(glPctNum)?(glPctNum*100).toFixed(2)+'%':''}</td>
             <td style="${tdBase}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${termColor};color:#000;font-weight:600;">${r.Term||''}</span></td>
             <td style="${tdBase}color:${washSale==='Yes'?'#ef4444':textColor};">${washSale}</td>
         </tr>`;
