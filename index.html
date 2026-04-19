@@ -485,6 +485,26 @@ th.oc-drop-target {
                     <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
                     <input type="date" id="tickerDateTo" onchange="tickerApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
                 </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Ticker</div>
+                    <input type="text" id="tickerSearchBox" oninput="tickerRefresh()" placeholder="e.g. AAPL" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:140px;">
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Strategy</div>
+                    <select id="tickerStrategyFilter" onchange="tickerRefresh()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                        <option value="all">All Strategies</option>
+                        <option value="CSP">Cash-Secured Put</option>
+                        <option value="CC">Covered Call</option>
+                        <option value="BPS">Bull Put Spread</option>
+                        <option value="BCS">Bear Call Spread</option>
+                        <option value="BULL_CALL">Bull Call Spread</option>
+                        <option value="BEAR_PUT">Bear Put Spread</option>
+                        <option value="IC">Iron Condor</option>
+                        <option value="LP">Long Put</option>
+                        <option value="LC">Long Call</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
                 <button onclick="tickerResetFilters()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
                 <div id="tickerDateRangeBar" style="font-size:0.8rem; color:var(--text-secondary); align-self:center; font-style:italic;"></div>
             </div>
@@ -492,6 +512,11 @@ th.oc-drop-target {
             <div id="tickerSummaryPills" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
             <!-- Chart -->
             <div style="margin-bottom:24px; background:var(--bg-primary); border-radius:12px; padding:16px; border:1px solid var(--border-color);">
+                <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                    <button id="tickerChartModeBtn_byTicker"   onclick="setTickerChartMode('byTicker')"   class="ticker-chart-mode-btn active" style="background:#6d28d9;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.82rem;">P&amp;L by Ticker</button>
+                    <button id="tickerChartModeBtn_cumulative" onclick="setTickerChartMode('cumulative')" class="ticker-chart-mode-btn"        style="background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.82rem;">Cumulative P&amp;L</button>
+                    <button id="tickerChartModeBtn_byDTE"      onclick="setTickerChartMode('byDTE')"      class="ticker-chart-mode-btn"        style="background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.82rem;">Win Rate by DTE</button>
+                </div>
                 <canvas id="tickerChart" style="max-height:360px;"></canvas>
             </div>
             <!-- Table -->
@@ -505,6 +530,7 @@ th.oc-drop-target {
                             <th onclick="sortTickerTable('totalPL')" style="padding:12px 14px; text-align:right;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Total P&amp;L ↕</th>
                             <th onclick="sortTickerTable('premCaptured')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">% Premium<br>Captured ↕</th>
                             <th onclick="sortTickerTable('avgPrem')" style="padding:12px 14px; text-align:right;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Avg Premium ↕</th>
+                            <th onclick="sortTickerTable('roc')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;" title="Annualized return on capital at risk. For puts: premium / (strike × 100). For calls: premium / strike × 100 (approximation). Annualized by 365 / avg DTE.">ROC % (ann.) ↕</th>
                             <th onclick="sortTickerTable('avgDays')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Avg Days Held ↕</th>
                             <th onclick="sortTickerTable('contracts')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Contracts ↕</th>
                         </tr>
@@ -1636,6 +1662,26 @@ function render(newSortKey, dataToRender) {
         : null;
     const totalContracts = closedNonAssigned.reduce((s, x) => s + Math.abs(Number(x.contracts) || 0), 0);
 
+    // Commission drag — total fees paid on option transactions, honouring the
+    // date + symbol filter. Expressed as $ plus fees-as-% of gross premium so
+    // users can see how much of their credit is eaten by fees.
+    let totalOptionFees = 0;
+    let grossPremiumForFees = 0;
+    if (window.rawRows && window.rawRows.length) {
+        const optRe = /[\d.]+\s+[CP]\s*$/;
+        window.rawRows.forEach(r => {
+            const sym = String(r.Symbol || '');
+            if (!optRe.test(sym)) return;
+            if (searchTerm && !sym.toLowerCase().includes(searchTerm)) return;
+            const d = r.parsedDate;
+            if (startDate && d && d < startDate) return;
+            if (endDate   && d && d > endDate)   return;
+            totalOptionFees    += cleanNum(r['Fees & Comm'] || r['Fees'] || 0);
+            grossPremiumForFees += Math.abs(cleanNum(r.Amount || 0));
+        });
+    }
+    const feeDragPct = grossPremiumForFees > 0 ? (totalOptionFees / grossPremiumForFees * 100) : null;
+
     document.getElementById('summary').innerHTML = `
         <div class="stat-card"><div class="stat-label">Sell / Buy<br>to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Buy / Sell<br>to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
@@ -1649,6 +1695,7 @@ function render(newSortKey, dataToRender) {
         <div class="stat-card"><div class="stat-label">% Premium<br>Captured</div><div class="stat-value" style="color:${premCaptured !== null ? (premCaptured >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${premCaptured !== null ? premCaptured.toFixed(1) + '%' : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">Avg Days<br>Held</div><div class="stat-value">${avgDaysHeld !== null ? avgDaysHeld + 'd' : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">Total<br>Contracts</div><div class="stat-value">${totalContracts || '—'}</div></div>
+        <div class="stat-card" title="Total fees &amp; commissions paid on option transactions, and what % of gross premium that represents."><div class="stat-label">Commission<br>Drag</div><div class="stat-value" style="color:#f59e0b;">${totalOptionFees > 0 ? '$' + totalOptionFees.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}${feeDragPct !== null ? `<div style="font-size:0.7rem; color:var(--text-secondary); font-weight:500; margin-top:2px;">${feeDragPct.toFixed(2)}% of gross</div>` : ''}</div></div>
     `;
 
     if (uploadedDateRange.min && uploadedDateRange.max) {
@@ -6849,18 +6896,121 @@ function initDraggableModal(innerId, accentColor, maxWidthPx) {
 let tickerSortKey = 'totalPL';
 let tickerSortDir = -1;
 let tickerChartInstance = null;
+let tickerChartMode = 'byTicker'; // 'byTicker' | 'cumulative' | 'byDTE'
 const tickerFilterState = { datePreset: 'all', dateFrom: '', dateTo: '' };
+
+// ------------------------------------------------------------
+// Strategy classifier
+// Groups trades by (ticker, expiry, openDate) and tags each group
+// with a human-readable strategy label.
+//   CSP  = Cash-Secured Put          (single short put)
+//   CC   = Covered Call              (single short call)
+//   BPS  = Bull Put Spread           (short put + long put at lower strike)
+//   BCS  = Bear Call Spread          (short call + long call at higher strike)
+//   BULL_CALL = Bull Call Spread     (long call + short call at higher strike)
+//   BEAR_PUT  = Bear Put Spread      (long put + short put at lower strike)
+//   IC   = Iron Condor               (4 legs: BPS + BCS, same expiry)
+//   LP   = Long Put                  (single long put)
+//   LC   = Long Call                 (single long call)
+//   OTHER = unrecognized shape
+// ------------------------------------------------------------
+const STRATEGY_LABELS = {
+    CSP: 'Cash-Secured Put', CC: 'Covered Call',
+    BPS: 'Bull Put Spread',  BCS: 'Bear Call Spread',
+    BULL_CALL: 'Bull Call Spread', BEAR_PUT: 'Bear Put Spread',
+    IC: 'Iron Condor',
+    LP: 'Long Put', LC: 'Long Call',
+    OTHER: 'Other',
+};
+
+function _parseOptionSymbol(sym) {
+    // Matches "TICKER MM/DD/YYYY STRIKE P/C" (optional whitespace)
+    const m = String(sym || '').match(/^\s*(\S+)\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+([\d.]+)\s+([CP])\s*$/i);
+    if (!m) return null;
+    return { ticker: m[1].toUpperCase(), expiry: m[2], strike: parseFloat(m[3]), type: m[4].toUpperCase() };
+}
+
+// Module-level cache so classifyStrategies can stash parsed metadata on raw
+// trade objects without mutating them. WeakMap so trades can still be GC'd.
+const _strategyParsedCache = new WeakMap();
+
+function classifyStrategies(trades) {
+    // Returns an array of { strategy, label, ticker, expiry, openDateKey, legs: [trades] }
+    const groups = new Map();
+    trades.forEach(t => {
+        const parsed = _parseOptionSymbol(t.symbol);
+        if (!parsed) return;
+        const od = t.openDate ? new Date(t.openDate) : null;
+        const odKey = od ? `${od.getFullYear()}-${od.getMonth()+1}-${od.getDate()}` : 'unknown';
+        const key = `${parsed.ticker}|${parsed.expiry}|${odKey}`;
+        if (!groups.has(key)) groups.set(key, { ticker: parsed.ticker, expiry: parsed.expiry, openDateKey: odKey, legs: [] });
+        // Attach parsed metadata WITHOUT cloning — we need object identity preserved
+        // for downstream Set lookups. Using a parallel WeakMap keeps t untouched.
+        groups.get(key).legs.push(t);
+        _strategyParsedCache.set(t, parsed);
+    });
+    const result = [];
+    for (const g of groups.values()) {
+        const p = leg => _strategyParsedCache.get(leg);
+        const puts  = g.legs.filter(l => p(l).type === 'P');
+        const calls = g.legs.filter(l => p(l).type === 'C');
+        const shortPuts  = puts.filter(l  => (l.openingPremium || 0) > 0);
+        const longPuts   = puts.filter(l  => (l.openingPremium || 0) < 0);
+        const shortCalls = calls.filter(l => (l.openingPremium || 0) > 0);
+        const longCalls  = calls.filter(l => (l.openingPremium || 0) < 0);
+
+        let strategy = 'OTHER';
+        if (shortPuts.length === 1 && longPuts.length === 1 && shortCalls.length === 1 && longCalls.length === 1) {
+            strategy = 'IC';
+        } else if (shortPuts.length === 1 && longPuts.length === 1 && calls.length === 0) {
+            strategy = p(shortPuts[0]).strike > p(longPuts[0]).strike ? 'BPS' : 'BEAR_PUT';
+        } else if (shortCalls.length === 1 && longCalls.length === 1 && puts.length === 0) {
+            strategy = p(shortCalls[0]).strike < p(longCalls[0]).strike ? 'BCS' : 'BULL_CALL';
+        } else if (shortPuts.length >= 1 && longPuts.length === 0 && calls.length === 0) {
+            strategy = 'CSP';
+        } else if (shortCalls.length >= 1 && longCalls.length === 0 && puts.length === 0) {
+            strategy = 'CC';
+        } else if (longPuts.length >= 1 && shortPuts.length === 0 && calls.length === 0) {
+            strategy = 'LP';
+        } else if (longCalls.length >= 1 && shortCalls.length === 0 && puts.length === 0) {
+            strategy = 'LC';
+        }
+        result.push({ strategy, label: STRATEGY_LABELS[strategy], ...g });
+    }
+    return result;
+}
 
 function buildTickerData() {
     const fromVal = document.getElementById('tickerDateFrom') ? document.getElementById('tickerDateFrom').value : '';
     const toVal   = document.getElementById('tickerDateTo')   ? document.getElementById('tickerDateTo').value   : '';
+    const searchEl = document.getElementById('tickerSearchBox');
+    const searchTerm = searchEl ? searchEl.value.trim().toUpperCase() : '';
+    const stratEl = document.getElementById('tickerStrategyFilter');
+    const strategyFilter = stratEl ? stratEl.value : 'all';
     const fromMs  = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
     const toMs    = toVal   ? new Date(toVal   + 'T23:59:59').getTime() : null;
+
+    // If a strategy filter is active, pre-compute which trades to keep by
+    // running the classifier over closed trades and picking legs whose group
+    // matches the selected strategy. This is O(N) — still cheap.
+    let allowedTradeSet = null;
+    if (strategyFilter && strategyFilter !== 'all') {
+        const closedForClass = finalTrades.filter(x => {
+            const st = x.status.toLowerCase();
+            return !st.includes('assigned') && !st.includes('called away');
+        });
+        const strategies = classifyStrategies(closedForClass);
+        allowedTradeSet = new Set();
+        strategies.forEach(s => {
+            if (s.strategy === strategyFilter) s.legs.forEach(l => allowedTradeSet.add(l));
+        });
+    }
 
     const map = {};
     finalTrades.forEach(x => {
         const st = x.status.toLowerCase();
         if (st.includes('assigned') || st.includes('called away')) return;
+        if (allowedTradeSet && !allowedTradeSet.has(x)) return;
         // Date filter on close date
         if (x.closeDate) {
             const cd = x.closeDate.getTime();
@@ -6868,30 +7018,54 @@ function buildTickerData() {
             if (toMs   !== null && cd > toMs)   return;
         }
         const ticker = extractTicker(x.symbol);
-        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, totalPL:0, premiumSum:0, netCreditSum:0, daysSum:0, daysCount:0, contracts:0 };
+        if (searchTerm && !ticker.toUpperCase().includes(searchTerm)) return;
+        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, totalPL:0, premiumSum:0, netCreditSum:0, daysSum:0, daysCount:0, contracts:0, capitalAtRisk:0 };
         const m = map[ticker];
         const isBuyLeg = (x.openingPremium || 0) < 0;   // buy side of a spread
+        // Parse strike from symbol — used for capital-at-risk estimation
+        const putMatch  = x.symbol.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = x.symbol.match(/([\d.]+)\s+C\s*$/);
+        const strike = putMatch ? parseFloat(putMatch[1]) : callMatch ? parseFloat(callMatch[1]) : 0;
+        const qtyAbs = Math.abs(Number(x.contracts) || 0);
         if (!isBuyLeg) {
             // only count sell-side (credit) legs toward trade count and win rate
             m.trades++;
             if ((x.profit || 0) > 0) m.wins++;
+            // Capital at risk: for a sold put, strike * 100 * contracts (cash-secured basis).
+            // For a sold call, approximate with strike * 100 * contracts too (covered-call basis).
+            // Spreads: the paired buy leg below reduces this figure.
+            if (strike) m.capitalAtRisk += strike * 100 * qtyAbs;
+        } else {
+            // Buy leg of a spread reduces capital at risk to (short - long) * 100 * contracts.
+            // We subtract the long-leg strike contribution so the net equals the spread width.
+            if (strike) m.capitalAtRisk -= strike * 100 * qtyAbs;
         }
         m.totalPL += x.profit || 0;
         m.premiumSum += Math.abs(x.openingPremium || 0);
         m.netCreditSum += (x.openingPremium || 0);   // signed: sell legs +, buy legs −
-        m.contracts += Math.abs(Number(x.contracts) || 0);
+        m.contracts += qtyAbs;
         if (x.openDate && x.closeDate) {
             m.daysSum += Math.round((x.closeDate - x.openDate) / 86400000);
             m.daysCount++;
         }
     });
-    return Object.values(map).map(m => ({
-        ...m,
-        winRate: m.trades > 0 ? (m.wins / m.trades * 100) : 0,
-        avgPrem: m.trades > 0 ? m.premiumSum / m.trades : 0,
-        avgDays: m.daysCount > 0 ? +(m.daysSum / m.daysCount).toFixed(1) : 0,
-        premCaptured: m.netCreditSum > 0 ? (m.totalPL / m.netCreditSum * 100) : null,
-    }));
+    return Object.values(map).map(m => {
+        const avgDays = m.daysCount > 0 ? +(m.daysSum / m.daysCount).toFixed(1) : 0;
+        const capital = Math.max(m.capitalAtRisk, 0);
+        // Annualized ROC: (P&L / capital) * (365 / avgDays) * 100
+        let roc = null;
+        if (capital > 0 && avgDays > 0) {
+            roc = (m.totalPL / capital) * (365 / avgDays) * 100;
+        }
+        return {
+            ...m,
+            winRate: m.trades > 0 ? (m.wins / m.trades * 100) : 0,
+            avgPrem: m.trades > 0 ? m.premiumSum / m.trades : 0,
+            avgDays,
+            premCaptured: m.netCreditSum > 0 ? (m.totalPL / m.netCreditSum * 100) : null,
+            roc,
+        };
+    });
 }
 
 function tickerApplyFilters() {
@@ -6934,6 +7108,11 @@ function tickerResetFilters() {
     document.getElementById('tickerDatePreset').value = 'all';
     document.getElementById('tickerDateFrom').value   = '';
     document.getElementById('tickerDateTo').value     = '';
+    const searchEl = document.getElementById('tickerSearchBox');
+    if (searchEl) searchEl.value = '';
+    const stratEl = document.getElementById('tickerStrategyFilter');
+    if (stratEl) stratEl.value = 'all';
+    try { localStorage.removeItem('tickerFilterState'); } catch(e) {}
     tickerRefresh();
 }
 
@@ -6941,15 +7120,41 @@ function tickerRefresh() {
     const rows = buildTickerData();
     const fromVal = document.getElementById('tickerDateFrom').value;
     const toVal   = document.getElementById('tickerDateTo').value;
+    const searchEl = document.getElementById('tickerSearchBox');
+    const searchTerm = searchEl ? searchEl.value.trim() : '';
     let rangeText = '';
     if (fromVal || toVal) {
         const fmtDisp = s => s ? new Date(s + 'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '…';
         rangeText = `Showing: ${fmtDisp(fromVal)} → ${fmtDisp(toVal)}`;
     }
+    if (searchTerm) rangeText += (rangeText ? '   ·   ' : '') + `Ticker filter: "${searchTerm.toUpperCase()}"`;
+    const stratEl = document.getElementById('tickerStrategyFilter');
+    const stratVal = stratEl ? stratEl.value : 'all';
+    if (stratVal && stratVal !== 'all') {
+        rangeText += (rangeText ? '   ·   ' : '') + `Strategy: ${STRATEGY_LABELS[stratVal] || stratVal}`;
+    }
     document.getElementById('tickerDateRangeBar').textContent = rangeText;
+    // Persist filter state
+    try {
+        localStorage.setItem('tickerFilterState', JSON.stringify({
+            preset: document.getElementById('tickerDatePreset').value,
+            from: fromVal, to: toVal, search: searchTerm,
+            strategy: document.getElementById('tickerStrategyFilter') ? document.getElementById('tickerStrategyFilter').value : 'all'
+        }));
+    } catch(e) { /* localStorage may be disabled */ }
+
     if (!rows.length) {
-        document.getElementById('tickerSummaryPills').innerHTML = '<div style="color:var(--text-secondary); font-size:0.9rem;">No trades found for this date range.</div>';
-        document.getElementById('tickerTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-secondary);">No data for selected range.</td></tr>';
+        const emptyMsg = searchTerm
+            ? `No trades match "<strong>${searchTerm.toUpperCase()}</strong>"${fromVal||toVal ? ' in the selected date range' : ''}.`
+            : (fromVal || toVal)
+                ? 'No closed trades fall within this date range.'
+                : 'No closed trades yet — upload a Schwab CSV to get started.';
+        document.getElementById('tickerSummaryPills').innerHTML = `<div style="width:100%; text-align:center; padding:20px; color:var(--text-secondary); font-size:0.9rem;">${emptyMsg}</div>`;
+        document.getElementById('tickerTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px 20px; color:var(--text-secondary);">
+            <div style="font-size:2rem; margin-bottom:8px; opacity:0.5;">📊</div>
+            <div>${emptyMsg}</div>
+            ${(searchTerm || fromVal || toVal) ? '<button onclick="tickerResetFilters()" style="margin-top:14px; background:#6d28d9; color:white; border:none; padding:7px 16px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:0.85rem;">Reset Filters</button>' : ''}
+        </td></tr>`;
         if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
         return;
     }
@@ -6975,6 +7180,7 @@ function renderTickerTable(rows) {
     const fmtPct = v => v.toFixed(1) + '%';
     const winColor = pct => pct >= 70 ? '#4ade80' : pct >= 50 ? '#facc15' : '#f87171';
     const plColor  = v => v >= 0 ? '#4ade80' : '#f87171';
+    const rocColor = v => v === null ? 'var(--text-muted)' : v >= 20 ? '#4ade80' : v >= 0 ? '#facc15' : '#f87171';
 
     document.getElementById('tickerTableBody').innerHTML = rows.map((r, i) => `
         <tr style="background:${i%2===0 ? 'var(--bg-secondary)' : 'var(--bg-primary)'}; border-bottom:1px solid var(--border-color);">
@@ -6984,19 +7190,88 @@ function renderTickerTable(rows) {
             <td style="padding:11px 14px; text-align:right; font-weight:700; color:${plColor(r.totalPL)};">${fmt$(r.totalPL)}</td>
             <td style="padding:11px 14px; text-align:center; font-weight:600; color:${r.premCaptured !== null ? plColor(r.premCaptured) : 'var(--text-muted)'};">${r.premCaptured !== null ? r.premCaptured.toFixed(1)+'%' : '—'}</td>
             <td style="padding:11px 14px; text-align:right; color:var(--text-muted);">$${r.avgPrem.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+            <td style="padding:11px 14px; text-align:center; font-weight:600; color:${rocColor(r.roc)};">${r.roc !== null ? r.roc.toFixed(1)+'%' : '—'}</td>
             <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.avgDays > 0 ? r.avgDays + 'd' : '—'}</td>
             <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.contracts}</td>
         </tr>`).join('');
 }
 
+// Helper: return the closed trades that match the current ticker-modal filters.
+// Mirrors the filter logic inside buildTickerData so charts stay in sync.
+function getFilteredClosedTrades() {
+    const fromVal = document.getElementById('tickerDateFrom') ? document.getElementById('tickerDateFrom').value : '';
+    const toVal   = document.getElementById('tickerDateTo')   ? document.getElementById('tickerDateTo').value   : '';
+    const searchEl = document.getElementById('tickerSearchBox');
+    const searchTerm = searchEl ? searchEl.value.trim().toUpperCase() : '';
+    const stratEl = document.getElementById('tickerStrategyFilter');
+    const strategyFilter = stratEl ? stratEl.value : 'all';
+    const fromMs  = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
+    const toMs    = toVal   ? new Date(toVal   + 'T23:59:59').getTime() : null;
+
+    let allowedTradeSet = null;
+    if (strategyFilter && strategyFilter !== 'all') {
+        const baseClosed = finalTrades.filter(x => {
+            const st = x.status.toLowerCase();
+            return !st.includes('assigned') && !st.includes('called away');
+        });
+        allowedTradeSet = new Set();
+        classifyStrategies(baseClosed).forEach(s => {
+            if (s.strategy === strategyFilter) s.legs.forEach(l => allowedTradeSet.add(l));
+        });
+    }
+
+    return finalTrades.filter(x => {
+        const st = x.status.toLowerCase();
+        if (st.includes('assigned') || st.includes('called away')) return false;
+        if (allowedTradeSet && !allowedTradeSet.has(x)) return false;
+        if (x.closeDate) {
+            const cd = x.closeDate.getTime();
+            if (fromMs !== null && cd < fromMs) return false;
+            if (toMs   !== null && cd > toMs)   return false;
+        }
+        const ticker = extractTicker(x.symbol);
+        if (searchTerm && !ticker.toUpperCase().includes(searchTerm)) return false;
+        return true;
+    });
+}
+
+function setTickerChartMode(mode) {
+    if (!['byTicker','cumulative','byDTE'].includes(mode)) return;
+    tickerChartMode = mode;
+    // Update button visual state
+    ['byTicker','cumulative','byDTE'].forEach(m => {
+        const btn = document.getElementById('tickerChartModeBtn_' + m);
+        if (!btn) return;
+        if (m === mode) {
+            btn.style.background = '#6d28d9';
+            btn.style.color = 'white';
+            btn.style.border = 'none';
+            btn.classList.add('active');
+        } else {
+            btn.style.background = 'var(--bg-secondary)';
+            btn.style.color = 'var(--text-primary)';
+            btn.style.border = '1px solid var(--border-color)';
+            btn.classList.remove('active');
+        }
+    });
+    // Re-render chart only (table/pills stay)
+    const rows = buildTickerData();
+    renderTickerChart(rows);
+}
+
 function renderTickerChart(rows) {
+    if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
+    if (tickerChartMode === 'cumulative') return renderCumulativePLChart();
+    if (tickerChartMode === 'byDTE')      return renderWinRateByDTEChart();
+    return renderByTickerBarChart(rows);
+}
+
+function renderByTickerBarChart(rows) {
     const sorted = [...rows].sort((a,b) => b.totalPL - a.totalPL);
     const labels = sorted.map(r => r.ticker);
     const values = sorted.map(r => +r.totalPL.toFixed(2));
     const colors = values.map(v => v >= 0 ? 'rgba(74,222,128,0.85)' : 'rgba(248,113,113,0.85)');
     const borderColors = values.map(v => v >= 0 ? '#22c55e' : '#ef4444');
-
-    if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
 
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
@@ -7019,6 +7294,149 @@ function renderTickerChart(rows) {
     });
 }
 
+function renderCumulativePLChart() {
+    const trades = getFilteredClosedTrades()
+        .filter(t => t.closeDate)
+        .sort((a,b) => a.closeDate - b.closeDate);
+
+    if (!trades.length) {
+        // Render an empty placeholder so the canvas isn't stale
+        const ctx = document.getElementById('tickerChart').getContext('2d');
+        ctx.clearRect(0, 0, document.getElementById('tickerChart').width, document.getElementById('tickerChart').height);
+        return;
+    }
+
+    // Aggregate by close date so multi-trade days appear as a single step
+    const byDay = new Map();
+    trades.forEach(t => {
+        const d = t.closeDate;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        byDay.set(key, (byDay.get(key) || 0) + (t.profit || 0));
+    });
+    const sortedKeys = Array.from(byDay.keys()).sort();
+    const labels = sortedKeys.map(k => {
+        const [y,m,d] = k.split('-');
+        return `${m}/${d}/${y.slice(2)}`;
+    });
+    let running = 0;
+    const values = sortedKeys.map(k => { running += byDay.get(k); return +running.toFixed(2); });
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const gridColor  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const labelColor = isDark ? '#94a3b8' : '#475569';
+    const finalPL = values[values.length - 1] || 0;
+    const lineColor   = finalPL >= 0 ? '#22c55e' : '#ef4444';
+    const fillColor   = finalPL >= 0 ? 'rgba(74,222,128,0.18)' : 'rgba(248,113,113,0.18)';
+
+    tickerChartInstance = new Chart(document.getElementById('tickerChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Cumulative P&L ($)',
+                data: values,
+                borderColor: lineColor,
+                backgroundColor: fillColor,
+                borderWidth: 2,
+                pointRadius: 2,
+                pointHoverRadius: 5,
+                fill: true,
+                tension: 0.15,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.y.toLocaleString(undefined,{minimumFractionDigits:2}) } }
+            },
+            scales: {
+                x: { ticks: { color: labelColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: gridColor } },
+                y: { ticks: { color: labelColor, callback: v => '$' + v.toLocaleString() }, grid: { color: gridColor } }
+            }
+        }
+    });
+}
+
+function renderWinRateByDTEChart() {
+    const trades = getFilteredClosedTrades().filter(t => t.openDate && t.closeDate);
+    if (!trades.length) {
+        const canvas = document.getElementById('tickerChart');
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+
+    // DTE here = original days to expiry at open. We approximate with days held
+    // when expiry isn't parseable, but prefer the symbol-derived expiry when we have one.
+    const buckets = [
+        { label: '0-7 days',   min: 0,  max: 7,   wins: 0, total: 0, pl: 0 },
+        { label: '8-21 days',  min: 8,  max: 21,  wins: 0, total: 0, pl: 0 },
+        { label: '22-45 days', min: 22, max: 45,  wins: 0, total: 0, pl: 0 },
+        { label: '46+ days',   min: 46, max: Infinity, wins: 0, total: 0, pl: 0 },
+    ];
+
+    trades.forEach(t => {
+        // Prefer symbol-derived original DTE (open → expiry), fall back to days held
+        let dte = null;
+        const parsed = _parseOptionSymbol(t.symbol);
+        if (parsed && parsed.expiry) {
+            const [mo, dy, yr] = parsed.expiry.split('/');
+            const expiryDate = new Date(+yr, +mo - 1, +dy);
+            if (!isNaN(expiryDate) && t.openDate) {
+                dte = Math.round((expiryDate - t.openDate) / 86400000);
+            }
+        }
+        if (dte === null) dte = Math.round((t.closeDate - t.openDate) / 86400000);
+        if (dte < 0) return;
+
+        // Only credit-side legs contribute to win/loss count (skip long protective legs of spreads)
+        const isCreditLeg = (t.openingPremium || 0) > 0;
+        const b = buckets.find(b => dte >= b.min && dte <= b.max);
+        if (!b) return;
+        if (isCreditLeg) {
+            b.total++;
+            if ((t.profit || 0) > 0) b.wins++;
+        }
+        b.pl += (t.profit || 0);
+    });
+
+    const labels = buckets.map(b => `${b.label}\n(n=${b.total})`);
+    const winRates = buckets.map(b => b.total > 0 ? +(b.wins / b.total * 100).toFixed(1) : 0);
+    const pls      = buckets.map(b => +b.pl.toFixed(2));
+    const barColors = winRates.map(r => r >= 70 ? 'rgba(74,222,128,0.85)' : r >= 50 ? 'rgba(250,204,21,0.85)' : 'rgba(248,113,113,0.85)');
+    const barBorder = winRates.map(r => r >= 70 ? '#22c55e' : r >= 50 ? '#eab308' : '#ef4444');
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const labelColor = isDark ? '#94a3b8' : '#475569';
+
+    tickerChartInstance = new Chart(document.getElementById('tickerChart'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Win Rate (%)', data: winRates, backgroundColor: barColors, borderColor: barBorder, borderWidth: 1.5, borderRadius: 5, yAxisID: 'y' },
+                { label: 'Total P&L ($)', data: pls, type: 'line', borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.2)', borderWidth: 2, pointRadius: 4, yAxisID: 'y1', tension: 0.2 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: {
+                legend: { display: true, labels: { color: labelColor } },
+                tooltip: { callbacks: { label: ctx => {
+                    if (ctx.dataset.yAxisID === 'y1') return ' P&L: $' + ctx.parsed.y.toLocaleString(undefined,{minimumFractionDigits:2});
+                    return ' Win Rate: ' + ctx.parsed.y.toFixed(1) + '%';
+                } } }
+            },
+            scales: {
+                x: { ticks: { color: labelColor, font:{size:11,weight:'bold'} }, grid: { color: gridColor } },
+                y:  { position:'left',  min: 0, max: 100, ticks: { color: labelColor, callback: v => v+'%' }, grid: { color: gridColor }, title: { display:true, text:'Win Rate (%)', color: labelColor } },
+                y1: { position:'right', ticks: { color: labelColor, callback: v => '$'+v.toLocaleString() }, grid: { drawOnChartArea:false }, title: { display:true, text:'P&L ($)', color: labelColor } }
+            }
+        }
+    });
+}
+
 function renderTickerSummaryPills(rows) {
     const totalPL = rows.reduce((s,r) => s+r.totalPL, 0);
     const totalNetCredit = rows.reduce((s,r) => s+r.netCreditSum, 0);
@@ -7029,6 +7447,23 @@ function renderTickerSummaryPills(rows) {
     const totalPremiumSum = rows.reduce((s,r) => s+r.premiumSum, 0);
     const totalTrades = rows.reduce((s,r) => s+r.trades, 0);
     const overallAvgPremium = totalTrades > 0 ? (totalPremiumSum / totalTrades) : null;
+
+    // Strategy mix: classify closed trades and tally count per strategy
+    const stratCounts = {};
+    let stratTotal = 0;
+    const closedForClass = finalTrades.filter(x => {
+        const st = x.status.toLowerCase();
+        return !st.includes('assigned') && !st.includes('called away');
+    });
+    classifyStrategies(closedForClass).forEach(s => {
+        stratCounts[s.strategy] = (stratCounts[s.strategy] || 0) + 1;
+        stratTotal++;
+    });
+    const topStrats = Object.entries(stratCounts)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([k,v]) => `${k} ${Math.round(v/stratTotal*100)}%`)
+        .join(' · ');
 
     const pill = (label, val, color) =>
         `<div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center;">
@@ -7041,6 +7476,7 @@ function renderTickerSummaryPills(rows) {
         pill('Overall Win Rate', overallWinRate.toFixed(1)+'%', overallWinRate>=50?'#4ade80':'#f87171') +
         pill('Avg Premium / Trade', overallAvgPremium !== null ? '$'+overallAvgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—', '#4ade80') +
         pill('% Premium Captured', overallPremCaptured !== null ? overallPremCaptured.toFixed(1)+'%' : '—', overallPremCaptured !== null ? (overallPremCaptured>=50?'#4ade80':'#f87171') : 'var(--text-secondary)') +
+        (topStrats ? pill('Strategy Mix', topStrats, '#a78bfa') : '') +
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
         (bestTicker  ? pill('Best Ticker',  bestTicker.ticker  + ' (+$'+Math.abs(bestTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#4ade80') : '') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
@@ -7051,15 +7487,34 @@ function showTickerBreakdown() {
         alert('No trade data loaded. Please upload a file first.');
         return;
     }
+    // Restore persisted filter state
+    try {
+        const saved = localStorage.getItem('tickerFilterState');
+        if (saved) {
+            const state = JSON.parse(saved);
+            const presetEl = document.getElementById('tickerDatePreset');
+            const fromEl   = document.getElementById('tickerDateFrom');
+            const toEl     = document.getElementById('tickerDateTo');
+            const searchEl = document.getElementById('tickerSearchBox');
+            const stratEl  = document.getElementById('tickerStrategyFilter');
+            if (presetEl && state.preset) presetEl.value = state.preset;
+            if (fromEl)   fromEl.value   = state.from   || '';
+            if (toEl)     toEl.value     = state.to     || '';
+            if (searchEl) searchEl.value = state.search || '';
+            if (stratEl)  stratEl.value  = state.strategy || 'all';
+        }
+    } catch(e) { /* localStorage disabled or corrupted — fall through */ }
+
     const rows = buildTickerData();
-    if (!rows.length) {
+    if (!rows.length && !finalTrades.some(x => !x.status.toLowerCase().includes('assigned') && !x.status.toLowerCase().includes('called away'))) {
         alert('No closed trades found to analyse.');
         return;
     }
-    renderTickerSummaryPills(rows);
-    renderTickerChart(rows);
-    renderTickerTable(rows);
+    // Use tickerRefresh so empty-state UI renders if the saved filter yields no rows
     document.getElementById('tickerModal').style.display = 'flex';
+    // Sync chart-mode buttons to the remembered tickerChartMode
+    setTickerChartMode(tickerChartMode);
+    tickerRefresh();
     initDraggableModal('tickerInner', '#e11d48', 1600);
 }
 
@@ -7088,6 +7543,7 @@ function tickerDownloadData() {
         'Total P&L ($)': +r.totalPL.toFixed(2),
         '% Premium Captured': r.premCaptured !== null ? +r.premCaptured.toFixed(1) : '',
         'Avg Premium / Trade ($)': +r.avgPrem.toFixed(2),
+        'ROC % (annualized)': r.roc !== null ? +r.roc.toFixed(1) : '',
         'Avg Days Held': r.avgDays > 0 ? r.avgDays : '',
         Contracts: r.contracts,
     }));
@@ -7110,6 +7566,7 @@ function tickerDownloadData() {
         'Total P&L ($)': +totalPL.toFixed(2),
         '% Premium Captured': overallPremCaptured !== null ? +overallPremCaptured.toFixed(1) : '',
         'Avg Premium / Trade ($)': +overallAvgPrem.toFixed(2),
+        'ROC % (annualized)': '',
         'Avg Days Held': '',
         Contracts: totalContracts,
     });
@@ -7189,6 +7646,51 @@ function tickerDownloadPng() {
     link.click();
     document.body.removeChild(link);
 }
+
+// ============================================================
+// GLOBAL ESC-TO-CLOSE HANDLER
+// Map each modal to its registered close function so cleanup runs.
+// ============================================================
+const _modalCloseMap = {
+    tickerModal:           'closeTickerBreakdown',
+    txSorterModal:         'closeTxSorter',
+    rglModal:              'closeRgl',
+    rglMonthlyDataModal:   'closeRglMonthlyDataTable',
+    monthlyDataModal:      'closeMonthlyDataTable',
+    openCommitmentsModal:  'closeOpenCommitments',
+    monthlyModal:          'closeMonthlySummary',
+    weeklyModal:           'closeWeeklySummary',
+    assignmentsModal:      'closeAssignments',
+    summaryChartModal:     'closeSummaryChart',
+};
+
+document.addEventListener('keydown', function(ev) {
+    if (ev.key !== 'Escape') return;
+    // Don't swallow Esc if the user is mid-edit in an input/textarea/contenteditable
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        // Blur instead, giving the user a way to then press Esc again to close
+        active.blur();
+        return;
+    }
+    // Find the topmost visible modal (highest z-index) and close it
+    let topModal = null, topZ = -1;
+    for (const id of Object.keys(_modalCloseMap)) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const visible = el.style.display && el.style.display !== 'none';
+        if (!visible) continue;
+        const z = parseInt(window.getComputedStyle(el).zIndex, 10) || 0;
+        if (z >= topZ) { topZ = z; topModal = id; }
+    }
+    if (topModal) {
+        const fnName = _modalCloseMap[topModal];
+        if (typeof window[fnName] === 'function') {
+            window[fnName]();
+            ev.stopPropagation();
+        }
+    }
+});
 </script>
 </body>
 </html>
