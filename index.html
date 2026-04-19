@@ -951,10 +951,10 @@ function process(rows) {
 
         if (action.includes('to open')) {
             inventory[sym].push({ date: row.parsedDate, transactionDate: row.transactionDate, rawDateFormatted: row.rawDateFormatted || '', qty, premium: amt, status: action });
-            allTransactions.push({ date: row.parsedDate, action, amount: amt });
+            allTransactions.push({ date: row.parsedDate, action, amount: amt, symbol: sym });
         }
         else if (action.includes('to close') || action.includes('expired') || action.includes('assigned')) {
-            allTransactions.push({ date: row.parsedDate, action, amount: amt });
+            allTransactions.push({ date: row.parsedDate, action, amount: amt, symbol: sym });
 
             let remainingToClose = qty || 0;
             if (remainingToClose === 0 && inventory[sym].length > 0) {
@@ -5499,6 +5499,10 @@ function rglMdtDownload() {
             <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">To Date</span>
             <input type="date" id="scDateTo" onchange="scApplyManualDate()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;">
           </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Symbol Filter</span>
+            <input type="text" id="scSymbolFilterInput" placeholder="e.g. AAPL, NVDA" oninput="scApplySymbolFilter()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;width:160px;">
+          </div>
           <button onclick="scResetDateFilter()" style="background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;align-self:flex-end;">↺ Reset</button>
           <div id="scDateRangeLabel" style="font-size:0.76rem;color:var(--text-secondary);align-self:flex-end;padding-bottom:2px;"></div>
         </div>
@@ -5541,6 +5545,7 @@ let _scLabels   = [];
 let _scRawData  = {};           // key -> array of numbers (same order as _scLabels)
 let _scDateFrom = null;         // Date | null
 let _scDateTo   = null;         // Date | null
+let _scSymbolFilter = [];       // array of uppercase root tickers (empty = show all)
 
 const SC_SERIES = [
     { key: 'sellOpen',    label: 'Sell/Buy to Open',        color: '#4ade80' },
@@ -5602,11 +5607,19 @@ function scApplyManualDate() {
     scRebuildAndRender();
 }
 
+function scApplySymbolFilter() {
+    const raw = document.getElementById('scSymbolFilterInput')?.value || '';
+    _scSymbolFilter = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    scRebuildAndRender();
+}
+
 function scResetDateFilter() {
     _scDateFrom = null; _scDateTo = null;
-    const p = document.getElementById('scDatePreset'); if (p) p.value = 'all';
-    const f = document.getElementById('scDateFrom');   if (f) f.value = '';
-    const t = document.getElementById('scDateTo');     if (t) t.value = '';
+    _scSymbolFilter = [];
+    const p = document.getElementById('scDatePreset');         if (p) p.value = 'all';
+    const f = document.getElementById('scDateFrom');           if (f) f.value = '';
+    const t = document.getElementById('scDateTo');             if (t) t.value = '';
+    const s = document.getElementById('scSymbolFilterInput'); if (s) s.value = '';
     scRebuildAndRender();
 }
 
@@ -5647,6 +5660,10 @@ function scBuildMonthlyData() {
         let sellOpen = 0, buyClose = 0;
         window.allTransactions.forEach(t => {
             if (t.date >= mStart && t.date <= mEnd) {
+                if (_scSymbolFilter.length > 0) {
+                    const ticker = extractTicker(t.symbol || '').toUpperCase();
+                    if (!_scSymbolFilter.includes(ticker)) return;
+                }
                 if (t.action.includes('to open'))  sellOpen += t.amount;
                 if (t.action.includes('to close')) buyClose += t.amount;
             }
@@ -5654,6 +5671,10 @@ function scBuildMonthlyData() {
         let profit = 0, assignedPaid = 0;
         finalTrades.forEach(t => {
             if (t.closeDate >= mStart && t.closeDate <= mEnd) {
+                if (_scSymbolFilter.length > 0) {
+                    const ticker = extractTicker(t.symbol || '').toUpperCase();
+                    if (!_scSymbolFilter.includes(ticker)) return;
+                }
                 const st = t.status.toLowerCase();
                 if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
                 if (st.includes('assigned') && !st.includes('called')) assignedPaid += Math.abs(t.openingPremium);
@@ -5682,6 +5703,10 @@ function scBuildWeeklyData() {
         if (!t.date) return;
         if (_scDateFrom && t.date < _scDateFrom) return;
         if (_scDateTo   && t.date > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = extractTicker(t.symbol || '').toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return;
+        }
         const {week, year} = getISOWeek(t.date);
         const key = `${year}-W${String(week).padStart(2,'0')}`;
         if (!weekMap[key]) weekMap[key] = { key, year, week, sellOpen: 0, buyClose: 0, profit: 0, assignedPaid: 0 };
@@ -5692,6 +5717,10 @@ function scBuildWeeklyData() {
         if (!t.closeDate) return;
         if (_scDateFrom && t.closeDate < _scDateFrom) return;
         if (_scDateTo   && t.closeDate > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = extractTicker(t.symbol || '').toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return;
+        }
         const {week, year} = getISOWeek(t.closeDate);
         const key = `${year}-W${String(week).padStart(2,'0')}`;
         if (!weekMap[key]) weekMap[key] = { key, year, week, sellOpen: 0, buyClose: 0, profit: 0, assignedPaid: 0 };
@@ -5984,6 +6013,9 @@ function scDownloadPng() {
     } else if (preset !== 'all') {
         const presetEl = document.getElementById('scDatePreset');
         filterText = 'Date Range: ' + (presetEl?.options[presetEl.selectedIndex]?.text || preset);
+    }
+    if (_scSymbolFilter.length > 0) {
+        filterText += '   |   Symbols: ' + _scSymbolFilter.join(', ');
     }
 
     // Active series
