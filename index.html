@@ -441,6 +441,7 @@ th.oc-drop-target {
                 <table id="tsSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
                     <thead style="position:sticky; top:0; z-index:10;"><tr id="tsSorterHead"></tr></thead>
                     <tbody id="tsSorterBody"></tbody>
+                    <tfoot id="tsSorterFoot"></tfoot>
                 </table>
             </div>
         </div>
@@ -548,6 +549,7 @@ th.oc-drop-target {
                     <table id="rglSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
                         <thead style="position:sticky; top:0; z-index:10;"><tr id="rglSorterHead"></tr></thead>
                         <tbody id="rglSorterBody"></tbody>
+                        <tfoot id="rglSorterFoot"></tfoot>
                     </table>
                 </div>
             </div>
@@ -4502,6 +4504,18 @@ function tsRenderTable() {
             <td style="${tdBase}color:${amtColor};font-weight:600;">${r.Amount != null && r.Amount !== '' ? fmtAmt(amt) : ''}</td>
         </tr>`;
     }).join('');
+
+    // Footer totals row
+    const tsTotalFees = sorted.reduce((s, r) => s + cleanNum(r['Fees & Comm'] || r['Fees'] || 0), 0);
+    const tsTotalAmt  = sorted.reduce((s, r) => s + cleanNum(r.Amount), 0);
+    const ftStyle = `padding:9px 8px;font-size:0.8rem;text-align:center;font-weight:700;border-top:2px solid #10b981;background:${isDark?'#0f172a':'#f1f5f9'};`;
+    const tsFeesColor = tsTotalFees >= 0 ? posColor : negColor;
+    const tsAmtColor  = tsTotalAmt  >= 0 ? posColor : negColor;
+    document.getElementById('tsSorterFoot').innerHTML = `<tr>
+        <td colspan="6" style="${ftStyle}color:${isDark?'#94a3b8':'#475569'};text-align:right;padding-right:16px;">Totals (${sorted.length} rows):</td>
+        <td style="${ftStyle}color:${tsFeesColor};">${fmtAmt(tsTotalFees)}</td>
+        <td style="${ftStyle}color:${tsAmtColor};">${fmtAmt(tsTotalAmt)}</td>
+    </tr>`;
 }
 
 // ============================================================
@@ -5138,6 +5152,22 @@ function rglRenderTable() {
             <td style="${tdBase}color:${washSale==='Yes'?'#ef4444':textColor};">${washSale}</td>
         </tr>`;
     }).join('');
+
+    // Footer totals row
+    const rglTotalProc = sorted.reduce((s, r) => s + rglCleanNum(r.Proceeds), 0);
+    const rglTotalCB   = sorted.reduce((s, r) => s + rglCleanNum(r['Cost Basis (CB)']), 0);
+    const rglTotalGL   = sorted.reduce((s, r) => s + rglCleanNum(r['Gain/Loss ($)']), 0);
+    const rftStyle = `padding:9px 8px;font-size:0.8rem;text-align:center;font-weight:700;border-top:2px solid #a855f7;background:${isDark?'#0f172a':'#f1f5f9'};`;
+    const rglProcColor = rglTotalProc >= 0 ? posColor : negColor;
+    const rglCBColor   = isDark ? '#f8fafc' : '#0f172a';
+    const rglGLColor   = rglTotalGL >= 0 ? posColor : negColor;
+    document.getElementById('rglSorterFoot').innerHTML = `<tr>
+        <td colspan="8" style="${rftStyle}color:${isDark?'#94a3b8':'#475569'};text-align:right;padding-right:16px;">Totals (${sorted.length} rows):</td>
+        <td style="${rftStyle}color:${rglProcColor};">${fmtAmt(rglTotalProc)}</td>
+        <td style="${rftStyle}color:${rglCBColor};">${fmtAmt(rglTotalCB)}</td>
+        <td style="${rftStyle}color:${rglGLColor};">${fmtAmt(rglTotalGL)}</td>
+        <td colspan="3" style="${rftStyle}"></td>
+    </tr>`;
 }
 
 function rglDownload() {
@@ -5507,6 +5537,12 @@ function rglMdtDownload() {
           </div>
           <button onclick="scResetDateFilter()" style="background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;align-self:flex-end;">↺ Reset</button>
           <button onclick="scUncheckAllFilters()" style="background:#475569;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;align-self:flex-end;">☐ Uncheck all filters</button>
+          <div id="scRglTypeFilterWrap" style="display:none;align-items:center;gap:10px;align-self:flex-end;padding:5px 10px;background:var(--bg-input);border-radius:7px;border:1.5px solid var(--border-color);">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);white-space:nowrap;">Show:</span>
+            <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-primary);cursor:pointer;white-space:nowrap;"><input type="checkbox" id="scRglShowStocks" checked onchange="scRglTypeFilterChanged()" style="accent-color:#4ade80;width:14px;height:14px;cursor:pointer;"> Stocks</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-primary);cursor:pointer;white-space:nowrap;"><input type="checkbox" id="scRglShowOptions" checked onchange="scRglTypeFilterChanged()" style="accent-color:#a78bfa;width:14px;height:14px;cursor:pointer;"> Options</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text-primary);cursor:pointer;white-space:nowrap;"><input type="checkbox" id="scRglShowOther" checked onchange="scRglTypeFilterChanged()" style="accent-color:#60a5fa;width:14px;height:14px;cursor:pointer;"> Other</label>
+          </div>
           <div id="scDateRangeLabel" style="font-size:0.76rem;color:var(--text-secondary);align-self:flex-end;padding-bottom:2px;"></div>
         </div>
 
@@ -5627,6 +5663,11 @@ function scResetDateFilter() {
         const cb = document.getElementById('scCb_' + series.key);
         if (cb) cb.checked = (series.defaultChecked !== false);
     });
+    // Reset RGL type filter to all-checked
+    _scRglTypeFilter = { stocks: true, options: true, other: true };
+    ['scRglShowStocks','scRglShowOptions','scRglShowOther'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.checked = true;
+    });
     scRebuildAndRender();
 }
 
@@ -5636,6 +5677,23 @@ function scUncheckAllFilters() {
         if (cb) cb.checked = false;
     });
     scRender();
+}
+
+// RGL-only: type filter state
+let _scRglTypeFilter = { stocks: true, options: true, other: true };
+
+function _rglSymbolType(sym) {
+    const parts = sym.trim().split(/\s+/);
+    if (parts.length >= 4 && /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(parts[1]) && /^[CP]$/i.test(parts[3])) return 'option';
+    if (parts.length === 1 && parts[0].length > 0) return 'stock';
+    return 'other';
+}
+
+function scRglTypeFilterChanged() {
+    _scRglTypeFilter.stocks  = !!document.getElementById('scRglShowStocks')?.checked;
+    _scRglTypeFilter.options = !!document.getElementById('scRglShowOptions')?.checked;
+    _scRglTypeFilter.other   = !!document.getElementById('scRglShowOther')?.checked;
+    scRebuildAndRender();
 }
 
 function scRebuildAndRender() {
@@ -5997,6 +6055,10 @@ function _scOpenChart(mode, title, accentColor) {
         _scSymbolFilter = [];
     }
 
+    // Show RGL type-filter checkboxes only for RGL mode
+    const rglTypeWrap = document.getElementById('scRglTypeFilterWrap');
+    if (rglTypeWrap) rglTypeWrap.style.display = (mode === 'rgl') ? 'flex' : 'none';
+
     // Update border accent color
     const inner = document.getElementById('summaryChartInner');
     if (inner) inner.style.borderColor = accentColor;
@@ -6274,9 +6336,13 @@ function scBuildRglData() {
         if (_scDateFrom && r.parsedDate < _scDateFrom) return;
         if (_scDateTo   && r.parsedDate > _scDateTo)   return;
         if (_scSymbolFilter.length > 0) {
-            const sym = (r.Symbol || '').toUpperCase().trim();
-            if (!_scSymbolFilter.includes(sym)) return;
+            const rootSym = extractTicker(r.Symbol || '');
+            if (!_scSymbolFilter.some(f => rootSym === f || (r.Symbol||'').toUpperCase().trim() === f)) return;
         }
+        const _rType = _rglSymbolType(r.Symbol || '');
+        if (_rType === 'stock'  && !_scRglTypeFilter.stocks)  return;
+        if (_rType === 'option' && !_scRglTypeFilter.options) return;
+        if (_rType === 'other'  && !_scRglTypeFilter.other)   return;
         const k = `${r.parsedDate.getFullYear()}-${r.parsedDate.getMonth()}`;
         if (!agg[k]) return;
         agg[k].gainLoss  += rglCleanNum(r['Gain/Loss ($)']);
