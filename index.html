@@ -1049,6 +1049,22 @@ function loadSampleData() {
         [tradeDate(-10,'10','15'), 'Sell to Open', `SPY ${E_FUT_1} 560.00 C`, 'SPY Call Spread Sell',  -1, 2.10, 0.65,  209.35],
         [tradeDate(-10,'10','15'), 'Buy to Open',  `SPY ${E_FUT_1} 565.00 C`, 'SPY Call Spread Buy',    1, 0.85, 0.65,  -85.65],
 
+        // ── AMD bull put spread — both legs expired worthless (max profit) ──
+        [tradeDate(-60,'10','22'), 'Sell to Open', `AMD ${E_PAST_2} 170.00 P`, 'AMD Put Spread Sell', -2, 2.20, 1.30,  438.70],
+        [tradeDate(-60,'10','22'), 'Buy to Open',  `AMD ${E_PAST_2} 165.00 P`, 'AMD Put Spread Buy',   2, 0.85, 1.30, -171.30],
+        [tradeDate(-41,'09','31'), 'Expired',      `AMD ${E_PAST_2} 170.00 P`, 'AMD Put Spread Expired', 0, 0, 0, 0],
+        [tradeDate(-41,'09','31'), 'Expired',      `AMD ${E_PAST_2} 165.00 P`, 'AMD Put Spread Expired', 0, 0, 0, 0],
+
+        // ── SPY bull put spread — closed early for partial profit ───────────
+        [tradeDate(-50,'10','08'), 'Sell to Open', `SPY ${E_PAST_3} 555.00 P`, 'SPY Put Spread Sell', -1, 2.80, 0.65,  279.35],
+        [tradeDate(-50,'10','08'), 'Buy to Open',  `SPY ${E_PAST_3} 550.00 P`, 'SPY Put Spread Buy',   1, 1.40, 0.65, -140.65],
+        [tradeDate(-36,'13','44'), 'Buy to Close', `SPY ${E_PAST_3} 555.00 P`, 'SPY Put Spread Close', 1, 0.65, 0.65,  -65.65],
+        [tradeDate(-36,'13','44'), 'Sell to Close',`SPY ${E_PAST_3} 550.00 P`, 'SPY Put Spread Close',-1, 0.25, 0.65,   24.35],
+
+        // ── NVDA bull put spread — still open ───────────────────────────────
+        [tradeDate(-6,'10','47'),  'Sell to Open', `NVDA ${E_FUT_2} 920.00 P`, 'NVDA Put Spread Sell',-1, 12.50, 0.65, 1249.35],
+        [tradeDate(-6,'10','47'),  'Buy to Open',  `NVDA ${E_FUT_2} 910.00 P`, 'NVDA Put Spread Buy',  1,  8.30, 0.65, -830.65],
+
         // ── Recent open positions ────────────────────────────────────────────
         [tradeDate(-8,'09','38'),  'Sell to Open', `AAPL ${E_FUT_2} 200.00 C`, 'AAPL Call', -2, 2.65, 1.30,  528.70],
         [tradeDate(-5,'09','42'),  'Sell to Open', `TSLA ${E_FUT_2} 250.00 P`, 'TSLA Put',  -1, 5.40, 0.65,  539.35],
