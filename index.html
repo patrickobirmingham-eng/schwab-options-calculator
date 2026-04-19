@@ -1,10 +1,25 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schwab Options Calculator & Data Sorter</title>
+<title>Schwab Options Tracker | Free Options P&L Tool for Charles Schwab</title>
+<meta name="description" content="Free tool for Charles Schwab options traders. Upload your Schwab CSV export to instantly analyze options P&L, monthly cash flow, open commitments, assignments, and realized gain/loss — all processed locally in your browser.">
+<meta name="keywords" content="schwab options calculator, schwab options tracker, schwab P&L, options profit loss, covered calls tracker, cash secured puts, thetagang, schwab csv analyzer, FIFO options calculator">
+<meta name="author" content="Schwab Options Calculator">
+<meta name="robots" content="index, follow">
+<!-- Open Graph / Social sharing -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Schwab Options Tracker — Free Options P&L Tool">
+<meta property="og:description" content="Fix Schwab's terrible options reporting. Upload your Schwab CSV to get monthly P&L, win rate, open commitments, assignments, and realized gain/loss — free & private.">
+<meta property="og:url" content="https://schwab-options-calculator.vercel.app/">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Schwab Options Tracker — Free & Private">
+<meta name="twitter:description" content="Upload your Schwab transactions CSV for instant options P&L analysis. FIFO matching, monthly summaries, open commitments & more. Data never leaves your browser.">
 <link rel="icon" type="image/x-icon" href="favicon1.ico">
+<!-- Canonical URL -->
+<link rel="canonical" href="https://schwab-options-calculator.vercel.app/">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
@@ -56,6 +71,27 @@ h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
 .checkbox-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; background: var(--bg-input); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); align-items: start; transition: background 0.3s; }
 .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); }
 .checkbox-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; accent-color: #7c3aed; }
+
+/* Privacy badge */
+.privacy-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.4); color:#ef4444; font-size:1.05rem; font-weight:400; padding:8px 18px; border-radius:50px; margin:0 auto 18px; }
+[data-theme="light"] .privacy-badge { background:rgba(239,68,68,0.07); }
+
+/* How-to export guide */
+.howto-guide { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:14px 18px; margin:14px auto 0; text-align:left; max-width:560px; }
+.howto-guide summary { color:#a78bfa; font-size:0.82rem; font-weight:600; cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; }
+.howto-guide summary::-webkit-details-marker { display:none; }
+.howto-guide summary::before { content:'▶'; font-size:0.65rem; transition:transform 0.2s; display:inline-block; }
+details[open] .howto-guide summary::before { transform:rotate(90deg); }
+.howto-guide ol { margin:10px 0 0 18px; color:var(--text-secondary); font-size:0.8rem; line-height:1.8; }
+.howto-guide ol li strong { color:var(--text-primary); }
+
+/* Sample data button */
+.sample-btn { margin-top:14px; display:inline-flex; align-items:center; gap:7px; background:transparent; border:2px solid #6d28d9; color:#a78bfa; padding:9px 20px; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600; transition:all 0.22s; }
+.sample-btn:hover { background:#6d28d9; color:#fff; }
+
+/* Feature pills */
+.feature-pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 22px; }
+.feature-pill { background:var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-secondary); font-size:0.75rem; padding:4px 12px; border-radius:50px; }
 
 /* Theme Toggle Button */
 #themeToggle {
@@ -165,7 +201,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-f
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 30px; }
 .stat-card { background: var(--bg-secondary); padding: 10px 6px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
-.stat-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
+.stat-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; line-height: 1.4; }
 .stat-value { font-size: 1.05rem; font-weight: bold; }
 
 table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); border-radius: 12px; table-layout: auto; transition: background 0.3s; }
@@ -293,22 +329,59 @@ th.oc-drop-target {
 </button>
 
 <!-- Upload Transactions compact button (shown after file is loaded) -->
-<button id="uploadBtn" onclick="document.getElementById('filePicker').click()" title="Upload transactions file" style="display:none; position:absolute; top:16px; left:16px; z-index:9999; align-items:center; gap:8px; background:var(--bg-secondary); color:var(--text-primary); border:2px solid #6d28d9; border-radius:50px; padding:8px 14px 8px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; letter-spacing:0.03em; box-shadow:0 4px 16px var(--shadow); transition:all 0.25s ease; white-space:nowrap;">
+<button id="uploadBtn" onclick="document.getElementById('filePicker').value=''; document.getElementById('filePicker').click()" title="Upload transactions file" style="display:none; position:absolute; top:16px; left:16px; z-index:9999; align-items:center; gap:8px; background:var(--bg-secondary); color:var(--text-primary); border:2px solid #6d28d9; border-radius:50px; padding:8px 14px 8px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; letter-spacing:0.03em; box-shadow:0 4px 16px var(--shadow); transition:all 0.25s ease; white-space:nowrap;">
     <span class="upload-btn-text">Upload</span>
     <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle; flex-shrink:0;"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 20h16" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round"/></svg>
 </button>
 
 <div class="container">
-    <h1>Schwab Options Calculator & Data Sorter</h1>
-    <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
+    <h1>Schwab Options Tracker</h1>
+    <p class="subtitle">Fix Schwab's weak options reporting — FIFO P&L, monthly cash flow, open commitments & more</p>
+    <div style="text-align:center;">
+        <span class="privacy-badge">🔒 Your data never leaves your browser — processed 100% locally</span>
+    </div>
+    <div class="feature-pills" id="featurePills">
+        <span class="feature-pill">📅 Monthly / Annual P&L</span>
+        <span class="feature-pill">📋 Open Commitments</span>
+        <span class="feature-pill">📈 Realized Gain / Loss</span>
+        <span class="feature-pill">🔁 Assignment Tracker</span>
+        <span class="feature-pill">🗂️ Transaction Sorter</span>
+        <span class="feature-pill">📊 Charts & Export</span>
+    </div>
     <p id="mainFilename" style="text-align:center; font-size:0.85rem; margin-top:-14px; margin-bottom:20px; display:none;"></p>
 
     <div class="upload-box" id="dropZone">
-        <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
-        <p style="font-size: 0.9rem; margin-top: 15px;">Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
-        <p style="font-size: 0.9rem; margin-top: 10px;">Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
+
+        <!-- Upload CTA box -->
+        <div onclick="event.stopPropagation(); document.getElementById('filePicker').value=''; document.getElementById('filePicker').click()" style="display:inline-flex; align-items:center; gap:12px; background:rgba(109,40,217,0.18); border:2px solid #6d28d9; border-radius:12px; padding:18px 32px; cursor:pointer; margin-bottom:10px; transition:background 0.2s;" onmouseover="this.style.background='rgba(109,40,217,0.32)'" onmouseout="this.style.background='rgba(109,40,217,0.18)'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="2rem" height="2rem" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round"/></svg>
+            <span style="font-size:1.55rem; font-weight:700; color:var(--text-primary);">📂 Click or Drag to Upload Schwab Transactions</span>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <button class="sample-btn" onclick="event.stopPropagation(); loadSampleData()">
+                ✨ Try with Sample Data
+            </button>
+            <p style="font-size:0.72rem; color:var(--text-secondary); margin-top:6px;">No file? Explore all features with realistic demo trades.</p>
+        </div>
+
+        <p style="font-size: 0.9rem; margin-top: 4px; color:var(--text-secondary);">Required columns: <strong style="color:var(--text-primary);">Date | Action | Symbol | Description | Quantity | Price | Fees &amp; Comm | Amount</strong></p>
+        <p class="upload-supported">Supports .xlsx, .xls, .csv</p>
         <p id="uploadedFileName" style="font-size: 0.9rem; color: #a78bfa; margin-top: 10px; display:none;"></p>
         <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
+
+        <!-- How-to guide — open by default, no toggle needed -->
+        <div onclick="event.stopPropagation()" style="margin:16px auto 0; max-width:580px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px 20px; text-align:left;">
+            <p style="color:#a78bfa; font-size:1.15rem; font-weight:700; margin-bottom:10px;">📖 How to export your transactions from Schwab</p>
+            <ol style="margin:0 0 0 18px; color:var(--text-secondary); font-size:0.88rem; line-height:2;">
+                <li>Log in to <strong style="color:var(--text-primary);">Schwab.com</strong> and go to <strong style="color:var(--text-primary);">Accounts → Transaction History</strong></li>
+                <li>Select your <strong style="color:var(--text-primary);">options account</strong> and set your desired <strong style="color:var(--text-primary);">date range</strong>, then click the <strong style="color:var(--text-primary);">Search</strong> button</li>
+                <li>Click the <strong style="color:var(--text-primary);">Export</strong> button (top right of the transactions table)</li>
+                <li>Choose <strong style="color:var(--text-primary);">CSV</strong> format and download</li>
+                <li>Upload that file here — no edits needed</li>
+            </ol>
+            <p style="margin-top:10px; font-size:0.78rem; color:var(--text-secondary);">💡 Tip: Export up to 2 years at a time for best results.</p>
+        </div>
     </div>
 
     <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
@@ -370,6 +443,71 @@ th.oc-drop-target {
         <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
         <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
         <button onclick="showRealizedGainLoss()" style="background:#a855f7;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
+        <button onclick="showTickerBreakdown()" style="background:#e11d48;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> By Ticker</button>
+    </div>
+
+    <!-- By Ticker Breakdown Modal -->
+    <div id="tickerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:1000; justify-content:center; align-items:center;">
+        <div id="tickerInner" style="width:95vw; max-width:1600px; background:var(--bg-secondary); border:1px solid #e11d48; border-radius:16px; padding:30px; min-height:85vh; max-height:96vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color:#e11d48; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg>
+                    P&amp;L Breakdown by Ticker
+                </h2>
+                <button onclick="closeTickerBreakdown()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+            </div>
+            <!-- Date Filters -->
+            <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; justify-content:center;">
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                    <select id="tickerDatePreset" onchange="tickerApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="last7">Last 7 Days</option>
+                        <option value="currentMonth">Current Month</option>
+                        <option value="lastMonth">Last Month</option>
+                        <option value="currentYear">Current Year</option>
+                        <option value="lastYear">Last Year</option>
+                        <option value="last3Months">Last 3 Months</option>
+                        <option value="last6Months">Last 6 Months</option>
+                        <option value="last12Months">Last 12 Months</option>
+                    </select>
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
+                    <input type="date" id="tickerDateFrom" onchange="tickerApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                </div>
+                <div>
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
+                    <input type="date" id="tickerDateTo" onchange="tickerApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                </div>
+                <button onclick="tickerResetFilters()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                <div id="tickerDateRangeBar" style="font-size:0.8rem; color:var(--text-secondary); align-self:center; font-style:italic;"></div>
+            </div>
+            <!-- Summary pills row -->
+            <div id="tickerSummaryPills" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
+            <!-- Chart -->
+            <div style="margin-bottom:24px; background:var(--bg-primary); border-radius:12px; padding:16px; border:1px solid var(--border-color);">
+                <canvas id="tickerChart" style="max-height:360px;"></canvas>
+            </div>
+            <!-- Table -->
+            <div style="overflow-x:auto;">
+                <table id="tickerTable" style="width:100%; border-collapse:collapse; font-size:0.88rem;">
+                    <thead>
+                        <tr style="background:var(--bg-tertiary);">
+                            <th onclick="sortTickerTable('ticker')"  style="padding:12px 14px; text-align:left;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Ticker ↕</th>
+                            <th onclick="sortTickerTable('trades')"  style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Trades ↕</th>
+                            <th onclick="sortTickerTable('winRate')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Win % ↕</th>
+                            <th onclick="sortTickerTable('totalPL')" style="padding:12px 14px; text-align:right;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Total P&amp;L ↕</th>
+                            <th onclick="sortTickerTable('avgPrem')" style="padding:12px 14px; text-align:right;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Avg Premium ↕</th>
+                            <th onclick="sortTickerTable('avgDays')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Avg Days Held ↕</th>
+                            <th onclick="sortTickerTable('contracts')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Contracts ↕</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tickerTableBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- Transaction Data Sorter Modal -->
@@ -448,8 +586,8 @@ th.oc-drop-target {
     </div>
 
     <!-- Realized Gain / Loss Modal -->
-    <div id="rglModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:flex-start; overflow-y:auto;">
-        <div id="rglInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
+    <div id="rglModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="rglInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
             <!-- Header -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color:#a855f7; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
@@ -468,14 +606,27 @@ th.oc-drop-target {
 
             <!-- Upload prompt (shown when no data) -->
             <div id="rglUploadPrompt" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:340px; gap:20px;">
-                <div style="background:rgba(168,85,247,0.08); border:2px dashed #a855f7; border-radius:12px; padding:50px 60px; text-align:center; cursor:pointer;" onclick="document.getElementById('rglFilePicker').click()">
+                <div id="rglDropZone" style="background:rgba(168,85,247,0.08); border:2px dashed #a855f7; border-radius:12px; padding:50px 60px; text-align:center; cursor:pointer;" onclick="document.getElementById('rglFilePicker').click()">
                     <div style="font-size:3rem; margin-bottom:12px;">📈</div>
-                    <p style="font-size:1.2rem; color:var(--text-primary); font-weight:600; margin-bottom:8px;">Upload Realized Gain / Loss Transactions</p>
+                    <p style="font-size:1.2rem; color:var(--text-primary); font-weight:600; margin-bottom:8px;">Click or Drag to Upload Realized Gain / Loss Transactions</p>
                     <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:6px;">Schwab Realized Gain/Loss Lot Details CSV export</p>
                     <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:4px;">Columns: Symbol | Name | Closed Date | Opened Date | Quantity | Proceeds/Share | Cost/Share | Proceeds | Cost Basis | Gain/Loss ($) | Gain/Loss (%) | Term</p>
                     <p style="font-size:0.85rem; color:var(--text-secondary);">Supports .csv and .xlsx files</p>
                 </div>
                 <p id="rglUploadedFileName" style="font-size:0.9rem; color:#a855f7; display:none;"></p>
+
+                <!-- How-to guide for Realized Gain/Loss export -->
+                <div style="max-width:580px; width:100%; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px 20px; text-align:left;">
+                    <p style="color:#a855f7; font-size:1.15rem; font-weight:700; margin-bottom:10px;">📖 How to export your Realized Gain / Loss from Schwab</p>
+                    <ol style="margin:0 0 0 18px; color:var(--text-secondary); font-size:0.88rem; line-height:2;">
+                        <li>Log in to <strong style="color:var(--text-primary);">Schwab.com</strong> and go to <strong style="color:var(--text-primary);">Accounts → Realized Gain / Loss</strong></li>
+                        <li>Select your <strong style="color:var(--text-primary);">options account</strong> and set your desired <strong style="color:var(--text-primary);">date range</strong>, then click the <strong style="color:var(--text-primary);">Search</strong> button. Be sure the <strong style="color:var(--text-primary);">Options</strong> filter is set to <strong style="color:var(--text-primary);">"Include options contracts"</strong></li>
+                        <li>Click the <strong style="color:var(--text-primary);">Export</strong> button (top right of the transactions table)</li>
+                        <li>Choose <strong style="color:var(--text-primary);">Export Details Only</strong> and download</li>
+                        <li>Upload that file here — no edits needed</li>
+                    </ol>
+                    <p style="margin-top:10px; font-size:0.78rem; color:var(--text-secondary);">💡 Tip: This is a <strong style="color:var(--text-primary);">different export</strong> from the main transactions file — use the <em>Gain/Loss</em> tab specifically.</p>
+                </div>
             </div>
 
             <!-- Data section (shown after upload) -->
@@ -790,7 +941,7 @@ function toggleTheme() {
 
 // Restore saved theme on load
 (function() {
-    const saved = localStorage.getItem('theme') || 'dark';
+    const saved = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
     if (saved === 'light') {
         document.getElementById('toggleEmoji').textContent = '🌙';
@@ -799,8 +950,121 @@ function toggleTheme() {
 
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
-dropZone.onclick = () => filePicker.click();
-filePicker.onchange = (e) => handleFile(e.target.files[0]);
+dropZone.onclick = () => { filePicker.value = ''; filePicker.click(); };
+filePicker.onchange = (e) => { handleFile(e.target.files[0]); filePicker.value = ''; };
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.style.background = 'rgba(109,40,217,0.22)';
+    dropZone.style.borderColor = '#a78bfa';
+});
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.style.background = '';
+    dropZone.style.borderColor = '';
+});
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.style.background = '';
+    dropZone.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+});
+
+function loadSampleData() {
+    // Build dates relative to today so open positions always have future expiries.
+    // tradeDate(daysOffset)  → "MM/DD/YYYY HH:MM:SS"  (the transaction date column)
+    // expiry(daysFromNow)    → "MM/DD/YYYY"            (4-digit year — required by buildOCCSymbol)
+    const base = new Date();
+    function tradeDate(offset, hh='09', mm='35') {
+        const d = new Date(base);
+        d.setDate(d.getDate() + offset);
+        if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Sun→Mon
+        if (d.getDay() === 6) d.setDate(d.getDate() - 1); // Sat→Fri
+        const mo = String(d.getMonth()+1).padStart(2,'0');
+        const dy = String(d.getDate()).padStart(2,'0');
+        return `${mo}/${dy}/${d.getFullYear()} ${hh}:${mm}:00`;
+    }
+    function expiry(daysFromNow) {
+        // Snap to the nearest Friday at or after daysFromNow
+        const d = new Date(base);
+        d.setDate(d.getDate() + daysFromNow);
+        const dow = d.getDay(); // 0=Sun … 6=Sat
+        const toFri = (5 - dow + 7) % 7;
+        d.setDate(d.getDate() + toFri);
+        const mo = String(d.getMonth()+1).padStart(2,'0');
+        const dy = String(d.getDate()).padStart(2,'0');
+        return `${mo}/${dy}/${d.getFullYear()}`; // ← 4-digit year, matches buildOCCSymbol
+    }
+
+    // Symbols that have already expired use a past expiry; open positions get a future one.
+    const E_PAST_1 = expiry(-56);   // ~8 weeks ago
+    const E_PAST_2 = expiry(-42);   // ~6 weeks ago
+    const E_PAST_3 = expiry(-28);   // ~4 weeks ago
+    const E_PAST_4 = expiry(-14);   // ~2 weeks ago
+    const E_FUT_1  = expiry(+14);   // ~2 weeks out  (open)
+    const E_FUT_2  = expiry(+28);   // ~4 weeks out  (open)
+    const E_FUT_3  = expiry(+42);   // ~6 weeks out  (open)
+
+    // CSV — exact Schwab column headers (the app's parsers depend on these)
+    const header = 'Date,Action,Symbol,Description,Quantity,Price,Fees & Comm,Amount';
+    const rows = [
+        // ── Jan-Feb block: QQQ covered calls (fully closed) ────────────────
+        [tradeDate(-90,'09','41'), 'Sell to Open', `QQQ ${E_PAST_1} 480.00 C`, 'QQQ Call', -3, 1.80, 1.95,  538.05],
+        [tradeDate(-72,'14','12'), 'Buy to Close',  `QQQ ${E_PAST_1} 480.00 C`, 'QQQ Call',  3, 0.30, 1.95,  -91.95],
+
+        // ── AMD cash-secured put — expired worthless ────────────────────────
+        [tradeDate(-85,'10','05'), 'Sell to Open', `AMD ${E_PAST_1} 175.00 P`, 'AMD Put',  -2, 3.30, 1.30,  658.70],
+        [tradeDate(-64,'09','31'), 'Expired',       `AMD ${E_PAST_1} 175.00 P`, 'AMD Put Expired', 0, 0, 0, 0],
+
+        // ── TSLA put — bought to close early for profit ─────────────────────
+        [tradeDate(-55,'09','48'), 'Sell to Open', `TSLA ${E_PAST_2} 240.00 P`, 'TSLA Put', -1, 4.20, 0.65,  419.35],
+        [tradeDate(-34,'15','22'), 'Buy to Close',  `TSLA ${E_PAST_2} 240.00 P`, 'TSLA Put',  1, 1.05, 0.65, -105.65],
+
+        // ── AAPL covered call — bought to close ─────────────────────────────
+        [tradeDate(-62,'09','35'), 'Sell to Open', `AAPL ${E_PAST_2} 195.00 C`, 'AAPL Call', -1, 2.85, 0.65,  284.35],
+        [tradeDate(-41,'11','18'), 'Buy to Close',  `AAPL ${E_PAST_2} 195.00 C`, 'AAPL Call',  1, 0.45, 0.65,  -45.65],
+
+        // ── AAPL second call — expired worthless ────────────────────────────
+        [tradeDate(-40,'09','35'), 'Sell to Open', `AAPL ${E_PAST_3} 197.50 C`, 'AAPL Call', -1, 3.10, 0.65,  309.35],
+        [tradeDate(-19,'09','31'), 'Expired',       `AAPL ${E_PAST_3} 197.50 C`, 'AAPL Call Expired', 0, 0, 0, 0],
+
+        // ── MSFT put — assigned (shares purchased at strike) ────────────────
+        [tradeDate(-48,'10','02'), 'Sell to Open', `MSFT ${E_PAST_3} 420.00 P`, 'MSFT Put',  -1, 3.75, 0.65,  374.35],
+        [tradeDate(-27,'09','31'), 'Assigned',      `MSFT ${E_PAST_3} 420.00 P`, 'MSFT Put Assigned', 100, 420.00, 0, -42000.00],
+
+        // ── NVDA covered call — shares called away ───────────────────────────
+        [tradeDate(-70,'09','55'), 'Sell to Open',  `NVDA ${E_PAST_4} 900.00 C`, 'NVDA Call', -1, 8.50, 0.65,  849.35],
+        [tradeDate(-49,'09','31'), 'Called Away',   `NVDA ${E_PAST_4} 900.00 C`, 'NVDA Call Called Away', -100, 900.00, 0, 90000.00],
+
+        // ── SPY call spread — still open ────────────────────────────────────
+        [tradeDate(-10,'10','15'), 'Sell to Open', `SPY ${E_FUT_1} 560.00 C`, 'SPY Call Spread Sell',  -1, 2.10, 0.65,  209.35],
+        [tradeDate(-10,'10','15'), 'Buy to Open',  `SPY ${E_FUT_1} 565.00 C`, 'SPY Call Spread Buy',    1, 0.85, 0.65,  -85.65],
+
+        // ── Recent open positions ────────────────────────────────────────────
+        [tradeDate(-8,'09','38'),  'Sell to Open', `AAPL ${E_FUT_2} 200.00 C`, 'AAPL Call', -2, 2.65, 1.30,  528.70],
+        [tradeDate(-5,'09','42'),  'Sell to Open', `TSLA ${E_FUT_2} 250.00 P`, 'TSLA Put',  -1, 5.40, 0.65,  539.35],
+        [tradeDate(-3,'10','05'),  'Sell to Open', `MSFT ${E_FUT_3} 430.00 C`, 'MSFT Call', -1, 1.90, 0.65,  189.35],
+        [tradeDate(-2,'09','51'),  'Sell to Open', `NVDA ${E_FUT_3} 950.00 C`, 'NVDA Call', -1, 6.20, 0.65,  619.35],
+        [tradeDate(-1,'14','30'),  'Sell to Open', `AMD  ${E_FUT_1} 180.00 P`, 'AMD Put',   -2, 2.80, 1.30,  558.70],
+    ];
+
+    // Serialise to CSV, quoting any field that contains a comma
+    function csvField(v) {
+        const s = String(v === null || v === undefined ? '' : v);
+        return s.includes(',') ? `"${s}"` : s;
+    }
+    const csvBody = rows.map(r => r.map(csvField).join(',')).join('\n');
+    const csvText = header + '\n' + csvBody;
+
+    // Create a proper File and send through the real handleFile() pipeline
+    const blob = new Blob([csvText], { type: 'text/csv' });
+    const file = new File([blob], '✨ sample_demo_data.csv', { type: 'text/csv' });
+    handleFile(file);
+}
 
 async function handleFile(file) {
     if (!file) return;
@@ -821,6 +1085,7 @@ async function handleFile(file) {
     // Hide upload box, show compact upload button
     document.getElementById('dropZone').style.display = 'none';
     document.getElementById('uploadBtn').style.display = 'inline-flex';
+    document.getElementById('featurePills').style.display = 'none';
     const data = await file.arrayBuffer();
     sortKey = 'dte';
     sortDir = 1;
@@ -1325,15 +1590,41 @@ function render(newSortKey, dataToRender) {
 
     const assignedPremium = reconAssigned;
 
+    // ── Win Rate & Trade Stats ─────────────────────────────────
+    const closedNonAssigned = finalTrades.filter(x => {
+        const st = x.status.toLowerCase();
+        if (st.includes('assigned') || st.includes('called away')) return false;
+        if (startDate && x.closeDate < startDate) return false;
+        if (endDate && x.closeDate > endDate) return false;
+        if (searchTerm && !x.symbol.toLowerCase().includes(searchTerm)) return false;
+        return true;
+    });
+    const winners = closedNonAssigned.filter(x => (x.profit || 0) > 0).length;
+    const winRate = closedNonAssigned.length > 0 ? (winners / closedNonAssigned.length * 100).toFixed(1) : null;
+    const avgPremium = closedNonAssigned.length > 0
+        ? (closedNonAssigned.reduce((s, x) => s + Math.abs(x.openingPremium || 0), 0) / closedNonAssigned.length)
+        : null;
+    const daysHeldArr = closedNonAssigned
+        .filter(x => x.openDate && x.closeDate)
+        .map(x => Math.round((x.closeDate - x.openDate) / 86400000));
+    const avgDaysHeld = daysHeldArr.length > 0
+        ? (daysHeldArr.reduce((a, b) => a + b, 0) / daysHeldArr.length).toFixed(1)
+        : null;
+    const totalContracts = closedNonAssigned.reduce((s, x) => s + Math.abs(Number(x.contracts) || 0), 0);
+
     document.getElementById('summary').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Sell to Open + Buy to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Buy to Close + Sell to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Cash Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Realized Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Assigned Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Closed Trades</div><div class="stat-value">${closedTrades}</div></div>
-        <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
+        <div class="stat-card"><div class="stat-label">Sell/Buy<br>to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Buy/Sell<br>to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Cash<br>Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Realized<br>Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Open<br>Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Assigned<br>Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Closed<br>Trades</div><div class="stat-value">${closedTrades}</div></div>
+        <div class="stat-card"><div class="stat-label">Open<br>Positions</div><div class="stat-value waiting">${openTrades}</div></div>
+        <div class="stat-card"><div class="stat-label">Win<br>Rate</div><div class="stat-value" style="color:${winRate !== null ? (parseFloat(winRate) >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${winRate !== null ? winRate + '%' : '—'}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Premium<br>/ Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Days<br>Held</div><div class="stat-value">${avgDaysHeld !== null ? avgDaysHeld + 'd' : '—'}</div></div>
+        <div class="stat-card"><div class="stat-label">Total<br>Contracts</div><div class="stat-value">${totalContracts || '—'}</div></div>
     `;
 
     if (uploadedDateRange.min && uploadedDateRange.max) {
@@ -5394,9 +5685,11 @@ function rglMdtDownload() {
 (function() {
     document.addEventListener('DOMContentLoaded', () => {
         const picker = document.getElementById('rglFilePicker');
+        const dropZoneRgl = document.getElementById('rglDropZone');
         if (!picker) return;
-        picker.addEventListener('change', function() {
-            const file = this.files[0];
+
+        // Shared file handler
+        function handleRglFile(file) {
             if (!file) return;
             document.getElementById('rglUploadedFileName').textContent = '📄 ' + file.name;
             document.getElementById('rglUploadedFileName').style.display = 'block';
@@ -5463,8 +5756,37 @@ function rglMdtDownload() {
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        // Wire picker change
+        picker.addEventListener('change', function() {
+            handleRglFile(this.files[0]);
             this.value = '';
         });
+
+        // Wire drag-and-drop on the drop zone
+        if (dropZoneRgl) {
+            dropZoneRgl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneRgl.style.background = 'rgba(168,85,247,0.22)';
+                dropZoneRgl.style.borderColor = '#c084fc';
+            });
+            dropZoneRgl.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneRgl.style.background = '';
+                dropZoneRgl.style.borderColor = '';
+            });
+            dropZoneRgl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneRgl.style.background = '';
+                dropZoneRgl.style.borderColor = '';
+                const file = e.dataTransfer.files[0];
+                if (file) handleRglFile(file);
+            });
+        }
     });
 })();
 
@@ -6495,6 +6817,226 @@ function initDraggableModal(innerId, accentColor, maxWidthPx) {
         // Remove corner handles
         inner.querySelectorAll('div[style*="cursor: nw-resize"], div[style*="cursor: ne-resize"], div[style*="cursor: sw-resize"], div[style*="cursor: se-resize"]').forEach(el => el.remove());
     };
+}
+
+// ============================================================
+// BY TICKER BREAKDOWN
+// ============================================================
+let tickerSortKey = 'totalPL';
+let tickerSortDir = -1;
+let tickerChartInstance = null;
+const tickerFilterState = { datePreset: 'all', dateFrom: '', dateTo: '' };
+
+function buildTickerData() {
+    const fromVal = document.getElementById('tickerDateFrom') ? document.getElementById('tickerDateFrom').value : '';
+    const toVal   = document.getElementById('tickerDateTo')   ? document.getElementById('tickerDateTo').value   : '';
+    const fromMs  = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
+    const toMs    = toVal   ? new Date(toVal   + 'T23:59:59').getTime() : null;
+
+    const map = {};
+    finalTrades.forEach(x => {
+        const st = x.status.toLowerCase();
+        if (st.includes('assigned') || st.includes('called away')) return;
+        // Date filter on close date
+        if (x.closeDate) {
+            const cd = x.closeDate.getTime();
+            if (fromMs !== null && cd < fromMs) return;
+            if (toMs   !== null && cd > toMs)   return;
+        }
+        const ticker = extractTicker(x.symbol);
+        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, totalPL:0, premiumSum:0, daysSum:0, daysCount:0, contracts:0 };
+        const m = map[ticker];
+        m.trades++;
+        if ((x.profit || 0) > 0) m.wins++;
+        m.totalPL += x.profit || 0;
+        m.premiumSum += Math.abs(x.openingPremium || 0);
+        m.contracts += Math.abs(Number(x.contracts) || 0);
+        if (x.openDate && x.closeDate) {
+            m.daysSum += Math.round((x.closeDate - x.openDate) / 86400000);
+            m.daysCount++;
+        }
+    });
+    return Object.values(map).map(m => ({
+        ...m,
+        winRate: m.trades > 0 ? (m.wins / m.trades * 100) : 0,
+        avgPrem: m.trades > 0 ? m.premiumSum / m.trades : 0,
+        avgDays: m.daysCount > 0 ? +(m.daysSum / m.daysCount).toFixed(1) : 0,
+    }));
+}
+
+function tickerApplyFilters() {
+    document.getElementById('tickerDatePreset').value = 'all';
+    tickerRefresh();
+}
+
+function tickerApplyDatePreset() {
+    const preset = document.getElementById('tickerDatePreset').value;
+    const now = new Date();
+    let from = '', to = '';
+    const fmt = d => d.toISOString().slice(0,10);
+    if (preset === 'today') {
+        from = to = fmt(now);
+    } else if (preset === 'last7') {
+        from = fmt(new Date(now - 6*86400000)); to = fmt(now);
+    } else if (preset === 'currentMonth') {
+        from = fmt(new Date(now.getFullYear(), now.getMonth(), 1)); to = fmt(now);
+    } else if (preset === 'lastMonth') {
+        from = fmt(new Date(now.getFullYear(), now.getMonth()-1, 1));
+        to   = fmt(new Date(now.getFullYear(), now.getMonth(), 0));
+    } else if (preset === 'currentYear') {
+        from = fmt(new Date(now.getFullYear(), 0, 1)); to = fmt(now);
+    } else if (preset === 'lastYear') {
+        from = fmt(new Date(now.getFullYear()-1, 0, 1));
+        to   = fmt(new Date(now.getFullYear()-1, 11, 31));
+    } else if (preset === 'last3Months') {
+        from = fmt(new Date(now.getFullYear(), now.getMonth()-3, now.getDate())); to = fmt(now);
+    } else if (preset === 'last6Months') {
+        from = fmt(new Date(now.getFullYear(), now.getMonth()-6, now.getDate())); to = fmt(now);
+    } else if (preset === 'last12Months') {
+        from = fmt(new Date(now.getFullYear()-1, now.getMonth(), now.getDate())); to = fmt(now);
+    }
+    document.getElementById('tickerDateFrom').value = from;
+    document.getElementById('tickerDateTo').value   = to;
+    tickerRefresh();
+}
+
+function tickerResetFilters() {
+    document.getElementById('tickerDatePreset').value = 'all';
+    document.getElementById('tickerDateFrom').value   = '';
+    document.getElementById('tickerDateTo').value     = '';
+    tickerRefresh();
+}
+
+function tickerRefresh() {
+    const rows = buildTickerData();
+    const fromVal = document.getElementById('tickerDateFrom').value;
+    const toVal   = document.getElementById('tickerDateTo').value;
+    let rangeText = '';
+    if (fromVal || toVal) {
+        const fmtDisp = s => s ? new Date(s + 'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '…';
+        rangeText = `Showing: ${fmtDisp(fromVal)} → ${fmtDisp(toVal)}`;
+    }
+    document.getElementById('tickerDateRangeBar').textContent = rangeText;
+    if (!rows.length) {
+        document.getElementById('tickerSummaryPills').innerHTML = '<div style="color:var(--text-secondary); font-size:0.9rem;">No trades found for this date range.</div>';
+        document.getElementById('tickerTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-secondary);">No data for selected range.</td></tr>';
+        if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
+        return;
+    }
+    renderTickerSummaryPills(rows);
+    renderTickerChart(rows);
+    renderTickerTable(rows);
+}
+
+function sortTickerTable(key) {
+    if (tickerSortKey === key) tickerSortDir *= -1;
+    else { tickerSortKey = key; tickerSortDir = -1; }
+    renderTickerTable(buildTickerData());
+}
+
+function renderTickerTable(rows) {
+    rows.sort((a, b) => {
+        const v1 = a[tickerSortKey], v2 = b[tickerSortKey];
+        if (typeof v1 === 'string') return v1.localeCompare(v2) * tickerSortDir;
+        return (v1 - v2) * tickerSortDir;
+    });
+
+    const fmt$ = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtPct = v => v.toFixed(1) + '%';
+    const winColor = pct => pct >= 70 ? '#4ade80' : pct >= 50 ? '#facc15' : '#f87171';
+    const plColor  = v => v >= 0 ? '#4ade80' : '#f87171';
+
+    document.getElementById('tickerTableBody').innerHTML = rows.map((r, i) => `
+        <tr style="background:${i%2===0 ? 'var(--bg-secondary)' : 'var(--bg-primary)'}; border-bottom:1px solid var(--border-color);">
+            <td style="padding:11px 14px; font-weight:700; color:var(--text-primary);">${r.ticker}</td>
+            <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.trades}</td>
+            <td style="padding:11px 14px; text-align:center; font-weight:600; color:${winColor(r.winRate)};">${fmtPct(r.winRate)}</td>
+            <td style="padding:11px 14px; text-align:right; font-weight:700; color:${plColor(r.totalPL)};">${fmt$(r.totalPL)}</td>
+            <td style="padding:11px 14px; text-align:right; color:var(--text-muted);">$${r.avgPrem.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+            <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.avgDays > 0 ? r.avgDays + 'd' : '—'}</td>
+            <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.contracts}</td>
+        </tr>`).join('');
+}
+
+function renderTickerChart(rows) {
+    const sorted = [...rows].sort((a,b) => b.totalPL - a.totalPL);
+    const labels = sorted.map(r => r.ticker);
+    const values = sorted.map(r => +r.totalPL.toFixed(2));
+    const colors = values.map(v => v >= 0 ? 'rgba(74,222,128,0.85)' : 'rgba(248,113,113,0.85)');
+    const borderColors = values.map(v => v >= 0 ? '#22c55e' : '#ef4444');
+
+    if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
+
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const labelColor = isDark ? '#94a3b8' : '#475569';
+
+    tickerChartInstance = new Chart(document.getElementById('tickerChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Total P&L ($)', data: values, backgroundColor: colors, borderColor: borderColors, borderWidth: 1.5, borderRadius: 5 }] },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.y.toLocaleString(undefined,{minimumFractionDigits:2}) } }
+            },
+            scales: {
+                x: { ticks: { color: labelColor, font:{size:12,weight:'bold'} }, grid: { color: gridColor } },
+                y: { ticks: { color: labelColor, callback: v => '$' + v.toLocaleString() }, grid: { color: gridColor } }
+            }
+        }
+    });
+}
+
+function renderTickerSummaryPills(rows) {
+    const totalPL = rows.reduce((s,r) => s+r.totalPL, 0);
+    const bestTicker = rows.length ? rows.reduce((a,b) => a.totalPL > b.totalPL ? a : b) : null;
+    const worstTicker = rows.length ? rows.reduce((a,b) => a.totalPL < b.totalPL ? a : b) : null;
+    const overallWinRate = rows.reduce((s,r)=>s+r.wins,0) / Math.max(1, rows.reduce((s,r)=>s+r.trades,0)) * 100;
+
+    const pill = (label, val, color) =>
+        `<div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center;">
+            <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">${label}</div>
+            <div style="font-size:1.1rem; font-weight:700; color:${color};">${val}</div>
+        </div>`;
+
+    document.getElementById('tickerSummaryPills').innerHTML =
+        pill('Overall P&L', (totalPL>=0?'+$':'-$')+Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), totalPL>=0?'#4ade80':'#f87171') +
+        pill('Overall Win Rate', overallWinRate.toFixed(1)+'%', overallWinRate>=50?'#4ade80':'#f87171') +
+        pill('Tickers Traded', rows.length, 'var(--text-primary)') +
+        (bestTicker  ? pill('Best Ticker',  bestTicker.ticker  + ' (+$'+Math.abs(bestTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#4ade80') : '') +
+        (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
+}
+
+function showTickerBreakdown() {
+    if (!finalTrades || !finalTrades.length) {
+        alert('No trade data loaded. Please upload a file first.');
+        return;
+    }
+    // Reset filters to "All Time" each time the modal opens
+    tickerSortKey = 'totalPL';
+    tickerSortDir = -1;
+    document.getElementById('tickerDatePreset').value = 'all';
+    document.getElementById('tickerDateFrom').value   = '';
+    document.getElementById('tickerDateTo').value     = '';
+    document.getElementById('tickerDateRangeBar').textContent = '';
+    const rows = buildTickerData();
+    if (!rows.length) {
+        alert('No closed trades found to analyse.');
+        return;
+    }
+    renderTickerSummaryPills(rows);
+    renderTickerChart(rows);
+    renderTickerTable(rows);
+    document.getElementById('tickerModal').style.display = 'flex';
+    initDraggableModal('tickerInner', '#e11d48', 1600);
+}
+
+function closeTickerBreakdown() {
+    document.getElementById('tickerModal').style.display = 'none';
+    if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
+    const inner = document.getElementById('tickerInner');
+    if (inner && inner._dragCleanup) inner._dragCleanup();
 }
 </script>
 </body>
