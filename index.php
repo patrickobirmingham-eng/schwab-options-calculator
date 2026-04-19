@@ -1,0 +1,6196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schwab Options Calculator & Data Sorter</title>
+<link rel="icon" type="image/x-icon" href="favicon1.ico">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+:root[data-theme="dark"] {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-input: #0f172a;
+    --border-color: #334155;
+    --border-accent: #6d28d9;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #cbd5e1;
+    --tag-bg: #475569;
+    --shadow: rgba(0,0,0,0.6);
+    --toggle-bg: #334155;
+    --toggle-icon: '☀️';
+    --toggle-label: 'Light Mode';
+}
+
+:root[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e2e8f0;
+    --bg-input: #f1f5f9;
+    --border-color: #cbd5e1;
+    --border-accent: #7c3aed;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #334155;
+    --tag-bg: #94a3b8;
+    --shadow: rgba(0,0,0,0.15);
+    --toggle-bg: #e2e8f0;
+    --toggle-icon: '🌙';
+    --toggle-label: 'Dark Mode';
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg-primary); color: var(--text-primary); padding: 20px; transition: background 0.3s ease, color 0.3s ease; position: relative; }
+.container { max-width: 1600px; margin: 0 auto; }
+h1 { text-align: center; color: #a78bfa; margin-bottom: 10px; }
+.subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 25px; font-size: 0.9rem; }
+.upload-box { background: rgba(109,40,217,0.08); border: 2px dashed #6d28d9; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: background 0.3s; }
+[data-theme="light"] .upload-box { background: rgba(109,40,217,0.05); }
+.filter-bar { display: flex; flex-wrap: wrap; gap: 20px; background: var(--bg-secondary); padding: 25px; border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border-accent); align-items: flex-end; transition: background 0.3s, border-color 0.3s; }
+.filter-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+.filter-group label { color: var(--text-primary); font-size: 0.85rem; font-weight: 600; }
+.checkbox-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; background: var(--bg-input); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); align-items: start; transition: background 0.3s; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); }
+.checkbox-item input[type="checkbox"] { flex-shrink: 0; width: 16px; height: 16px; accent-color: #7c3aed; }
+
+/* Theme Toggle Button */
+#themeToggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-accent);
+    border-radius: 50px;
+    padding: 8px 14px 8px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 16px var(--shadow);
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+#themeToggle:hover {
+    background: var(--border-accent);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(109,40,217,0.4);
+}
+#themeToggle .toggle-track {
+    width: 36px;
+    height: 20px;
+    background: var(--toggle-bg);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+}
+#themeToggle .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #7c3aed;
+    border-radius: 50%;
+    transition: transform 0.25s ease, background 0.25s;
+}
+[data-theme="light"] #themeToggle .toggle-thumb {
+    transform: translateX(16px);
+    background: #f59e0b;
+}
+#themeToggle .toggle-emoji {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+@media (max-width: 768px) {
+    #themeToggle { padding: 8px 12px 8px 10px; font-size: 0.75rem; top: 10px; right: 10px; }
+    #themeToggle .toggle-label { display: none; }
+    #uploadBtn { top: 10px; left: 10px; font-size: 0.75rem; padding: 8px 10px; }
+    #uploadBtn .upload-btn-text { display: none; }
+    body { padding: 10px; }
+    h1 { font-size: 1.5rem; margin-top: 55px; }
+    .subtitle { font-size: 0.8rem; }
+    .upload-box { padding: 20px; }
+    .upload-box p { font-size: 1rem !important; }
+    .filter-bar { flex-direction: column; padding: 15px; gap: 15px; }
+    .filter-group { min-width: 100%; }
+    .checkbox-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .stat-card { padding: 15px; }
+    .stat-label { font-size: 0.72rem; }
+    .stat-value { font-size: 1.2rem; }
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 800px; font-size: 0.8rem; }
+    th, td { padding: 10px 8px; font-size: 0.75rem; }
+    .tag { font-size: 0.65rem; padding: 2px 6px; }
+}
+
+@media (max-width: 480px) {
+    h1 { font-size: 1.2rem; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    table { min-width: 600px; }
+}
+
+@media (max-width: 360px) {
+    .stats { grid-template-columns: 1fr; }
+}
+
+.filter-bar input, .filter-bar select {
+    background: var(--bg-input);
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 12px;
+    border-radius: 8px;
+    outline: none;
+    width: 100%;
+    font-size: 1rem;
+    transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+.filter-bar input::placeholder { color: var(--text-secondary); }
+.filter-bar select option { background: var(--bg-secondary); color: var(--text-primary); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-filter, invert(1)); cursor: pointer; }
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0); }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 30px; }
+.stat-card { background: var(--bg-secondary); padding: 10px 6px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
+.stat-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-size: 1.05rem; font-weight: bold; }
+
+table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); border-radius: 12px; table-layout: auto; transition: background 0.3s; }
+thead tr { position: sticky; top: 0; z-index: 20; }
+th { background: var(--bg-tertiary); color: var(--text-muted); padding: 15px; text-align: center; cursor: pointer; font-size: 0.8rem; border-bottom: 2px solid #6d28d9; box-shadow: 0 3px 6px var(--shadow); position: relative; transition: background 0.3s; }
+th .resizer { position: absolute; top: 0; right: 0; width: 5px; cursor: col-resize; user-select: none; height: 100%; background: transparent; }
+tfoot td { background: var(--bg-tertiary); padding: 12px 15px; font-size: 0.85rem; text-align: center; }
+th .resizer:hover { background: #6d28d9; }
+td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; text-align: center; color: var(--text-primary); transition: border-color 0.3s, color 0.3s; }
+.pos { color: #16a34a; } 
+[data-theme="dark"] .pos { color: #4ade80; }
+.neg { color: #dc2626; }
+[data-theme="dark"] .neg { color: #f87171; }
+.waiting { color: #d97706; }
+[data-theme="dark"] .waiting { color: #fbbf24; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: var(--tag-bg); color: var(--text-primary); }
+.tag-waiting { background: #f59e0b; color: #000; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+#uploadBtn:hover {
+    background: #6d28d9;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(109,40,217,0.4);
+}
+#uploadBtn:hover svg path { stroke: #fff; }
+
+/* Upload box text */
+.upload-box p { color: var(--text-primary); }
+.upload-box p:not(:first-child) { color: var(--text-secondary); }
+
+/* Date range text */
+#dateRange { color: var(--text-secondary); }
+
+/* Modal */
+#monthlyModal > div { background: var(--bg-secondary); border: 1px solid var(--border-accent); }
+
+/* ── Mobile-friendly Monthly & Weekly modals ── */
+@media (max-width: 768px) {
+    #monthlyModal, #weeklyModal {
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+    }
+    #monthlyInner, #weeklyInner {
+        position: relative !important;
+        left: auto !important; top: auto !important;
+        width: 100% !important; max-width: 100% !important;
+        height: auto !important; max-height: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 12px 10px !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
+    /* Modal title rows */
+    #monthlyInner > div:first-child,
+    #weeklyInner  > div:first-child {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    #monthlyInner > div:first-child h2,
+    #weeklyInner  > div:first-child h2 {
+        font-size: 0.9rem !important;
+        flex: 1 1 100% !important;
+    }
+    #monthlyInner > div:first-child > div,   /* expand checkbox wrapper */
+    #weeklyInner  > div:first-child > div {
+        flex: 1 1 auto !important;
+        justify-content: flex-start !important;
+    }
+    /* Scrollable table wrappers */
+    #monthlyTableContainer > div,
+    #weeklyTableContainer  > div {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    /* Compact table cells */
+    #monthlyBreakdownTable th,
+    #monthlyBreakdownTable td,
+    #weeklyBreakdownTable  th,
+    #weeklyBreakdownTable  td {
+        padding: 7px 6px !important;
+        font-size: 0.72rem !important;
+        white-space: nowrap !important;
+    }
+    /* Drop colgroup fixed widths on mobile — let content size naturally */
+    #monthlyBreakdownTable colgroup,
+    #weeklyBreakdownTable  colgroup {
+        display: none !important;
+    }
+    /* Realized Gain/Loss modal mobile */
+    #rglModal {
+        align-items: flex-start !important;
+        overflow-y: auto !important;
+    }
+    #rglInner {
+        position: relative !important;
+        left: auto !important; top: auto !important;
+        width: 100% !important; max-width: 100% !important;
+        height: auto !important; max-height: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        padding: 12px 10px !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* Open Commitments drag-to-reorder column highlight */
+th.oc-drop-target {
+    outline: 3px solid #f59e0b !important;
+    outline-offset: -2px;
+    background: rgba(245,158,11,0.18) !important;
+}
+</style>
+</head>
+
+<body>
+<!-- Dark/Light Mode Toggle -->
+<button id="themeToggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+    <span class="toggle-emoji" id="toggleEmoji">☀️</span>
+    <div class="toggle-track">
+        <div class="toggle-thumb"></div>
+    </div>
+</button>
+
+<!-- Upload Transactions compact button (shown after file is loaded) -->
+<button id="uploadBtn" onclick="document.getElementById('filePicker').click()" title="Upload transactions file" style="display:none; position:absolute; top:16px; left:16px; z-index:9999; align-items:center; gap:8px; background:var(--bg-secondary); color:var(--text-primary); border:2px solid #6d28d9; border-radius:50px; padding:8px 14px 8px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; letter-spacing:0.03em; box-shadow:0 4px 16px var(--shadow); transition:all 0.25s ease; white-space:nowrap;">
+    <span class="upload-btn-text">Upload</span>
+    <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle; flex-shrink:0;"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 20h16" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round"/></svg>
+</button>
+
+<div class="container">
+    <h1>Schwab Options Calculator & Data Sorter</h1>
+    <p class="subtitle">FIFO Transactional Analysis & Date-Matched P/L</p>
+    <p id="mainFilename" style="text-align:center; font-size:0.85rem; margin-top:-14px; margin-bottom:20px; display:none;"></p>
+
+    <div class="upload-box" id="dropZone">
+        <p style="font-size: 1.2rem;">Click to Upload Schwab CSV/Excel Transactions</p>
+        <p style="font-size: 0.9rem; margin-top: 15px;">Column titles are: Date | Action | Symbol | Description | Quantity | Price | Fees & Comm | Amount</p>
+        <p style="font-size: 0.9rem; margin-top: 10px;">Supports .xlsx, .xls, .csv, and other spreadsheet files</p>
+        <p id="uploadedFileName" style="font-size: 0.9rem; color: #a78bfa; margin-top: 10px; display:none;"></p>
+        <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
+    </div>
+
+    <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
+
+        <!-- All 4 filters + Reset button in one horizontal centered row -->
+        <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:center; width:100%;">
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">1. Status Filter</label>
+                <div id="statusCheckboxes" style="display:inline-flex; flex-wrap:wrap; justify-content:center; gap:6px 16px; background:var(--bg-input); padding:8px 14px; border-radius:8px; border:1px solid var(--border-color);">
+                    <label class="checkbox-item"><input type="checkbox" id="cbBuyToClose" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Called Away" checked onchange="applyFilters()"> Called Away</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbSellToClose" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbSellToOpen" value="Sell to Open" checked onchange="applyFilters()"> Sell to Open</label>
+                    <label class="checkbox-item"><input type="checkbox" id="cbBuyToOpen" value="Buy to Open" checked onchange="applyFilters()"> Buy to Open</label>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">2. Quick Range</label>
+                <select id="quickRange" onchange="setQuickRange()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
+                    <option value="all" selected>Show All</option>
+                    <option value="today">Today</option>
+                    <option value="7days">Last 7 Days</option>
+                    <option value="currentMonth">Current Month</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="currentYear">Current Year</option>
+                    <option value="lastYear">Last Year</option>
+                    <option value="last3Months">Last 3 Months</option>
+                    <option value="last6Months">Last 6 Months</option>
+                    <option value="last12Months">Last 12 Months</option>
+                </select>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">3. From Date</label>
+                <input type="date" id="startDate" onchange="applyFilters()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">4. To Date</label>
+                <input type="date" id="endDate" onchange="applyFilters()" style="background:var(--bg-input);border:2px solid var(--border-color);color:var(--text-primary);padding:12px;border-radius:8px;outline:none;font-size:1rem;">
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px;">
+                <label style="font-weight:600; font-size:0.85rem; color:transparent; user-select:none;">.</label>
+                <button onclick="resetFilters()" style="background:#ef4444;color:white;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.8rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><path d="M3 12a9 9 0 0 1 15-6.7M21 12a9 9 0 0 1-15 6.7M21 3v5h-5M3 21v-5h5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Reset Filters</button>
+            </div>
+
+        </div>
+
+    </div>
+    <div id="actionButtons" style="display:none; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
+        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly / Annual Summary</button>
+        <button onclick="showWeeklySummary()" style="background:#0891b2;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg> Weekly / Monthly Summary</button>
+        <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
+        <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
+        <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
+        <button onclick="showRealizedGainLoss()" style="background:#a855f7;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
+    </div>
+
+    <!-- Transaction Data Sorter Modal -->
+    <div id="txSorterModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:flex-start; overflow-y:auto;">
+        <div id="txSorterInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color:#10b981; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Transaction Data Sorter</h2>
+                <button onclick="closeTxSorter()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+            </div>
+
+            <!-- Filters -->
+            <div id="tsSummarySection" style="margin-bottom:16px;">
+                <div id="tsSummaryGrid" style="display:flex; flex-wrap:wrap; gap:12px; align-items:stretch; justify-content:center;"></div>
+            </div>
+
+            <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:16px;">
+                <!-- Action checkboxes -->
+                <div style="margin-bottom:14px;">
+                    <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; text-align:center;">Action Filters</div>
+                    <div id="tsActionCheckboxes" style="display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center;"></div>
+                </div>
+                <!-- Date + secondary filters row -->
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:center;">
+                    <div style="display:contents;">
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                            <select id="tsDatePreset" onchange="tsApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                                <option value="all">All</option>
+                                <option value="today">Today</option>
+                                <option value="last7">Last 7 Days</option>
+                                <option value="currentMonth">Current Month</option>
+                                <option value="lastMonth">Last Month</option>
+                                <option value="currentYear">Current Year</option>
+                                <option value="lastYear">Last Year</option>
+                                <option value="last3Months">Last 3 Months</option>
+                                <option value="last6Months">Last 6 Months</option>
+                                <option value="last12Months">Last 12 Months</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
+                            <input type="date" id="tsDateFrom" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
+                            <input type="date" id="tsDateTo" onchange="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                        </div>
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                            <input type="text" id="tsSymbolSearch" placeholder="Search (e.g. ORCL, TTD)" oninput="tsApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:185px;">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:flex-end;">
+                        <button onclick="tsReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                        <button onclick="showMonthlyDataTable()" style="background:#0891b2;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">📅 Monthly / Annual Data Table</button>
+                        <button onclick="tsDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:8px; flex-wrap:wrap;">
+                <div id="tsDateRangeBar" style="font-size:0.82rem; color:var(--text-secondary); font-weight:500; letter-spacing:0.03em;"></div>
+
+            </div>
+            <div style="overflow-x:auto; overflow-y:auto; max-height:55vh; border-radius:8px;">
+                <table id="tsSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
+                    <thead style="position:sticky; top:0; z-index:10;"><tr id="tsSorterHead"></tr></thead>
+                    <tbody id="tsSorterBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Realized Gain / Loss Modal -->
+    <div id="rglModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:flex-start; overflow-y:auto;">
+        <div id="rglInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color:#a855f7; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                    Realized Gain / Loss
+                </h2>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <button onclick="document.getElementById('rglFilePicker').click()" style="background:#a855f7;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><path d="M12 16V4m0 0L8 8m4-4 4 4" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 20h16" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg>
+                        Upload New File
+                    </button>
+                    <input type="file" id="rglFilePicker" accept=".csv,.xlsx" style="display:none">
+                    <button onclick="closeRgl()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+
+            <!-- Upload prompt (shown when no data) -->
+            <div id="rglUploadPrompt" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:340px; gap:20px;">
+                <div style="background:rgba(168,85,247,0.08); border:2px dashed #a855f7; border-radius:12px; padding:50px 60px; text-align:center; cursor:pointer;" onclick="document.getElementById('rglFilePicker').click()">
+                    <div style="font-size:3rem; margin-bottom:12px;">📈</div>
+                    <p style="font-size:1.2rem; color:var(--text-primary); font-weight:600; margin-bottom:8px;">Upload Realized Gain / Loss Transactions</p>
+                    <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:6px;">Schwab Realized Gain/Loss Lot Details CSV export</p>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:4px;">Columns: Symbol | Name | Closed Date | Opened Date | Quantity | Proceeds/Share | Cost/Share | Proceeds | Cost Basis | Gain/Loss ($) | Gain/Loss (%) | Term</p>
+                    <p style="font-size:0.85rem; color:var(--text-secondary);">Supports .csv and .xlsx files</p>
+                </div>
+                <p id="rglUploadedFileName" style="font-size:0.9rem; color:#a855f7; display:none;"></p>
+            </div>
+
+            <!-- Data section (shown after upload) -->
+            <div id="rglDataSection" style="display:none;">
+                <!-- Summary cards -->
+                <div id="rglSummarySection" style="margin-bottom:16px;">
+                    <div id="rglSummaryGrid" style="display:flex; flex-wrap:wrap; gap:12px; align-items:stretch; justify-content:center;"></div>
+                </div>
+
+                <!-- Filters -->
+                <div style="background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:16px;">
+                    <!-- Term filter checkboxes -->
+                    <div style="margin-bottom:14px;">
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; text-align:center;">Term Filter</div>
+                        <div id="rglTermCheckboxes" style="display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center;">
+                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
+                                <input type="checkbox" value="Short Term" onchange="rglApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#f59e0b;"> Short Term
+                            </label>
+                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
+                                <input type="checkbox" value="Long Term" onchange="rglApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#38bdf8;"> Long Term
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Date + secondary filters row -->
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:center;">
+                        <div style="display:contents;">
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                                <select id="rglDatePreset" onchange="rglApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                                    <option value="all">All</option>
+                                    <option value="today">Today</option>
+                                    <option value="last7">Last 7 Days</option>
+                                    <option value="currentMonth">Current Month</option>
+                                    <option value="lastMonth">Last Month</option>
+                                    <option value="currentYear">Current Year</option>
+                                    <option value="lastYear">Last Year</option>
+                                    <option value="last3Months">Last 3 Months</option>
+                                    <option value="last6Months">Last 6 Months</option>
+                                    <option value="last12Months">Last 12 Months</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date (Transaction)</div>
+                                <input type="date" id="rglDateFrom" onchange="rglApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date (Transaction)</div>
+                                <input type="date" id="rglDateTo" onchange="rglApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                                <input type="text" id="rglSymbolSearch" placeholder="Search (e.g. ORCL, NVDA)" oninput="rglApplyFilters()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; width:185px;">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:flex-end;">
+                            <button onclick="rglReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                            <button onclick="showRglMonthlyDataTable()" style="background:#0891b2;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">📅 Monthly / Annual Data Table</button>
+                            <button onclick="rglDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date range bar -->
+                <div style="display:flex; align-items:center; justify-content:center; gap:20px; margin-bottom:8px; flex-wrap:wrap;">
+                    <div id="rglDateRangeBar" style="font-size:0.82rem; color:var(--text-secondary); font-weight:500; letter-spacing:0.03em;"></div>
+                </div>
+
+                <!-- Table -->
+                <div style="overflow-x:auto; overflow-y:auto; max-height:55vh; border-radius:8px;">
+                    <table id="rglSorterTable" style="width:100%; border-collapse:collapse; font-size:0.83rem; table-layout:auto;">
+                        <thead style="position:sticky; top:0; z-index:10;"><tr id="rglSorterHead"></tr></thead>
+                        <tbody id="rglSorterBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RGL Monthly Data Table Modal (z-index 1200 so it sits above rglModal at 1000) -->
+    <div id="rglMonthlyDataModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1200; justify-content:center; align-items:center;">
+        <div id="rglMonthlyDataInner" style="border-radius:16px; padding:24px; max-width:1500px; width:97vw; height:90vh; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color:#0891b2; font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                    <span style="color:#c084fc;">[-]</span> Monthly <span style="color:#c084fc;">/</span> <span style="color:#c084fc;">[+]</span> Annual Realized Gain / Loss Table
+                </h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="rglMdtExpandAll" onchange="rglMdtToggleExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#a855f7;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="rglMdtDownload()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download</button>
+                <button onclick="closeRglMonthlyDataTable()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="rglMonthlyDataTableContainer" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;"></div>
+        </div>
+    </div>
+
+    <!-- Monthly Data Table Modal -->
+    <div id="monthlyDataModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1100; justify-content:center; align-items:center;">
+        <div id="monthlyDataInner" style="border-radius:16px; padding:24px; max-width:1700px; width:97vw; height:90vh; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color:#0891b2; font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    <span style="color:#67e8f9;">[-]</span> Monthly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Annual Data Table
+                </h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="mdtExpandAll" onchange="mdtToggleExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#0891b2;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="mdtDownload()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download</button>
+                <button onclick="closeMonthlyDataTable()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="monthlyDataTableContainer" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;"></div>
+        </div>
+    </div>
+
+    <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Commitments</h2>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="ocExpandAll" onchange="toggleOcExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer;">
+                        Expand All
+                    </label>
+                    <button id="refreshPricesBtn" onclick="refreshStockPrices()" style="background:#0ea5e9;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
+                    <button onclick="downloadOpenCommitments()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
+                    <button onclick="resetOcColumnOrder()" title="Restore default column order" style="background:#334155;color:#94a3b8;border:1px solid #475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.8rem;">↺ Reset Columns</button>
+                    <button onclick="closeOpenCommitments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+
+            <div id="priceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:8px;text-align:right;"></div>
+            <div id="openCommitmentsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Monthly Summary Modal -->
+    <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:98vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg><span style="color:#a78bfa;">[-]</span> Monthly <span style="color:#a78bfa;">/</span> <span style="color:#a78bfa;">[+]</span> Annual Cash Flow &amp; Profit Summary</h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="monthlyExpandAll" onchange="toggleMonthlyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#a78bfa;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="showMonthlySummaryChart()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;">📊 View Chart</button>
+                <button onclick="downloadMonthlySummary()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
+                <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="monthlyTableContainer"></div>
+        </div>
+    </div>
+
+    <!-- Weekly Summary Modal -->
+    <div id="weeklyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="weeklyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg><span style="color:#67e8f9;">[-]</span> Weekly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Monthly Cash Flow &amp; Profit Summary</h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="weeklyExpandAll" onchange="toggleWeeklyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#67e8f9;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="showWeeklySummaryChart()" style="background:#0891b2;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;">📊 View Chart</button>
+                <button onclick="downloadWeeklySummary()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
+                <button onclick="closeWeeklySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="weeklyTableContainer"></div>
+        </div>
+    </div>
+
+    <!-- Assignments Modal -->
+    <div id="assignmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="assignmentsInner" style="border-radius:16px; padding:20px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
+            <!-- Title + action buttons row -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Assignments</h2>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <button id="refreshAssignmentPricesBtn" onclick="refreshAssignmentPrices()" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
+                    <button onclick="downloadAssignments()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
+                                        <button onclick="closeAssignments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+            <!-- Summary boxes centered above filters -->
+            <div id="assignSummaryBoxes" style="display:flex; justify-content:center; margin-bottom:10px;">
+                <div style="padding:12px 20px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border-color);">
+                    <div id="assignSummaryInner" style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+                        <div style="font-size:0.75rem; color:var(--text-secondary); text-align:center;">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters row -->
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; justify-content:center; margin-bottom:12px; padding:12px 16px; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border-color);">
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
+                        <select id="assignDatePreset" onchange="setAssignmentQuickRange()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                            <option value="all" selected>All</option>
+                            <option value="today">Today</option>
+                            <option value="7days">Last 7 Days</option>
+                            <option value="currentMonth">Current Month</option>
+                            <option value="lastMonth">Last Month</option>
+                            <option value="currentYear">Current Year</option>
+                            <option value="lastYear">Last Year</option>
+                            <option value="last3Months">Last 3 Months</option>
+                            <option value="last6Months">Last 6 Months</option>
+                            <option value="last12Months">Last 12 Months</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">From Date</div>
+                        <input type="date" id="assignDateFrom" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">To Date</div>
+                        <input type="date" id="assignDateTo" onchange="renderAssignmentsTable()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; outline:none;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Search Table</div>
+                        <input id="assignmentSearch" type="text" placeholder="Search (e.g. ORCL, TTD)" oninput="renderAssignmentsTable()"
+                            style="background:var(--bg-input);border:2px solid #f59e0b;color:var(--text-primary);padding:7px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:187px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+                        <div style="font-size:0.75rem; font-weight:600; color:transparent;">.</div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-primary); white-space:nowrap; padding:7px 10px; background:var(--bg-input); border:2px solid var(--border-color); border-radius:8px;">
+                                <input type="checkbox" id="assignNotSoldFilter" onchange="renderAssignmentsTable()" style="width:15px;height:15px;cursor:pointer;accent-color:#f59e0b;">
+                                Unsold
+                            </label>
+                            <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:0.85rem; font-weight:600; color:var(--text-primary); white-space:nowrap; padding:7px 10px; background:var(--bg-input); border:2px solid var(--border-color); border-radius:8px;">
+                                <input type="checkbox" id="assignSoldFilter" onchange="renderAssignmentsTable()" style="width:15px;height:15px;cursor:pointer;accent-color:#4ade80;">
+                                Sold
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:600; color:transparent; margin-bottom:4px;">.</div>
+                        <button onclick="resetAssignmentFilters()" style="background:#6d28d9;color:white;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
+                    </div>
+            </div>
+            <div id="assignmentPriceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;text-align:right;"></div>
+            <div id="assignmentsContainer"></div>
+        </div>
+    </div>
+
+    <div id="summary" class="stats" style="display:none;"></div>
+    <div id="tableTopBar" style="display:none; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+        <input type="text" id="searchInput" placeholder="Search (e.g. ORCL, TTD)" oninput="applyFilters()"
+            style="width:220px; padding:7px 12px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.9rem; outline:none;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div id="dateRange" style="font-size:1rem; color:var(--text-secondary); font-weight:500;"></div>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:1rem; color:var(--text-secondary); user-select:none; font-weight:500;">
+                <input type="checkbox" id="showEntireTable" onchange="applyFilters()" style="width:15px;height:15px;cursor:pointer;accent-color:#10b981;">
+                Show Entire Table
+            </label>
+
+        </div>
+        <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Results</button>
+    </div>
+
+    <div class="table-container" id="tableContainer" style="display:none;">
+        <table>
+            <thead><tr id="headerRow"></tr></thead>
+            <tbody id="tableBody"></tbody>
+            <tfoot id="tableFoot"></tfoot>
+        </table>
+    </div>
+</div>
+
+<script>
+let finalTrades = [];
+let openPositions = [];
+let currentFilteredData = [];
+let sortKey = 'dte';
+let sortDir = 1;
+let columnWidths = {};
+let uploadedDateRange = { min: null, max: null };
+
+// Theme toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('toggleEmoji').textContent = isDark ? '🌙' : '☀️';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+
+    // Re-render open commitments if modal is open so BPS rows pick up the new theme
+    const ocModal = document.getElementById('openCommitmentsModal');
+    if (ocModal && ocModal.style.display !== 'none' && ocParsedRows.length) {
+        const modalInner = document.querySelector('#openCommitmentsModal > div');
+        if (modalInner) {
+            modalInner.style.background = !isDark ? '#1e293b' : '#ffffff';
+        }
+        renderOpenCommitmentsTable();
+    }
+
+    // Re-render main table if data is loaded so action badge colors update
+    if (currentFilteredData && currentFilteredData.length) {
+        render(null, null);
+    }
+}
+
+// Restore saved theme on load
+(function() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    if (saved === 'light') {
+        document.getElementById('toggleEmoji').textContent = '🌙';
+    }
+})();
+
+const dropZone = document.getElementById('dropZone');
+const filePicker = document.getElementById('filePicker');
+dropZone.onclick = () => filePicker.click();
+filePicker.onchange = (e) => handleFile(e.target.files[0]);
+
+async function handleFile(file) {
+    if (!file) return;
+    window._pricesRefreshedOC = false;
+    window._pricesRefreshedAssign = false; // reset so prices refresh on next open
+    const fnEl = document.getElementById('uploadedFileName');
+    fnEl.textContent = 'Filename: ' + file.name;
+    fnEl.style.display = 'block';
+    const mainFn = document.getElementById('mainFilename');
+    mainFn.innerHTML = '<span style="color:var(--text-secondary);">Filename: </span><span style="color:#a78bfa;">' + file.name + '</span>';
+    mainFn.style.display = 'block';
+
+    document.getElementById('filterBar').style.display = 'flex';
+    document.getElementById('actionButtons').style.display = 'flex';
+    document.getElementById('summary').style.display = 'grid';
+    document.getElementById('tableContainer').style.display = 'block';
+    document.getElementById('tableTopBar').style.display = 'flex';
+    // Hide upload box, show compact upload button
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('uploadBtn').style.display = 'inline-flex';
+    const data = await file.arrayBuffer();
+    sortKey = 'dte';
+    sortDir = 1;
+    ocSortKey = 'dte';
+    ocSortDir = 1;
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet);
+    process(json);
+}
+
+function parseDateString(dStr) {
+    if (!dStr) return null;
+    if (!isNaN(dStr) && typeof dStr !== 'string') {
+        // Excel serial: days since 1900-01-01, convert to local midnight
+        const serial = Number(dStr);
+        const utcMs = (serial - 25569) * 86400 * 1000;
+        const utcDate = new Date(utcMs);
+        // Reconstruct as local midnight to avoid timezone shift
+        return new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+    }
+    const parts = String(dStr).trim().split(/\s+/);
+    const actualDateStr = parts[parts.length - 1];
+    const match = actualDateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/) ||
+                  actualDateStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (match) {
+        let y, m, d;
+        if (actualDateStr.includes('-')) {
+            [, y, m, d] = match;
+        } else {
+            [, m, d, y] = match;
+        }
+        return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    }
+    const d = new Date(actualDateStr);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+// US market holidays (YYYY-MM-DD). Extend this list as needed.
+const US_MARKET_HOLIDAYS = new Set([
+    // 2024
+    '2024-01-01','2024-01-15','2024-02-19','2024-03-29','2024-05-27',
+    '2024-06-19','2024-07-04','2024-09-02','2024-11-28','2024-12-25',
+    // 2025
+    '2025-01-01','2025-01-09','2025-01-20','2025-02-17','2025-04-18',
+    '2025-05-26','2025-06-19','2025-07-04','2025-09-01','2025-11-27',
+    '2025-12-25',
+    // 2026
+    '2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25',
+    '2026-06-19','2026-07-03','2026-09-07','2026-11-26','2026-12-25',
+]);
+
+function isMarketHoliday(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return US_MARKET_HOLIDAYS.has(`${yyyy}-${mm}-${dd}`);
+}
+
+function nextSettlementDate(date) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6 || isMarketHoliday(d)) {
+        d.setDate(d.getDate() + 1);
+    }
+    return d;
+}
+
+function cleanNum(val) {
+    if (val === undefined || val === null || val === "") return 0;
+    let str = String(val).replace(/[$\s,]/g, '');
+    if (str.startsWith('(') && str.endsWith(')')) str = '-' + str.substring(1, str.length - 1);
+    return parseFloat(str) || 0;
+}
+
+function fmtDateMMDDYYYY(d) {
+    if (!d) return '';
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const y = d.getFullYear();
+    return `${m}/${day}/${y}`;
+}
+
+function process(rows) {
+    const inventory = {};
+    const realized = [];
+    const allTransactions = [];
+
+    // Store ALL rows (with parsed dates) before any Symbol/date filtering
+    window.allRawRows = rows.map(r => {
+        const raw = parseDateString(r.Date);
+        const parsedDate = raw || null;
+        const rawDateFormatted = fmtDateMMDDYYYY(raw);
+        return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
+    });
+
+    const sortedRows = rows
+        .map(r => {
+            const raw = parseDateString(r.Date);
+            const parsedDate = raw || null;
+            const rawDateFormatted = fmtDateMMDDYYYY(raw);
+            return { ...r, parsedDate, transactionDate: raw, rawDateFormatted };
+        })
+        .filter(r => (r.Symbol || '').trim() && r.parsedDate)
+        .sort((a, b) => {
+            const dateCompare = a.parsedDate - b.parsedDate;
+            if (dateCompare !== 0) return dateCompare;
+            const aIsOpen = (a.Action || "").toLowerCase().includes('to open');
+            const bIsOpen = (b.Action || "").toLowerCase().includes('to open');
+            if (aIsOpen && !bIsOpen) return -1;
+            if (!aIsOpen && bIsOpen) return 1;
+            return 0;
+        });
+
+    const allDatedRows = window.allRawRows.filter(r => r.parsedDate);
+    if (allDatedRows.length > 0) {
+        const times = allDatedRows.map(r => r.parsedDate.getTime());
+        uploadedDateRange.min = new Date(Math.min(...times));
+        uploadedDateRange.max = new Date(Math.max(...times));
+    } else if (sortedRows.length > 0) {
+        uploadedDateRange.min = sortedRows[0].parsedDate;
+        uploadedDateRange.max = sortedRows[sortedRows.length - 1].parsedDate;
+    }
+
+    sortedRows.forEach(row => {
+        const sym = (row.Symbol || '').trim();
+        const action = (row.Action || "").toLowerCase();
+        const qty = Math.abs(cleanNum(row.Quantity));
+        const amt = cleanNum(row.Amount);
+
+        if (!inventory[sym]) inventory[sym] = [];
+
+        if (action.includes('to open')) {
+            inventory[sym].push({ date: row.parsedDate, transactionDate: row.transactionDate, rawDateFormatted: row.rawDateFormatted || '', qty, premium: amt, status: action });
+            allTransactions.push({ date: row.parsedDate, action, amount: amt, symbol: sym });
+        }
+        else if (action.includes('to close') || action.includes('expired') || action.includes('assigned')) {
+            allTransactions.push({ date: row.parsedDate, action, amount: amt, symbol: sym });
+
+            let remainingToClose = qty || 0;
+            if (remainingToClose === 0 && inventory[sym].length > 0) {
+                remainingToClose = inventory[sym].reduce((sum, item) => sum + item.qty, 0);
+            }
+
+            let openingPremiumUsed = 0;
+            let firstOpenDate = row.parsedDate;
+            let firstOpenRawDate = row.rawDateFormatted || '';
+            let firstOpenTransactionDate = row.transactionDate;
+
+            while (remainingToClose > 0 && inventory[sym].length > 0) {
+                let earliest = inventory[sym][0];
+                let qtyFromThisOpening = Math.min(remainingToClose, earliest.qty);
+                let sliceOpeningPremium = (earliest.premium / earliest.qty) * qtyFromThisOpening;
+                openingPremiumUsed += sliceOpeningPremium;
+                firstOpenDate = earliest.date;
+                firstOpenRawDate = earliest.rawDateFormatted || '';
+                firstOpenTransactionDate = earliest.transactionDate;
+                earliest.premium -= sliceOpeningPremium;
+                earliest.qty -= qtyFromThisOpening;
+                remainingToClose -= qtyFromThisOpening;
+                if (earliest.qty <= 0) inventory[sym].shift();
+            }
+
+            let actualClosingCost = (action.includes('expired') || action.includes('assigned')) ? 0 : amt;
+
+            const symPutMatch = sym.match(/[\d.]+\s+P\s*$/);
+            const symCallMatch = sym.match(/[\d.]+\s+C\s*$/);
+            const putOrCall = symPutMatch ? 'Put' : symCallMatch ? 'Call' : '—';
+
+            // For calls that are "assigned" (shares called away), use "Called Away" to distinguish from put assignments
+            let rawStatus = action.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            if (action.includes('assigned') && symCallMatch) rawStatus = 'Called Away';
+
+            realized.push({
+                symbol: sym,
+                putOrCall,
+                contracts: qty || (openingPremiumUsed > 0 ? "All" : 0),
+                openingPremium: openingPremiumUsed,
+                closingPremium: actualClosingCost,
+                profit: openingPremiumUsed + actualClosingCost,
+                openDate: firstOpenDate,
+                closeDate: row.parsedDate,
+                transactionDate: row.transactionDate,
+                rawDate: row.rawDateFormatted || '',
+                status: rawStatus,
+                isOpen: false
+            });
+        }
+    });
+
+    const openPos = [];
+    for (const sym in inventory) {
+        inventory[sym].forEach(item => {
+            if ((item.status.includes('sell') || item.status.includes('buy')) && item.status.includes('open')) {
+                const opPutMatch = sym.match(/[\d.]+\s+P\s*$/);
+                const opCallMatch = sym.match(/[\d.]+\s+C\s*$/);
+                openPos.push({
+                    symbol: sym,
+                    putOrCall: opPutMatch ? 'Put' : opCallMatch ? 'Call' : '—',
+                    contracts: item.qty,
+                    openingPremium: item.premium,
+                    closingPremium: 0,
+                    profit: 0,
+                    openDate: item.date,
+                    closeDate: item.date,
+                    transactionDate: item.transactionDate,
+                    rawDate: item.rawDateFormatted || '',
+                    status: item.status.includes('buy') ? 'Buy to Open' : 'Sell to Open',
+                    isOpen: true
+                });
+            }
+        });
+    }
+
+    finalTrades = realized;
+    openPositions = openPos;
+    window.allTransactions = allTransactions;
+    window.rawRows = sortedRows;
+    setQuickRange();
+}
+
+function applyFilters() {
+    const showAll = document.getElementById('showEntireTable')?.checked;
+    if (showAll) {
+        renderRawTable();
+        return;
+    }
+
+    const searchRaw = document.getElementById('searchInput').value;
+    const searchTerms = searchRaw.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
+
+    const allItems = [...finalTrades, ...openPositions];
+    const filtered = allItems.filter(item => {
+        if (searchTerms.length > 0) {
+            const dateStr = (item.isOpen ? item.openDate : item.closeDate) ? fmtDateMMDDYYYY(item.isOpen ? item.openDate : item.closeDate) : '';
+            const haystack = [
+                item.symbol.toLowerCase(),
+                item.status.toLowerCase(),
+                (item.putOrCall || '').toLowerCase(),
+                String(item.contracts),
+                dateStr,
+                String(item.openingPremium?.toFixed(2) || ''),
+                String(item.profit?.toFixed(2) || ''),
+            ];
+            const matchesSearch = searchTerms.some(term => haystack.some(h => h.includes(term)));
+            if (!matchesSearch) return false;
+        }
+        const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
+        const dateToFilter = item.transactionDate || (item.isOpen ? item.openDate : item.closeDate);
+        let matchesDate = true;
+        if (startDate && dateToFilter < startDate) matchesDate = false;
+        if (endDate && dateToFilter > endDate) matchesDate = false;
+        return matchesStatus && matchesDate;
+    });
+
+    currentFilteredData = filtered;
+    render(null, filtered);
+}
+
+let rawSortKey = 'date';
+let rawSortDir = -1;
+
+function sortRawTable(key) {
+    if (rawSortKey === key) rawSortDir *= -1;
+    else { rawSortKey = key; rawSortDir = 1; }
+    renderRawTable();
+}
+
+function renderRawTable() {
+    if (!window.allRawRows) return;
+    const searchTerms_raw = document.getElementById('searchInput').value.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    let rows = window.allRawRows.filter(r => {
+        if (searchTerms_raw.length === 0) return true;
+        const sym = (r.Symbol || '').toLowerCase();
+        const action = (r.Action || '').toLowerCase();
+        const desc = (r.Description || '').toLowerCase();
+        return searchTerms_raw.some(term => sym.includes(term) || action.includes(term) || desc.includes(term));
+    });
+
+    // Sort
+    rows = [...rows].sort((a, b) => {
+        let v1, v2;
+        switch (rawSortKey) {
+            case 'date':     v1 = a.parsedDate ? a.parsedDate.getTime() : 0; v2 = b.parsedDate ? b.parsedDate.getTime() : 0; break;
+            case 'symbol':   v1 = (a.Symbol || '').toLowerCase(); v2 = (b.Symbol || '').toLowerCase(); break;
+            case 'action':   v1 = (a.Action || '').toLowerCase(); v2 = (b.Action || '').toLowerCase(); break;
+            case 'amount':   v1 = cleanNum(a.Amount); v2 = cleanNum(b.Amount); break;
+            case 'quantity': v1 = parseFloat(a.Quantity) || 0; v2 = parseFloat(b.Quantity) || 0; break;
+            case 'price':    v1 = parseFloat(a.Price) || 0; v2 = parseFloat(b.Price) || 0; break;
+            case 'desc':     v1 = (a.Description || '').toLowerCase(); v2 = (b.Description || '').toLowerCase(); break;
+            default: v1 = 0; v2 = 0;
+        }
+        if (v1 < v2) return -rawSortDir;
+        if (v1 > v2) return rawSortDir;
+        return 0;
+    });
+
+    const arrow = (key) => rawSortKey === key ? (rawSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+    const rawDateColLabel = 'Date';
+
+    // Reuse existing table with remapped columns
+    const cols = [
+        { lab: rawDateColLabel, key: 'date' },
+        { lab: 'Action',           key: 'action' },
+        { lab: 'Symbol',           key: 'symbol' },
+        { lab: 'Description',      key: 'desc' },
+        { lab: 'Quantity',         key: 'quantity' },
+        { lab: 'Price',            key: 'price' },
+        { lab: 'Amount',           key: 'amount' },
+        { lab: '',                 key: '' },
+        { lab: '',                 key: '' },
+    ];
+
+    document.getElementById('headerRow').innerHTML = cols.map((c, i) =>
+        `<th data-col-index="${i}" ${c.key ? `onclick="sortRawTable('${c.key}')"` : ''} style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}cursor:${c.key ? 'pointer' : 'default'};">${c.lab}${c.key ? arrow(c.key) : ''}<div class="resizer"></div></th>`
+    ).join('');
+
+    document.querySelectorAll('.resizer').forEach((resizer) => {
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            const th = resizer.parentElement;
+            startWidth = th.offsetWidth;
+            const onMouseMove = (e) => { th.style.width = (startWidth + e.pageX - startX) + 'px'; th.style.minWidth = th.style.width; };
+            const onMouseUp = () => {
+                columnWidths[th.getAttribute('data-col-index')] = th.offsetWidth;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const amtPosColor = isDark ? '#4ade80' : '#16a34a';
+    const amtNegColor = isDark ? '#f87171' : '#dc2626';
+
+    let totalAmount = 0;
+    document.getElementById('tableBody').innerHTML = rows.map(r => {
+        const amt = cleanNum(r.Amount);
+        totalAmount += amt;
+        const amtColor = amt >= 0 ? amtPosColor : amtNegColor;
+        const amtDisplay = r.Amount ? (amt >= 0 ? '$' : '-$') + Math.abs(amt).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '';
+        const priceDisplay = r.Price ? '$' + parseFloat(r.Price).toFixed(2) : '';
+        return `<tr>
+            <td>${r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')}</td>
+            <td>${(() => {
+                const a = (r.Action || '').toLowerCase();
+                const badgeTxt = isDark ? '#fff' : '#000';
+                if (a === 'sell to open') return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:rgba(139,92,246,0.6);color:' + badgeTxt + ';font-weight:600;">' + (r.Action||'') + '</span>';
+                if (a === 'buy to open')  return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:rgba(16,185,129,0.6);color:' + badgeTxt + ';font-weight:600;">'  + (r.Action||'') + '</span>';
+                return '<span class="tag">' + (r.Action||'') + '</span>';
+            })()}</td>
+            <td>${r.Symbol || ''}</td>
+            <td>${r.Description || ''}</td>
+            <td>${r.Quantity || ''}</td>
+            <td>${priceDisplay}</td>
+            <td class="${amt >= 0 ? 'pos' : 'neg'}">${amtDisplay}</td>
+            <td></td>
+            <td></td>
+        </tr>`;
+    }).join('');
+
+    // Update footer totals for Amount column
+    const totalAmtColor = totalAmount >= 0 ? amtPosColor : amtNegColor;
+    const totalAmtDisplay = (totalAmount >= 0 ? '$' : '-$') + Math.abs(totalAmount).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById('tableFoot').innerHTML = `
+        <tr style="font-weight:700;border-top:2px solid #6d28d9;">
+            <td colspan="6" style="text-align:right;padding-right:15px;font-size:0.85rem;">TOTAL</td>
+            <td style="font-size:0.85rem;color:${totalAmtColor};">${totalAmtDisplay}</td>
+            <td></td>
+            <td></td>
+        </tr>`;
+}
+
+function calcDTE(symbol) {
+    const match = symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (!match) return '';
+    const exp = new Date(match[1]);
+    exp.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((exp - today) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : '';
+}
+
+function sortBy(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = 1; }
+    render(null, null);
+}
+
+function render(newSortKey, dataToRender) {
+    const displayData = dataToRender ? [...dataToRender] : [...currentFilteredData];
+
+    displayData.sort((a, b) => {
+        let v1, v2;
+
+        if (sortKey === 'dte') {
+            const getDTE = sym => {
+                const m = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+                if (!m) return null;
+                const diff = Math.round((new Date(m[1]) - new Date()) / (1000 * 60 * 60 * 24));
+                return diff > 0 ? diff : null;
+            };
+            const d1 = a.isOpen ? getDTE(a.symbol) : null;
+            const d2 = b.isOpen ? getDTE(b.symbol) : null;
+            if (d1 === null && d2 === null) return 0;
+            if (d1 === null) return 1;
+            if (d2 === null) return -1;
+            return (d1 - d2) * sortDir;
+        }
+        else if (sortKey === 'openingPremium') {
+            v1 = a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') ? a.closingPremium : a.openingPremium;
+            v2 = b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') ? b.closingPremium : b.openingPremium;
+        }
+        else if (sortKey === 'returnPct') {
+            v1 = a.status.toLowerCase().includes('expired') ? 100
+                : (a.status.toLowerCase().includes('buy') && a.status.toLowerCase().includes('close') && (a.profit + Math.abs(a.closingPremium)) !== 0)
+                ? (a.profit / (a.profit + Math.abs(a.closingPremium))) * 100 : -Infinity;
+            v2 = b.status.toLowerCase().includes('expired') ? 100
+                : (b.status.toLowerCase().includes('buy') && b.status.toLowerCase().includes('close') && (b.profit + Math.abs(b.closingPremium)) !== 0)
+                ? (b.profit / (b.profit + Math.abs(b.closingPremium))) * 100 : -Infinity;
+        }
+        else {
+            v1 = a[sortKey];
+            v2 = b[sortKey];
+        }
+
+        if (v1 instanceof Date) { v1 = v1.getTime(); v2 = v2.getTime(); }
+        return v1 < v2 ? -sortDir : v1 > v2 ? sortDir : 0;
+    });
+
+    const closedTrades = displayData.filter(x => !x.isOpen).length;
+    const openTrades = displayData.filter(x => x.isOpen).length;
+
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    const searchTerm = document.getElementById('searchInput').value.trim();
+
+    // Cash Flow: STO+BTO received/paid and BTC+STC paid/received within date range (by transaction date)
+    let sellToOpen = 0, buyToClose = 0;
+    if (window.rawRows) {
+        window.rawRows.forEach(r => {
+            const sym = (r.Symbol || '').toLowerCase();
+            if (searchTerm && !sym.includes(searchTerm)) return;
+            const action = (r.Action || '').toLowerCase();
+            const d = r.parsedDate;
+            if (!d) return;
+            if (startDate && d < startDate) return;
+            if (endDate && d > endDate) return;
+            const amt = cleanNum(r.Amount);
+            if (action.includes('to open')) sellToOpen += amt;
+            if (action.includes('to close')) buyToClose += amt;
+        });
+    }
+    const cashFlow = sellToOpen + buyToClose;
+
+    // Realized P/L: profit on closed non-assigned trades, by close date, respecting status filters
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
+    let reconPL = 0;
+    finalTrades.forEach(x => {
+        const sym = x.symbol.toLowerCase();
+        if (searchTerm && !sym.includes(searchTerm)) return;
+        const st = x.status.toLowerCase();
+        if (st.includes('assigned')) return;
+        if (!activeStatuses.includes(st)) return;
+        const d = x.closeDate;
+        if (startDate && d < startDate) return;
+        if (endDate && d > endDate) return;
+        reconPL += x.profit || 0;
+    });
+
+    // Assigned Premium: opening premiums on assigned puts, by assignment (close) date
+    let reconAssigned = 0;
+    finalTrades.forEach(x => {
+        const sym = x.symbol.toLowerCase();
+        if (searchTerm && !sym.includes(searchTerm)) return;
+        if (!x.status.toLowerCase().includes('assigned')) return;
+        const d = x.closeDate;
+        if (startDate && d < startDate) return;
+        if (endDate && d > endDate) return;
+        reconAssigned += Math.abs(x.openingPremium || 0);
+    });
+
+    // Open Premium: premiums on currently open positions (always unfiltered by date — these are live)
+    let reconOpen = 0;
+    openPositions.forEach(x => {
+        const sym = x.symbol.toLowerCase();
+        if (searchTerm && !sym.includes(searchTerm)) return;
+        reconOpen += x.openingPremium || 0;
+    });
+
+    const assignedPremium = reconAssigned;
+
+    document.getElementById('summary').innerHTML = `
+        <div class="stat-card"><div class="stat-label">Sell to Open + Buy to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Buy to Close + Sell to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Cash Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Realized Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Open Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Assigned Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Closed Trades</div><div class="stat-value">${closedTrades}</div></div>
+        <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value waiting">${openTrades}</div></div>
+    `;
+
+    if (uploadedDateRange.min && uploadedDateRange.max) {
+        document.getElementById('dateRange').innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;">Available Date Range: <span style="font-weight:600;">${fmtDateMMDDYYYY(uploadedDateRange.min)}</span><span style="font-size:2em;line-height:1;position:relative;top:-0.05em;">→</span><span style="font-weight:600;">${fmtDateMMDDYYYY(uploadedDateRange.max)}</span></span>`;
+    }
+
+    const dateColLabel = 'Date';
+
+    const cols = [
+        {lab: dateColLabel, key:'closeDate'},
+        {lab:'Symbol',key:'symbol'},
+        {lab:'Put Or Call',key:'putOrCall'},
+        {lab:'# Of Contracts',key:'contracts'},
+        {lab:'Days Till Expiration',key:'dte'},
+        {lab:'Action',key:'status'},
+        {lab:'Premium Received / Paid',key:'openingPremium'},
+        {lab:'Profit / Loss',key:'profit'},
+        {lab:'% Return',key:'returnPct'}
+    ];
+
+    document.getElementById('headerRow').innerHTML = cols.map((c, i) =>
+        `<th data-col-index="${i}" onclick="sortBy('${c.key}')" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`
+    ).join('');
+
+    document.querySelectorAll('.resizer').forEach((resizer) => {
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            const th = resizer.parentElement;
+            startWidth = th.offsetWidth;
+            const onMouseMove = (e) => { th.style.width = (startWidth + e.pageX - startX) + 'px'; th.style.minWidth = th.style.width; };
+            const onMouseUp = () => {
+                columnWidths[th.getAttribute('data-col-index')] = th.offsetWidth;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+
+    document.getElementById('tableBody').innerHTML = displayData.map(p => {
+        let returnPct = '', returnClass = '';
+        if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
+            const denom = p.profit + Math.abs(p.closingPremium);
+            if (denom !== 0 && isFinite(denom)) {
+                const pct = (p.profit / denom) * 100;
+                returnPct = pct.toFixed(2) + '%';
+                returnClass = pct >= 0 ? 'pos' : 'neg';
+            } else { returnPct = 'N/A'; }
+        } else if (p.status.toLowerCase().includes('expired')) {
+            returnPct = '100.00%'; returnClass = 'pos';
+        }
+
+        const premVal = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
+        const premClass = premVal >= 0 ? 'pos' : 'neg';
+        const isDarkMain = document.documentElement.getAttribute('data-theme') === 'dark';
+        const badgeTextColor = isDarkMain ? '#fff' : '#000';
+
+        return `
+        <tr>
+            <td>${fmtDateMMDDYYYY(p.isOpen ? p.openDate : p.closeDate)}</td>
+            <td>${p.symbol}</td>
+            <td style="color:${p.putOrCall === 'Put' ? '#f87171' : p.putOrCall === 'Call' ? '#4ade80' : 'inherit'};font-weight:600;">${p.putOrCall}</td>
+            <td>${p.contracts}</td>
+            <td>${p.isOpen ? calcDTE(p.symbol) : ''}</td>
+            <td>${(() => {
+                const s = p.status.toLowerCase();
+                if (s === 'sell to open') return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.82rem;text-transform:capitalize;background:rgba(139,92,246,0.6);color:' + badgeTextColor + ';font-weight:600;">' + p.status + '</span>';
+                if (s === 'buy to open')  return '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.82rem;text-transform:capitalize;background:rgba(16,185,129,0.6);color:' + badgeTextColor + ';font-weight:600;">'  + p.status + '</span>';
+                return '<span class="tag ' + (p.isOpen ? 'tag-waiting' : '') + '" style="font-size:0.82rem;text-transform:capitalize;color:' + badgeTextColor + ';">' + p.status + '</span>';
+            })()}</td>
+            <td class="${premClass}">$${premVal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${p.isOpen ? 'waiting' : (p.profit >= 0 ? 'pos' : 'neg')}">${p.isOpen ? 'Waiting to close' : '$' + p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${returnClass}">${returnPct}</td>
+        </tr>`;
+    }).join('');
+
+    // Compute totals for Premium Received / Paid and Profit / Loss
+    let totalPremium = 0;
+    let totalProfit = 0;
+    displayData.forEach(p => {
+        const premVal = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
+        totalPremium += premVal;
+        if (!p.isOpen) {
+            totalProfit += p.profit;
+        }
+    });
+    const premTotalClass = totalPremium >= 0 ? 'pos' : 'neg';
+    const profitTotalClass = totalProfit >= 0 ? 'pos' : 'neg';
+    document.getElementById('tableFoot').innerHTML = `
+        <tr style="font-weight:700;border-top:2px solid #6d28d9;">
+            <td colspan="6" style="text-align:right;padding-right:15px;font-size:0.85rem;">TOTAL</td>
+            <td class="${premTotalClass}" style="font-size:0.85rem;">$${totalPremium.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="${profitTotalClass}" style="font-size:0.85rem;">$${totalProfit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td></td>
+        </tr>`;
+}
+
+function toISODate(d) { return d.toISOString().split('T')[0]; }
+
+function setQuickRange() {
+    const range = document.getElementById('quickRange').value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let start = new Date(today), end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    switch(range) {
+        case 'today': break;
+        case '7days': start.setDate(today.getDate() - 6); break;
+        case 'lastMonth': start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last3Months': start = new Date(today.getFullYear(), today.getMonth() - 3, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last6Months': start = new Date(today.getFullYear(), today.getMonth() - 6, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last12Months': start = new Date(today.getFullYear(), today.getMonth() - 12, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'lastYear': start = new Date(today.getFullYear() - 1, 0, 1); end = new Date(today.getFullYear() - 1, 11, 31); break;
+        case 'currentMonth': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'currentYear': start = new Date(today.getFullYear(), 0, 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'all': default: start = null; end = null; break;
+    }
+
+    document.getElementById('startDate').value = start ? toISODate(start) : '';
+    document.getElementById('endDate').value = end ? toISODate(end) : '';
+    applyFilters();
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('quickRange').value = 'all';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.querySelectorAll('#statusCheckboxes input').forEach(cb => { cb.checked = (cb.value !== 'Assigned'); cb.indeterminate = false; });
+    applyFilters();
+}
+
+function downloadResults() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
+    const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
+
+    const filtered = [...finalTrades, ...openPositions].filter(item => {
+        const matchesSearch = item.symbol.toLowerCase().includes(searchTerm);
+        const matchesStatus = activeStatuses.includes(item.status.toLowerCase());
+        const dateToFilter = item.transactionDate || (item.isOpen ? item.openDate : item.closeDate);
+        let matchesDate = true;
+        if (startDate && dateToFilter < startDate) matchesDate = false;
+        if (endDate && dateToFilter > endDate) matchesDate = false;
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+
+    let csv = 'Date,Symbol,Put or Call,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return\n';
+    filtered.forEach(p => {
+        const date = p.isOpen ? fmtDateMMDDYYYY(p.openDate) : fmtDateMMDDYYYY(p.closeDate);
+        const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
+        const pl = p.isOpen ? 'Waiting to close' : p.profit.toFixed(2);
+        const dte = p.isOpen ? calcDTE(p.symbol) : '';
+        let returnPct = '';
+        if (p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close')) {
+            const denom = p.profit + Math.abs(p.closingPremium);
+            if (denom !== 0) returnPct = ((p.profit / denom) * 100).toFixed(2) + '%';
+        } else if (p.status.toLowerCase().includes('expired')) { returnPct = '100.00%'; }
+        csv += `${date},${p.symbol},${p.putOrCall},${p.contracts},${dte},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `options-results-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// ── Persistent state for Monthly & Weekly modals ──
+const monthlySavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0 };
+const weeklySavedState  = { expandedMonths: null, expandAllChecked: false, scrollTop: 0 };
+
+function toggleMonthlyYear(year) {
+    const monthRows = document.querySelectorAll(`.mb-year-${year}`);
+    const collapsedRow = document.querySelector(`.mb-year-collapsed-${year}`);
+    if (!monthRows.length || !collapsedRow) return;
+    const isExpanded = monthRows[0].style.display !== 'none';
+    monthRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    collapsedRow.style.display = isExpanded ? 'table-row' : 'none';
+    // Update button icons (there are two buttons with same id - query by class parent)
+    document.querySelectorAll(`#mbtn-${year}`).forEach(btn => {
+        btn.textContent = isExpanded ? '➕' : '➖';
+        btn.title = isExpanded ? `Expand ${year}` : `Collapse ${year}`;
+    });
+}
+
+// ============================================================
+// DOWNLOAD FUNCTIONS FOR SUMMARY MODALS
+// ============================================================
+
+function downloadMonthlySummary() {
+    if (!window.allTransactions || !window.allTransactions.length) { alert('No data available.'); return; }
+    const now = new Date();
+    const startYear = finalTrades.length > 0
+        ? Math.min(...finalTrades.map(t => t.closeDate ? t.closeDate.getFullYear() : 9999))
+        : now.getFullYear();
+    const months = [];
+    for (let y = startYear; y <= now.getFullYear(); y++) {
+        const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
+        for (let m = 0; m <= mEnd; m++) months.push({ year: y, month: m });
+    }
+    const rows = [['Month / Year', 'Sell to Open + Buy to Open', 'Buy to Close + Sell to Close', 'Cash Flow', 'Profit from Closed Options', 'Paid Premium Assigned']];
+    let totSO = 0, totBC = 0, totP = 0, totA = 0;
+    months.slice().reverse().forEach(({year, month}) => {
+        const mStart = new Date(year, month, 1);
+        const mEnd   = new Date(year, month + 1, 0, 23, 59, 59);
+        const label  = mStart.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+        let so = 0, bc = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= mStart && t.date <= mEnd) {
+                if (t.action.includes('to open'))  so += t.amount;
+                if (t.action.includes('to close')) bc += t.amount;
+            }
+        });
+        let profit = 0, assigned = 0;
+        finalTrades.forEach(t => {
+            if (t.closeDate >= mStart && t.closeDate <= mEnd) {
+                const st = t.status.toLowerCase();
+                if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) assigned += Math.abs(t.openingPremium);
+            }
+        });
+        totSO += so; totBC += bc; totP += profit; totA += assigned;
+        rows.push([label, +so.toFixed(2), +bc.toFixed(2), +(so+bc).toFixed(2), +profit.toFixed(2), +assigned.toFixed(2)]);
+    });
+    rows.push(['TOTAL', +totSO.toFixed(2), +totBC.toFixed(2), +(totSO+totBC).toFixed(2), +totP.toFixed(2), +totA.toFixed(2)]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:14},{wch:26},{wch:28},{wch:12},{wch:28},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Summary');
+    XLSX.writeFile(wb, `monthly_annual_summary_${now.toISOString().slice(0,10)}.xlsx`);
+}
+
+function downloadWeeklySummary() {
+    if (!window.allTransactions || !window.allTransactions.length) { alert('No data available.'); return; }
+    const getMonday = d => { const dt = new Date(d), day = dt.getDay(), diff = day===0?-6:1-day; dt.setDate(dt.getDate()+diff); dt.setHours(0,0,0,0); return dt; };
+    const getISOWeek = d => { const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),dn=dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dn); const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1)); return Math.ceil((((dt-ys)/86400000)+1)/7); };
+    const now = new Date();
+    const startMonday = getMonday(new Date(2025,0,1));
+    const weeks = [];
+    let wk = new Date(startMonday);
+    while (wk <= now) { weeks.push(new Date(wk)); wk.setDate(wk.getDate()+7); }
+
+    const rows = [['Week','Calendar Week','Month','Sell to Open + Buy to Open','Buy to Close + Sell to Close','Cash Flow','Profit from Closed Options','Paid Premium Assigned']];
+    weeks.slice().reverse().forEach(monday => {
+        const sunday = new Date(monday); sunday.setDate(sunday.getDate()+6);
+        const wkEnd  = sunday > now ? now : sunday;
+        const isoWeek = getISOWeek(monday);
+        const weekYear = monday.getFullYear();
+        const weekLabel = monday.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+wkEnd.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+        const calWeek = `W${String(isoWeek).padStart(2,'0')} ${weekYear}`;
+        const monthLabel = monday.toLocaleDateString('en-US',{month:'short',year:'numeric'});
+        let so=0,bc=0,profit=0,assigned=0;
+        window.allTransactions.forEach(t => {
+            if (t.date>=monday && t.date<=wkEnd) {
+                if (t.action.includes('to open'))  so+=t.amount;
+                if (t.action.includes('to close')) bc+=t.amount;
+            }
+        });
+        finalTrades.forEach(t => {
+            if (t.closeDate>=monday && t.closeDate<=wkEnd) {
+                const st=t.status.toLowerCase();
+                if (!st.includes('assigned')||st.includes('called')) profit+=t.profit;
+                if (st.includes('assigned')&&!st.includes('called')) assigned+=Math.abs(t.openingPremium);
+            }
+        });
+        rows.push([weekLabel, calWeek, monthLabel, +so.toFixed(2), +bc.toFixed(2), +(so+bc).toFixed(2), +profit.toFixed(2), +assigned.toFixed(2)]);
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:30},{wch:10},{wch:14},{wch:26},{wch:28},{wch:12},{wch:28},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Weekly Summary');
+    XLSX.writeFile(wb, `weekly_monthly_summary_${now.toISOString().slice(0,10)}.xlsx`);
+}
+
+function downloadOpenCommitments() {
+    if (!ocParsedRows.length) { alert('No open commitments data.'); return; }
+    const fmtN = n => n !== 0 ? +n.toFixed(2) : '';
+
+    // ── Bull Put Spread detection (mirrors renderOpenCommitmentsTable) ───────
+    const filtered = ocParsedRows;
+    const usedIndices = new Set();
+    const displayItems = [];
+    for (let i = 0; i < filtered.length; i++) {
+        if (usedIndices.has(i)) continue;
+        const a = filtered[i];
+        let matched = -1;
+        if (a.type === 'Put') {
+            const tickerA = extractTicker(a.symbol);
+            const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            for (let j = i + 1; j < filtered.length; j++) {
+                if (usedIndices.has(j)) continue;
+                const b = filtered[j];
+                if (b.type !== 'Put') continue;
+                if (extractTicker(b.symbol) !== tickerA) continue;
+                const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+                if (expB !== expA) continue;
+                if (b.contracts !== a.contracts) continue;
+                const isPair = (a.action === 'STO' && b.action === 'BTO') || (a.action === 'BTO' && b.action === 'STO');
+                if (!isPair) continue;
+                matched = j;
+                break;
+            }
+        }
+        if (matched !== -1) {
+            const b = filtered[matched];
+            const sto = a.action === 'STO' ? a : b;
+            const bto = a.action === 'BTO' ? a : b;
+            const spreadNetPremium = sto.premiumReceived - bto.premiumReceived;
+            const spreadMaxLoss = (sto.strike - bto.strike) * sto.contracts * 100 - spreadNetPremium;
+            displayItems.push({ kind: 'spread', sto, bto, spreadMaxLoss });
+            usedIndices.add(i);
+            usedIndices.add(matched);
+        } else {
+            displayItems.push({ kind: 'standalone', row: a });
+            usedIndices.add(i);
+        }
+    }
+
+    // ── Build download rows ──────────────────────────────────────────────────
+    const headers = ['Date','Symbol','Strike Date','Action','DTE','Strike Price',
+                     'Current Price','Assignment Price','% From Strike','OTM/ITM',
+                     'Put or Call','# Contracts','Premium','Market Value','P/L','P/L %',
+                     'Commitments (Puts)','Commitments (Calls)'];
+    const rows = [headers];
+
+    displayItems.forEach(item => {
+        if (item.kind === 'spread') {
+            // Bull Put Spread — output one summary row using max loss as commitment
+            const { sto, bto, spreadMaxLoss } = item;
+            const ticker = extractTicker(sto.symbol);
+            const pd = ocStockPrices[ticker];
+            const stoOcc = buildOCCSymbol(sto.symbol);
+            const btoOcc = buildOCCSymbol(bto.symbol);
+            const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+            const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+            const currentPrice = pd && !pd.loading && !pd.error ? +pd.price.toFixed(2) : '';
+            const netPremium = sto.premiumReceived - bto.premiumReceived;
+            const breakeven = +(sto.strike - (netPremium / (sto.contracts * 100))).toFixed(2);
+            const pfsBreakeven = currentPrice !== '' ? +((currentPrice / breakeven - 1) * 100).toFixed(2) : '';
+            const otm = currentPrice !== '' ? (currentPrice > sto.strike ? 'OTM' : 'ITM') : '';
+            let mv = '', pl = '', plPct = '';
+            if (stoOp && btoOp && !stoOp.loading && !btoOp.loading && !stoOp.error && !btoOp.error && stoOp.price && btoOp.price) {
+                mv = +((stoOp.price - btoOp.price) * sto.contracts * 100).toFixed(2);
+                pl = +(netPremium - mv).toFixed(2);
+                plPct = netPremium !== 0 ? +((1 - mv / netPremium) * 100).toFixed(2) : '';
+            }
+            rows.push([
+                sto.date,
+                `${ticker} BPS ${sto.strike}/${bto.strike}`,
+                sto.strikeDate,
+                'BPS',
+                sto.dte !== '' ? sto.dte : '',
+                `${sto.strike.toFixed(2)} / ${bto.strike.toFixed(2)}`,
+                currentPrice,
+                breakeven,
+                pfsBreakeven !== '' ? pfsBreakeven + '%' : '',
+                otm,
+                'Put',
+                sto.contracts,
+                fmtN(netPremium),
+                mv,
+                pl,
+                plPct !== '' ? plPct + '%' : '',
+                fmtN(spreadMaxLoss),   // ← Max Loss (not STO+BTO sum)
+                ''
+            ]);
+        } else {
+            // Standalone row — unchanged behaviour
+            const r = item.row;
+            const ticker = extractTicker(r.symbol);
+            const pd = ocStockPrices[ticker];
+            const occ = buildOCCSymbol(r.symbol);
+            const op = occ ? ocOptionPrices[occ] : null;
+            const currentPrice = pd && !pd.loading && !pd.error ? +pd.price.toFixed(2) : '';
+            const mv = op && !op.loading && !op.error && op.price ? +(op.price * r.contracts * 100).toFixed(2) : '';
+            const pl = mv !== '' ? +(r.premiumReceived - mv).toFixed(2) : '';
+            const plPct = mv !== '' && r.premiumReceived !== 0 ? +((1 - mv / r.premiumReceived) * 100).toFixed(2) : '';
+            const ap = r.type === 'Put' && r.contracts > 0 ? +(r.strike - (r.premiumReceived / (r.contracts * 100))).toFixed(2) : '';
+            const pfs = ap !== '' && pd && !pd.loading && !pd.error && pd.price
+                ? +((1 - ap / pd.price) * 100).toFixed(2) : '';
+            const otm = pd && !pd.loading && !pd.error && pd.price
+                ? (r.type==='Put' ? (pd.price>r.strike?'OTM':'ITM') : r.type==='Call' ? (pd.price<r.strike?'OTM':'ITM') : '') : '';
+            rows.push([
+                r.date, r.symbol, r.strikeDate, r.action,
+                r.dte !== '' ? r.dte : '', r.strike ? +r.strike.toFixed(2) : '',
+                currentPrice, ap, pfs !== '' ? pfs + '%' : '', otm,
+                r.type, r.contracts,
+                fmtN(r.premiumReceived), mv, pl, plPct !== '' ? plPct + '%' : '',
+                fmtN(r.putCommitment), fmtN(r.callCommitment)
+            ]);
+        }
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:12},{wch:28},{wch:12},{wch:8},{wch:6},{wch:10},
+                   {wch:12},{wch:14},{wch:12},{wch:8},
+                   {wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:8},
+                   {wch:18},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Open Commitments');
+    XLSX.writeFile(wb, `open_commitments_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function downloadAssignments() {
+    const assigned = typeof getAssignedTrades === 'function' ? getAssignedTrades() : [];
+    if (!assigned.length) { alert('No assignments data.'); return; }
+    const headers = ['Assignment Date','Symbol','Ticker','Put/Call','Strike','Contracts',
+                     'Shares Assigned','Premium Paid','Purchase Price','Cost Basis',
+                     'Sold Price','Current Price','Market Value','P/L','Calls Sold vs Shares','Status'];
+    const rows = [headers];
+    assigned.forEach(t => {
+        const ticker = extractTicker(t.symbol);
+        const putMatch  = t.symbol.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = t.symbol.match(/([\d.]+)\s+C\s*$/);
+        const strike = putMatch ? parseFloat(putMatch[1]) : callMatch ? parseFloat(callMatch[1]) : 0;
+        const isCall = !!callMatch;
+        const contracts = parseFloat(t.contracts) || 0;
+        const sharesAssigned = contracts * 100;
+        const premiumPaid = Math.abs(t.openingPremium);
+        const purchasePrice = sharesAssigned > 0
+            ? isCall
+                ? ((sharesAssigned * strike) + premiumPaid) / sharesAssigned
+                : ((sharesAssigned * strike) - premiumPaid) / sharesAssigned
+            : 0;
+        const assignDate = t.closeDate || t.openDate;
+        const soldPrice = findStockSalePrice(ticker, assignDate);
+        const pd = assignmentStockPrices[ticker];
+        const currentPriceVal = (pd && !pd.loading && !pd.error) ? pd.price : null;
+        const costBasis = purchasePrice * sharesAssigned;
+        const priceForMV = soldPrice !== null ? soldPrice : currentPriceVal;
+        const marketValue = priceForMV !== null ? priceForMV * sharesAssigned : null;
+        const callsSold = getCallsSoldAgainstShares(ticker, assignDate);
+        const pl = marketValue !== null ? marketValue - costBasis : null;
+        const status = soldPrice !== null ? 'Sold' : 'Unsold';
+        rows.push([
+            assignDate ? fmtDateMMDDYYYY(assignDate) : '',
+            t.symbol, ticker, isCall ? 'Call' : 'Put',
+            +strike.toFixed(2), contracts, sharesAssigned,
+            +premiumPaid.toFixed(2), +purchasePrice.toFixed(2), +costBasis.toFixed(2),
+            soldPrice !== null ? +soldPrice.toFixed(2) : '',
+            currentPriceVal !== null ? +currentPriceVal.toFixed(2) : '',
+            marketValue !== null ? +marketValue.toFixed(2) : '',
+            pl !== null ? +pl.toFixed(2) : '',
+            callsSold !== 0 ? +callsSold.toFixed(2) : '',
+            status
+        ]);
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:14},{wch:28},{wch:8},{wch:8},{wch:8},{wch:10},
+                   {wch:14},{wch:12},{wch:14},{wch:12},
+                   {wch:10},{wch:12},{wch:12},{wch:10},{wch:20},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Assignments');
+    XLSX.writeFile(wb, `assignments_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+
+function closeMonthlySummary() {
+    // Save expand/collapse state before closing
+    const body = document.getElementById('monthlyBreakdownBody');
+    if (body) {
+        const years = [...new Set([...body.querySelectorAll('tr[class*="mb-year-"]')]
+            .map(r => [...r.classList].find(c => c.startsWith('mb-year-') && !c.includes('collapsed')))
+            .filter(Boolean)
+            .map(c => c.replace('mb-year-', '')))];
+        const expanded = new Set();
+        years.forEach(year => {
+            const monthRows = body.querySelectorAll(`.mb-year-${year}`);
+            if (monthRows.length && monthRows[0].style.display !== 'none') expanded.add(String(year));
+        });
+        monthlySavedState.expandedYears = expanded;
+    }
+    const cb = document.getElementById('monthlyExpandAll');
+    monthlySavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('monthlyInner');
+    monthlySavedState.scrollTop = mi ? mi.scrollTop : 0;
+
+    // Save modal position and size
+    const _di = document.getElementById('monthlyInner');
+    if (_di) {
+        monthlySavedState.modalPos = {
+            left: _di.style.left, top: _di.style.top,
+            width: _di.style.width, height: _di.style.height
+        };
+        _di._dragInit = false;
+    }
+    document.getElementById('monthlyModal').style.display = 'none';
+}
+
+function closeWeeklySummary() {
+    // Save expand/collapse state before closing
+    const container = document.getElementById('weeklyTableContainer');
+    if (container) {
+        const keys = [...new Set([...container.querySelectorAll('tr[class*="wk-week-row-"]')]
+            .map(r => [...r.classList].find(c => c.startsWith('wk-week-row-')))
+            .filter(Boolean)
+            .map(c => c.replace('wk-week-row-', '')))];
+        const expanded = new Set();
+        keys.forEach(key => {
+            const weekRows = container.querySelectorAll(`.wk-week-row-${key}`);
+            if (weekRows.length && weekRows[0].style.display !== 'none') expanded.add(key);
+        });
+        weeklySavedState.expandedMonths = expanded;
+    }
+    const cb = document.getElementById('weeklyExpandAll');
+    weeklySavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('weeklyInner');
+    weeklySavedState.scrollTop = mi ? mi.scrollTop : 0;
+
+    // Save modal position and size
+    const _di = document.getElementById('weeklyInner');
+    if (_di) {
+        weeklySavedState.modalPos = {
+            left: _di.style.left, top: _di.style.top,
+            width: _di.style.width, height: _di.style.height
+        };
+        _di._dragInit = false;
+    }
+    document.getElementById('weeklyModal').style.display = 'none';
+}
+
+function toggleWeeklyMonth(monthKey) {
+    const weekRows = document.querySelectorAll(`.wk-week-row-${monthKey}`);
+    const collapsedRow = document.querySelector(`.wk-month-collapsed-${monthKey}`);
+    if (!weekRows.length || !collapsedRow) return;
+    const isExpanded = weekRows[0].style.display !== 'none';
+    weekRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    collapsedRow.style.display = isExpanded ? 'table-row' : 'none';
+    document.querySelectorAll(`#wkbtn-${monthKey}`).forEach(btn => {
+        btn.textContent = isExpanded ? '➕' : '➖';
+        btn.title = isExpanded ? `Expand` : `Collapse`;
+    });
+}
+
+function toggleMonthlyExpandAll(checked) {
+    // Get all unique year keys from existing rows
+    const body = document.getElementById('monthlyBreakdownBody');
+    if (!body) return;
+    const years = [...new Set([...body.querySelectorAll('tr[class*="mb-year-"]')]
+        .map(r => [...r.classList].find(c => c.startsWith('mb-year-') && !c.includes('collapsed')))
+        .filter(Boolean)
+        .map(c => c.replace('mb-year-', '')))];
+    years.forEach(year => {
+        const monthRows = body.querySelectorAll(`.mb-year-${year}`);
+        const collapsedRow = body.querySelector(`.mb-year-collapsed-${year}`);
+        if (!monthRows.length) return;
+        const isCurrentlyExpanded = monthRows[0].style.display !== 'none';
+        if (checked && !isCurrentlyExpanded) toggleMonthlyYear(year);
+        else if (!checked && isCurrentlyExpanded) {
+            // Only collapse if not the default-expanded year (current year)
+            const currentYear = new Date().getFullYear().toString();
+            if (year !== currentYear) toggleMonthlyYear(year);
+        }
+    });
+}
+
+function toggleWeeklyExpandAll(checked) {
+    const container = document.getElementById('weeklyTableContainer');
+    if (!container) return;
+    const keys = [...new Set([...container.querySelectorAll('tr[class*="wk-week-row-"]')]
+        .map(r => [...r.classList].find(c => c.startsWith('wk-week-row-')))
+        .filter(Boolean)
+        .map(c => c.replace('wk-week-row-', '')))];
+    keys.forEach(key => {
+        const weekRows = container.querySelectorAll(`.wk-week-row-${key}`);
+        const collapsedRow = container.querySelector(`.wk-month-collapsed-${key}`);
+        if (!weekRows.length || !collapsedRow) return;
+        const isExpanded = weekRows[0].style.display !== 'none';
+        if (checked && !isExpanded) toggleWeeklyMonth(key);
+        else if (!checked && isExpanded) {
+            // Only collapse non-current-year months
+            const year = key.split('_')[0];
+            const currentYear = new Date().getFullYear().toString();
+            if (year !== currentYear) toggleWeeklyMonth(key);
+        }
+    });
+}
+
+function closeOpenCommitments() {
+    const _di = document.getElementById('ocInner'); if (_di) _di._dragInit = false;
+    document.getElementById('openCommitmentsModal').style.display = 'none';
+    const modalInner = document.querySelector('#openCommitmentsModal > div');
+    if (modalInner && modalInner._ocScrollHandler) {
+        modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
+        delete modalInner._ocScrollHandler;
+    }
+}
+
+// Finnhub API key (embedded)
+const FINNHUB_API_KEY = "d6bjguhr01qp4lhvmct0d6bjguhr01qp4lhvmctg";
+
+// Tradier API key for option quotes
+const TRADIER_API_KEY = "SX80wDUwoNv3uWWsx7MY6ci9ncA3";
+
+// State for Open Commitments sort
+let ocSortKey = 'dte';
+let ocSortDir = 1;
+let ocSearchValue = '';
+let ocParsedRows = [];
+let ocStockPrices = {};   // { TICKER: { price, change, changePct, loading, error } }
+let ocOptionPrices = {};  // { SYMBOL: { price, loading, error } }
+let ocPriceFetchTime = null;
+let ocSpreadExpanded = new Set(); // tracks which spread rows are expanded
+let ocGroupExpanded = new Set();  // tracks which same-symbol groups are expanded
+
+// ── Column config & drag-to-reorder for Open Commitments table ───────────────
+const OC_COLUMNS = [
+    { key: 'date',          label: 'Transaction Date',    width: '7%'  },
+    { key: 'symbol',        label: 'Symbol',              width: '9%'  },
+    { key: 'strikeDate',    label: 'Strike Date',         width: '6%'  },
+    { key: 'action',        label: 'Action',              width: '4%'  },
+    { key: 'dte',           label: 'DTE',                 width: '4%'  },
+    { key: 'strike',        label: 'Strike Price',        width: '5%'  },
+    { key: 'price',         label: 'Current Price',       width: '6%'  },
+    { key: 'assignPrice',   label: 'Assignment Price',    width: '6%'  },
+    { key: 'pctFromStrike', label: '% From Strike',       width: '6%'  },
+    { key: 'otmitm',        label: 'OTM / ITM',           width: '5%'  },
+    { key: 'type',          label: 'Put or Call',         width: '5%'  },
+    { key: 'contracts',     label: '# of Contracts',      width: '5%'  },
+    { key: 'premium',       label: 'Premium',             width: '6%'  },
+    { key: 'marketValue',   label: 'Market Value',        width: '6%'  },
+    { key: 'pl',            label: 'Profit / Loss',       width: '6%'  },
+    { key: 'plPct',         label: 'Profit / Loss %',     width: '5%'  },
+    { key: 'puts',          label: 'Commitments (Puts)',  width: '7%'  },
+    { key: 'calls',         label: 'Commitments (Calls)', width: '7%'  },
+];
+const OC_DEFAULT_ORDER = OC_COLUMNS.map(c => c.key);
+let ocColumnOrder = (() => {
+    try {
+        const saved = JSON.parse(localStorage.getItem('ocColumnOrder') || 'null');
+        if (Array.isArray(saved) && saved.length === OC_DEFAULT_ORDER.length &&
+            OC_DEFAULT_ORDER.every(k => saved.includes(k))) return saved;
+    } catch(e) {}
+    return [...OC_DEFAULT_ORDER];
+})();
+function saveOcColumnOrder() {
+    try { localStorage.setItem('ocColumnOrder', JSON.stringify(ocColumnOrder)); } catch(e) {}
+}
+function resetOcColumnOrder() {
+    ocColumnOrder = [...OC_DEFAULT_ORDER];
+    saveOcColumnOrder();
+    renderOpenCommitmentsTable();
+}
+
+// Initialise drag-to-reorder on the OC thead after each render
+function initOcColumnDrag() {
+    const thead = document.getElementById('ocDetailThead');
+    if (!thead) return;
+    const ths = Array.from(thead.querySelectorAll('th'));
+    let dragSrcIdx = null;
+
+    ths.forEach((th, idx) => {
+        th.draggable = true;
+        th.style.cursor = 'grab';
+
+        th.addEventListener('dragstart', e => {
+            dragSrcIdx = idx;
+            th.style.opacity = '0.5';
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', idx);
+        });
+        th.addEventListener('dragend', () => {
+            th.style.opacity = '';
+            ths.forEach(t => t.classList.remove('oc-drop-target'));
+        });
+        th.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            ths.forEach(t => t.classList.remove('oc-drop-target'));
+            if (idx !== dragSrcIdx) th.classList.add('oc-drop-target');
+        });
+        th.addEventListener('dragleave', () => th.classList.remove('oc-drop-target'));
+        th.addEventListener('drop', e => {
+            e.preventDefault();
+            th.classList.remove('oc-drop-target');
+            if (dragSrcIdx === null || dragSrcIdx === idx) return;
+            // Reorder: move column from dragSrcIdx to idx
+            const moved = ocColumnOrder.splice(dragSrcIdx, 1)[0];
+            ocColumnOrder.splice(idx, 0, moved);
+            saveOcColumnOrder();
+            renderOpenCommitmentsTable();
+        });
+    });
+}
+
+// Extract root ticker from Schwab option symbol e.g. "AAPL 01/17/2025 185.00 P" -> "AAPL"
+function extractTicker(symbol) {
+    return symbol.trim().split(/\s+/)[0].toUpperCase();
+}
+
+// Convert Schwab symbol "AAPL 01/17/2025 185.00 P" -> OCC "AAPL250117P00185000"
+function buildOCCSymbol(symbol) {
+    const parts = symbol.trim().split(/\s+/);
+    if (parts.length < 4) return null;
+    const ticker = parts[0].toUpperCase();
+    const dateParts = parts[1].split('/');
+    if (dateParts.length < 3) return null;
+    const mm = dateParts[0].padStart(2, '0');
+    const dd = dateParts[1].padStart(2, '0');
+    const yy = dateParts[2].slice(-2);
+    const optType = parts[3].toUpperCase(); // P or C
+    const strikeRaw = parseFloat(parts[2]);
+    if (isNaN(strikeRaw)) return null;
+    const strikeStr = Math.round(strikeRaw * 1000).toString().padStart(8, '0');
+    return `${ticker}${yy}${mm}${dd}${optType}${strikeStr}`;
+}
+
+// Fetch current option price from Tradier API
+async function fetchOptionPrice(occSymbol) {
+    const url = `https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(occSymbol)}&greeks=false`;
+    const res = await fetch(url, {
+        headers: {
+            'Authorization': `Bearer ${TRADIER_API_KEY}`,
+            'Accept': 'application/json'
+        }
+    });
+    if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${txt.substring(0, 80)}`);
+    }
+    const json = await res.json();
+    const quote = json && json.quotes && json.quotes.quote;
+    if (!quote) throw new Error('No quote data returned');
+    let price = quote.last;
+    if (!price || price <= 0) {
+        const bid = quote.bid || 0;
+        const ask = quote.ask || 0;
+        if (bid > 0 || ask > 0) price = (bid + ask) / 2;
+        else throw new Error('No valid price available');
+    }
+    return { price };
+}
+
+// Fetch option market prices for all open positions using Tradier
+async function refreshOptionPrices() {
+    if (!ocParsedRows.length) return;
+    const ts = document.getElementById('priceTimestamp');
+
+    const symbolMap = {};
+    ocParsedRows.forEach(r => {
+        const occ = buildOCCSymbol(r.symbol);
+        if (occ) symbolMap[occ] = r.symbol;
+    });
+    const occSymbols = Object.keys(symbolMap);
+    if (!occSymbols.length) return;
+
+    occSymbols.forEach(occ => { ocOptionPrices[occ] = { loading: true }; });
+    renderOpenCommitmentsTable();
+
+    if (ts) ts.textContent = `Fetching option prices for ${occSymbols.length} position(s) via Tradier…`;
+
+    for (const occ of occSymbols) {
+        try {
+            const data = await fetchOptionPrice(occ);
+            ocOptionPrices[occ] = { price: data.price, loading: false, error: false };
+        } catch(e) {
+            ocOptionPrices[occ] = { loading: false, error: true, errMsg: e.message };
+        }
+        renderOpenCommitmentsTable();
+        if (occSymbols.length > 1) await new Promise(r => setTimeout(r, 150));
+    }
+
+    ocPriceFetchTime = new Date();
+    renderOpenCommitmentsTable();
+}
+
+
+
+async function fetchSinglePrice(ticker) {
+    const key = FINNHUB_API_KEY;
+    if (!key) throw new Error('No API key saved');
+
+    const url = `https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${encodeURIComponent(key)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${txt.substring(0, 80)}`);
+    }
+    const json = await res.json();
+    if (json.error) throw new Error(`Finnhub: ${json.error}`);
+    if (!json.c || json.c === 0) throw new Error(`No price data (response: ${JSON.stringify(json).substring(0,80)})`);
+    const price = json.c;
+    const change = json.d ?? (price - (json.pc || price));
+    const changePct = json.dp ?? (json.pc ? (change / json.pc) * 100 : 0);
+    return { price, change, changePct };
+}
+
+async function refreshStockPrices() {
+    if (!ocParsedRows.length) return;
+
+    const key = FINNHUB_API_KEY;
+    if (!key) {
+        const ts = document.getElementById('priceTimestamp');
+        if (ts) ts.textContent = '⚠️ Finnhub API key is not configured.';
+        return;
+    }
+
+    const tickers = [...new Set(ocParsedRows.map(r => extractTicker(r.symbol)))];
+
+    // Mark all as loading
+    tickers.forEach(t => { ocStockPrices[t] = { loading: true }; });
+    renderOpenCommitmentsTable();
+
+    const ts = document.getElementById('priceTimestamp');
+    if (ts) ts.textContent = `Fetching prices for: ${tickers.join(', ')}…`;
+
+    // Fetch sequentially to respect Finnhub free-tier rate limit (60 req/min)
+    for (const ticker of tickers) {
+        try {
+            const data = await fetchSinglePrice(ticker);
+            ocStockPrices[ticker] = { ...data, loading: false, error: false };
+        } catch(e) {
+            ocStockPrices[ticker] = { loading: false, error: true, errMsg: e.message };
+        }
+        renderOpenCommitmentsTable();
+        if (tickers.length > 1) await new Promise(r => setTimeout(r, 150)); // small delay between calls
+    }
+
+    ocPriceFetchTime = new Date();
+    renderOpenCommitmentsTable();
+
+    // Also refresh option market prices via Tradier
+    refreshOptionPrices();
+}
+
+function showOpenCommitments() {
+    if (!openPositions || openPositions.length === 0) {
+        alert('No open positions found. Please upload a file first.');
+        return;
+    }
+
+    // Parse each open position once
+    ocParsedRows = openPositions.map(p => {
+        const sym = p.symbol.trim();
+        const putMatch = sym.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = sym.match(/([\d.]+)\s+C\s*$/);
+        const isPut = !!putMatch;
+        const isCall = !!callMatch;
+        const strike = isPut ? parseFloat(putMatch[1]) : isCall ? parseFloat(callMatch[1]) : null;
+        const contracts = parseFloat(p.contracts) || 0;
+        const commitment = strike !== null ? strike * contracts * 100 : 0;
+        const putCommitment = isPut ? commitment : 0;
+        const callCommitment = isCall ? commitment : 0;
+        const type = isPut ? 'Put' : isCall ? 'Call' : '—';
+        const strikeDisplay = strike !== null ? '$' + strike.toFixed(2) : '—';
+        const dateObj = p.openDate || null;
+        const date = dateObj ? fmtDateMMDDYYYY(dateObj) : '—';
+        const dte = calcDTE(p.symbol);
+        const premiumReceived = Math.abs(p.openingPremium || 0);
+        const action = (p.status || '').toLowerCase().includes('buy') ? 'BTO' : 'STO';
+        const strikeDateMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+        const strikeDate = strikeDateMatch ? strikeDateMatch[1] : '—';
+        return { dateObj, date, symbol: p.symbol, strikeDate, action, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte, premiumReceived };
+    });
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalInner = document.querySelector('#openCommitmentsModal > div');
+    modalInner.style.background = isDark ? '#1e293b' : '#ffffff';
+    modalInner.style.border = '1px solid #0ea5e9';
+
+    renderOpenCommitmentsTable();
+
+    // Restore persisted search value now that the input exists in the DOM
+    const searchEl = document.getElementById('commitmentSearch');
+    if (searchEl) searchEl.value = ocSearchValue;
+
+    const modal = document.getElementById('openCommitmentsModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
+    initDraggableModal('ocInner', '#0ea5e9', 1400);
+
+    // Auto-refresh prices once per session for open commitments
+    if (!window._pricesRefreshedOC) {
+        window._pricesRefreshedOC = true;
+        setTimeout(() => { refreshStockPrices(); }, 200);
+    }
+}
+
+function sortOpenCommitments(key) {
+    if (ocSortKey === key) ocSortDir *= -1;
+    else { ocSortKey = key; ocSortDir = 1; }
+    renderOpenCommitmentsTable();
+}
+
+function toggleSpread(spreadId) {
+    if (ocSpreadExpanded.has(spreadId)) ocSpreadExpanded.delete(spreadId);
+    else ocSpreadExpanded.add(spreadId);
+    renderOpenCommitmentsTable();
+}
+
+function toggleGroup(groupId) {
+    if (ocGroupExpanded.has(groupId)) ocGroupExpanded.delete(groupId);
+    else ocGroupExpanded.add(groupId);
+    renderOpenCommitmentsTable();
+}
+
+function toggleOcExpandAll(checked) {
+    // Expand/collapse all groups (multi-position same-symbol groups)
+    ocParsedRows.forEach(r => {
+        const key = r.symbol.trim();
+        if (checked) ocGroupExpanded.add(key);
+        else ocGroupExpanded.delete(key);
+    });
+    // Expand/collapse all BPS spreads
+    // We need to reconstruct spread IDs the same way renderOpenCommitmentsTable does
+    const usedBps = new Set();
+    for (let i = 0; i < ocParsedRows.length; i++) {
+        if (usedBps.has(i)) continue;
+        const a = ocParsedRows[i];
+        if (a.type !== 'Put') continue;
+        const tickerA = extractTicker(a.symbol);
+        const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+        for (let j = i + 1; j < ocParsedRows.length; j++) {
+            if (usedBps.has(j)) continue;
+            const b = ocParsedRows[j];
+            if (b.type !== 'Put') continue;
+            if (extractTicker(b.symbol) !== tickerA) continue;
+            const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            if (expB !== expA) continue;
+            if (b.contracts !== a.contracts) continue;
+            const isPair = (a.action === 'STO' && b.action === 'BTO') || (a.action === 'BTO' && b.action === 'STO');
+            if (!isPair) continue;
+            const sto = a.action === 'STO' ? a : b;
+            const bto = a.action === 'BTO' ? a : b;
+            const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
+            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}`;
+            if (checked) ocSpreadExpanded.add(spreadId);
+            else ocSpreadExpanded.delete(spreadId);
+            usedBps.add(i); usedBps.add(j);
+            break;
+        }
+    }
+    renderOpenCommitmentsTable();
+}
+
+function renderOpenCommitmentsTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+    const warnColor = isDark ? '#fbbf24' : '#d97706';
+
+    const fmt = (n) => n === 0 ? '' : ('$' + n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
+    const fmtPrice = (n) => '$' + n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    // Helper: render price cell content
+    const priceCell = (ticker) => {
+        const p = ocStockPrices[ticker];
+        if (!p) return '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        if (p.loading) return '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+        if (p.error) return `<span style="color:#f87171;font-size:0.75rem;" title="${p.errMsg||'fetch failed'}">Error ⚠</span>`;
+        const chgColor = p.change >= 0 ? posColor : negColor;
+        const sign = p.change >= 0 ? '+' : '';
+        return `<span style="font-weight:700;font-size:0.9rem;">${fmtPrice(p.price)}</span><br><span style="font-size:0.7rem;color:${chgColor};">${sign}${p.change.toFixed(2)} (${sign}${p.changePct.toFixed(2)}%)</span>`;
+    };
+
+    // Sort
+    // ── Step 1: BPS pair map ─────────────────────────────────────────────────
+    // Keeps spread legs together, ranked by the spread-level value rather than
+    // each individual leg's value.
+    const bpsSortMap = new Map(); // row → { sto, bto, netPremium, stoOp, btoOp }
+    {
+        const rows = ocParsedRows;
+        const usedBps = new Set();
+        for (let i = 0; i < rows.length; i++) {
+            if (usedBps.has(i)) continue;
+            const r = rows[i];
+            if (r.type !== 'Put') continue;
+            const ticker = extractTicker(r.symbol);
+            const expiry = (r.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            for (let j = i + 1; j < rows.length; j++) {
+                if (usedBps.has(j)) continue;
+                const other = rows[j];
+                if (other.type !== 'Put') continue;
+                if (extractTicker(other.symbol) !== ticker) continue;
+                const expOther = (other.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+                if (expOther !== expiry) continue;
+                if (other.contracts !== r.contracts) continue;
+                const isPair = (r.action === 'STO' && other.action === 'BTO') ||
+                               (r.action === 'BTO'  && other.action === 'STO');
+                if (!isPair) continue;
+                const sto = r.action === 'STO' ? r : other;
+                const bto = r.action === 'BTO' ? r : other;
+                const netPremium = sto.premiumReceived - bto.premiumReceived;
+                const stoOcc = buildOCCSymbol(sto.symbol);
+                const btoOcc = buildOCCSymbol(bto.symbol);
+                const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+                const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+                const pairInfo = { sto, bto, netPremium, stoOp, btoOp };
+                bpsSortMap.set(r,     pairInfo);
+                bpsSortMap.set(other, pairInfo);
+                usedBps.add(i);
+                usedBps.add(j);
+                break;
+            }
+        }
+    }
+
+    // ── Step 2: Group average map ────────────────────────────────────────────
+    // Rows that share the same OCC symbol (and are not BPS legs) form a display
+    // group. When collapsed, the group row shows aggregated values; sorting should
+    // use the AVERAGE of those values so the group is ranked as a unit.
+    const groupAvgMap = new Map(); // row → { avgDte, avgStrike, avgPremium, avgPuts, avgCalls,
+                                   //         avgMV, avgPL, avgPLPct, avgAssignPrice, avgPctFromStrike,
+                                   //         avgDateTs, avgStrikeDateTs, totalContracts }
+    {
+        // Build symbol → [rows] map (skip BPS legs)
+        const symGroups = {};
+        ocParsedRows.forEach(r => {
+            if (bpsSortMap.has(r)) return; // BPS legs handled separately
+            const key = r.symbol.trim();
+            if (!symGroups[key]) symGroups[key] = [];
+            symGroups[key].push(r);
+        });
+
+        const parseSD = (r) => {
+            const m = r.strikeDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            return m ? new Date(m[3], m[1]-1, m[2]).getTime() : 0;
+        };
+
+        Object.values(symGroups).forEach(rows => {
+            const n = rows.length;
+            const totalContracts = rows.reduce((s, r) => s + r.contracts, 0);
+
+            // Simple numeric averages
+            const avgDte          = rows.reduce((s, r) => s + (r.dte !== '' ? parseInt(r.dte) : 9999), 0) / n;
+            const avgStrike       = rows.reduce((s, r) => s + (r.strike || 0), 0) / n;
+            const avgPremium      = rows.reduce((s, r) => s + r.premiumReceived, 0) / n;
+            const avgPuts         = rows.reduce((s, r) => s + r.putCommitment, 0) / n;
+            const avgCalls        = rows.reduce((s, r) => s + r.callCommitment, 0) / n;
+            const avgDateTs       = rows.reduce((s, r) => s + (r.dateObj ? r.dateObj.getTime() : 0), 0) / n;
+            const avgStrikeDateTs = rows.reduce((s, r) => s + parseSD(r), 0) / n;
+
+            // Market-value dependent averages — only count rows with priced options
+            let mvSum = 0, plSum = 0, plPctSum = 0, mvCount = 0;
+            rows.forEach(r => {
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price) return;
+                const mv = op.price * r.contracts * 100;
+                mvSum   += mv;
+                const rowPL = r.action === 'BTO' ? mv - r.premiumReceived : r.premiumReceived - mv;
+                plSum   += rowPL;
+                if (r.premiumReceived !== 0) plPctSum += r.action === 'BTO' ? (mv / r.premiumReceived - 1) * 100 : (1 - mv / r.premiumReceived) * 100;
+                mvCount++;
+            });
+            const avgMV    = mvCount > 0 ? mvSum    / mvCount : -Infinity;
+            const avgPL    = mvCount > 0 ? plSum    / mvCount : -Infinity;
+            const avgPLPct = mvCount > 0 ? plPctSum / mvCount : -Infinity;
+
+            // Assignment price / pctFromStrike averages
+            let apSum = 0, apCount = 0, pfsSum = 0, pfsCount = 0;
+            rows.forEach(r => {
+                if (r.type === 'Put' && r.contracts > 0) {
+                    const ap = r.strike - (r.premiumReceived / (r.contracts * 100));
+                    apSum += ap; apCount++;
+                    const p = ocStockPrices[extractTicker(r.symbol)];
+                    if (p && !p.loading && !p.error && p.price) {
+                        pfsSum += (1 - ap / p.price) * 100; pfsCount++;
+                    }
+                } else if (r.type === 'Call' && r.strike) {
+                    const p = ocStockPrices[extractTicker(r.symbol)];
+                    if (p && !p.loading && !p.error && p.price) {
+                        pfsSum += (r.strike / p.price - 1) * 100; pfsCount++;
+                    }
+                }
+            });
+            const avgAssignPrice    = apCount  > 0 ? apSum  / apCount  : 0;
+            const avgPctFromStrike  = pfsCount > 0 ? pfsSum / pfsCount : -Infinity;
+
+            const info = { avgDte, avgStrike, avgPremium, avgPuts, avgCalls,
+                           avgMV, avgPL, avgPLPct, avgAssignPrice, avgPctFromStrike,
+                           avgDateTs, avgStrikeDateTs, totalContracts };
+            rows.forEach(r => groupAvgMap.set(r, info));
+        });
+    }
+
+    const sorted = [...ocParsedRows].sort((a, b) => {
+        let v1, v2;
+
+        // Helpers: resolve the sort value for a row, checking group avg → BPS pair → individual
+        const ga = groupAvgMap.get(a), gb = groupAvgMap.get(b);
+        const pa = bpsSortMap.get(a),  pb = bpsSortMap.get(b);
+
+        if (ocSortKey === 'date') {
+            v1 = ga ? ga.avgDateTs : (a.dateObj ? a.dateObj.getTime() : 0);
+            v2 = gb ? gb.avgDateTs : (b.dateObj ? b.dateObj.getTime() : 0);
+        }
+        else if (ocSortKey === 'symbol') { v1 = a.symbol.toLowerCase(); v2 = b.symbol.toLowerCase(); }
+        else if (ocSortKey === 'strikeDate') {
+            const parseSD = (r) => { const m = r.strikeDate.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? new Date(m[3], m[1]-1, m[2]).getTime() : 0; };
+            v1 = ga ? ga.avgStrikeDateTs : parseSD(a);
+            v2 = gb ? gb.avgStrikeDateTs : parseSD(b);
+        }
+        else if (ocSortKey === 'action') {
+            // Groups: rank by r0 action; BPS: rank as STO's action
+            v1 = pa ? pa.sto.action : a.action;
+            v2 = pb ? pb.sto.action : b.action;
+        }
+        else if (ocSortKey === 'dte') {
+            v1 = ga ? ga.avgDte : (a.dte !== '' ? parseInt(a.dte) : 9999);
+            v2 = gb ? gb.avgDte : (b.dte !== '' ? parseInt(b.dte) : 9999);
+        }
+        else if (ocSortKey === 'strike') {
+            // BPS: STO strike; group: average strike; standalone: own strike
+            v1 = pa ? pa.sto.strike : (ga ? ga.avgStrike : (a.strike || 0));
+            v2 = pb ? pb.sto.strike : (gb ? gb.avgStrike : (b.strike || 0));
+        }
+        else if (ocSortKey === 'type') { v1 = a.type; v2 = b.type; }
+        else if (ocSortKey === 'contracts') {
+            // Groups: sort by total contracts so larger positions rank accordingly
+            v1 = ga ? ga.totalContracts : a.contracts;
+            v2 = gb ? gb.totalContracts : b.contracts;
+        }
+        else if (ocSortKey === 'premium') {
+            v1 = pa ? pa.netPremium : (ga ? ga.avgPremium : a.premiumReceived);
+            v2 = pb ? pb.netPremium : (gb ? gb.avgPremium : b.premiumReceived);
+        }
+        else if (ocSortKey === 'puts') {
+            v1 = pa ? pa.sto.putCommitment : (ga ? ga.avgPuts : a.putCommitment);
+            v2 = pb ? pb.sto.putCommitment : (gb ? gb.avgPuts : b.putCommitment);
+        }
+        else if (ocSortKey === 'marketValue') {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { stoOp, btoOp, sto } = pair;
+                    if (stoOp && btoOp && !stoOp.loading && !btoOp.loading &&
+                        !stoOp.error && !btoOp.error && stoOp.price && btoOp.price)
+                        return (stoOp.price - btoOp.price) * sto.contracts * 100;
+                    return 0;
+                }
+                if (g) return g.avgMV === -Infinity ? 0 : g.avgMV;
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                return op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
+        }
+        else if (ocSortKey === 'pl') {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { stoOp, btoOp, sto, netPremium } = pair;
+                    if (stoOp && btoOp && !stoOp.loading && !btoOp.loading &&
+                        !stoOp.error && !btoOp.error && stoOp.price && btoOp.price)
+                        return netPremium - (stoOp.price - btoOp.price) * sto.contracts * 100;
+                    return -Infinity;
+                }
+                if (g) return g.avgPL;
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price) return -Infinity;
+                const mv = op.price * r.contracts * 100;
+                return r.action === 'BTO' ? mv - r.premiumReceived : r.premiumReceived - mv;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
+        }
+        else if (ocSortKey === 'plPct') {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { stoOp, btoOp, sto, netPremium } = pair;
+                    if (stoOp && btoOp && !stoOp.loading && !btoOp.loading &&
+                        !stoOp.error && !btoOp.error && stoOp.price && btoOp.price && netPremium !== 0) {
+                        const netMV = (stoOp.price - btoOp.price) * sto.contracts * 100;
+                        return (1 - netMV / netPremium) * 100;
+                    }
+                    return -Infinity;
+                }
+                if (g) return g.avgPLPct;
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price || r.premiumReceived === 0) return -Infinity;
+                const mv = op.price * r.contracts * 100;
+                return r.action === 'BTO' ? (mv / r.premiumReceived - 1) * 100 : (1 - mv / r.premiumReceived) * 100;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
+        }
+        else if (ocSortKey === 'calls') {
+            v1 = ga ? ga.avgCalls : a.callCommitment;
+            v2 = gb ? gb.avgCalls : b.callCommitment;
+        }
+        else if (ocSortKey === 'price') {
+            // Same ticker for all rows in a group — no averaging needed
+            const ppa = ocStockPrices[extractTicker(a.symbol)];
+            const ppb = ocStockPrices[extractTicker(b.symbol)];
+            v1 = ppa && ppa.price ? ppa.price : 0; v2 = ppb && ppb.price ? ppb.price : 0;
+        }
+        else if (ocSortKey === 'assignPrice') {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { sto, netPremium } = pair;
+                    return sto.contracts > 0 ? sto.strike - (netPremium / (sto.contracts * 100)) : 0;
+                }
+                if (g) return g.avgAssignPrice;
+                return r.type === 'Put' && r.contracts > 0 ? r.strike - (r.premiumReceived / (r.contracts * 100)) : 0;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
+        }
+        else if (ocSortKey === 'pctFromStrike') {
+            const getVal = (r, g, pair) => {
+                if (pair) {
+                    const { sto, netPremium } = pair;
+                    const p = ocStockPrices[extractTicker(r.symbol)];
+                    if (!p || p.loading || p.error || !p.price) return -Infinity;
+                    const be = sto.contracts > 0 ? sto.strike - (netPremium / (sto.contracts * 100)) : null;
+                    return be !== null ? (1 - be / p.price) * 100 : -Infinity;
+                }
+                if (g) return g.avgPctFromStrike;
+                const p = ocStockPrices[extractTicker(r.symbol)];
+                if (!p || p.loading || p.error || !p.price) return -Infinity;
+                if (r.type === 'Put') { const ap = r.contracts > 0 ? r.strike - (r.premiumReceived / (r.contracts * 100)) : null; return ap !== null ? (1 - ap / p.price) * 100 : -Infinity; }
+                if (r.type === 'Call') return r.strike ? (r.strike / p.price - 1) * 100 : -Infinity;
+                return -Infinity;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
+        }
+        else if (ocSortKey === 'otmitm') {
+            // BPS: use STO strike; group: use average strike; standalone: own strike
+            const getVal = (r, g, pair) => {
+                const p = ocStockPrices[extractTicker(r.symbol)];
+                if (!p || p.loading || p.error || !p.price) return -1;
+                const strike = pair ? pair.sto.strike : (g ? g.avgStrike : r.strike);
+                if (r.type === 'Put' || pair) return p.price > strike ? 1 : 0;
+                if (r.type === 'Call') return p.price < strike ? 1 : 0;
+                return -1;
+            };
+            v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
+        }
+        if (v1 < v2) return -ocSortDir;
+        if (v1 > v2) return ocSortDir;
+        return 0;
+    });
+
+    const ocSearchTerms = ocSearchValue.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    const filtered = ocSearchTerms.length > 0 ? sorted.filter(r => {
+        const ticker = extractTicker(r.symbol);
+        const pd = ocStockPrices[ticker];
+        const assignPrice = r.type === 'Put' && r.contracts > 0
+            ? (r.strike - (r.premiumReceived / (r.contracts * 100))).toFixed(2)
+            : '';
+        const currentPrice = pd && !pd.loading && !pd.error ? pd.price.toFixed(2) : '';
+        const otmItm = pd && !pd.loading && !pd.error
+            ? (r.type === 'Put' ? (pd.price > r.strike ? 'otm' : 'itm') : r.type === 'Call' ? (pd.price < r.strike ? 'otm' : 'itm') : '')
+            : '';
+        const vals = [
+            r.date,
+            r.symbol,
+            r.strikeDate,
+            ticker,
+            r.dte !== '' ? String(r.dte) : '',
+            r.strikeDisplay,
+            r.strike ? r.strike.toFixed(2) : '',
+            r.type,
+            String(r.contracts),
+            r.premiumReceived > 0 ? r.premiumReceived.toFixed(2) : '',
+            r.putCommitment > 0 ? r.putCommitment.toFixed(2) : '',
+            r.callCommitment > 0 ? r.callCommitment.toFixed(2) : '',
+            assignPrice,
+            currentPrice,
+            otmItm,
+        ];
+        return ocSearchTerms.some(term => vals.some(v => v.toLowerCase().includes(term)));
+    }) : sorted;
+
+    // totalPuts / totalCalls computed after displayItems so spread legs are netted.
+    // (declared with let so the spread-detection block below can assign them)
+    let totalPuts = 0;
+    let totalCalls = 0;
+
+    // 18 columns now (added Strike Date after Symbol)
+    const colW = 'width:5.56%;';
+    const thBase = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 6px;cursor:pointer;word-break:break-word;white-space:normal;user-select:none;position:relative;z-index:2;`;
+    const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+    const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
+
+    // ── Bull Put Spread Detection ──────────────────────────────────────────
+    // Match STO Put + BTO Put sharing ticker, expiry, and contract count.
+    const usedIndices = new Set();
+    const displayItems = [];
+
+    for (let i = 0; i < filtered.length; i++) {
+        if (usedIndices.has(i)) continue;
+        const a = filtered[i];
+        let matched = -1;
+
+        if (a.type === 'Put') {
+            const tickerA = extractTicker(a.symbol);
+            const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            for (let j = i + 1; j < filtered.length; j++) {
+                if (usedIndices.has(j)) continue;
+                const b = filtered[j];
+                if (b.type !== 'Put') continue;
+                if (extractTicker(b.symbol) !== tickerA) continue;
+                const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+                if (expB !== expA) continue;
+                if (b.contracts !== a.contracts) continue;
+                const isPair = (a.action === 'STO' && b.action === 'BTO') || (a.action === 'BTO' && b.action === 'STO');
+                if (!isPair) continue;
+                matched = j;
+                break;
+            }
+        }
+
+        if (matched !== -1) {
+            const b = filtered[matched];
+            const sto = a.action === 'STO' ? a : b;
+            const bto = a.action === 'BTO' ? a : b;
+            const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
+            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}`;
+            const spreadNetPremium = sto.premiumReceived - bto.premiumReceived;
+            const spreadMaxLoss = (sto.strike - bto.strike) * sto.contracts * 100 - spreadNetPremium;
+            displayItems.push({ kind: 'spread', sto, bto, spreadId, spreadMaxLoss });
+            usedIndices.add(i);
+            usedIndices.add(matched);
+        } else {
+            displayItems.push({ kind: 'standalone', row: a });
+            usedIndices.add(i);
+        }
+    }
+
+    // ── Group identical standalones (same symbol) ─────────────────────────
+    // Standalones sharing the same OCC symbol are merged into a 'group' item.
+    const groupMap = {};
+    const groupedDisplayItems = [];
+    displayItems.forEach(item => {
+        if (item.kind !== 'standalone') { groupedDisplayItems.push(item); return; }
+        const key = item.row.symbol.trim();
+        if (!groupMap[key]) {
+            const groupItem = { kind: 'group', symbol: key, rows: [], groupId: key };
+            groupMap[key] = groupItem;
+            groupedDisplayItems.push(groupItem);
+        }
+        groupMap[key].rows.push(item.row);
+    });
+    groupedDisplayItems.forEach(item => {
+        if (item.kind === 'spread') {
+            totalPuts += item.spreadMaxLoss;
+        } else if (item.kind === 'group') {
+            item.rows.forEach(r => { totalPuts += r.putCommitment; totalCalls += r.callCommitment; });
+        }
+    });
+
+    // ── Row Rendering ──────────────────────────────────────────────────────
+    let rowsHtml = '';
+    let rowIndex = 0;
+
+    // Helper to build market-value / P&L / P&L-% html for a single leg
+    const legPriceHtml = (leg) => {
+        const occ = buildOCCSymbol(leg.symbol);
+        const op = occ ? ocOptionPrices[occ] : null;
+        let mv, plH, plPctH;
+        if (!op) {
+            mv = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; plH = mv; plPctH = mv;
+        } else if (op.loading) {
+            mv = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>'; plH = mv; plPctH = mv;
+        } else if (op.error) {
+            mv = `<span style="color:#f87171;font-size:0.75rem;" title="${op.errMsg||''}">Error ⚠</span>`; plH = mv; plPctH = mv;
+        } else {
+            const mVal = op.price * leg.contracts * 100;
+            mv = `<span style="font-weight:700;font-size:0.9rem;color:#f59e0b;">$${mVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+            const isBTO = leg.action === 'BTO';
+            const pl = isBTO ? mVal - leg.premiumReceived : leg.premiumReceived - mVal;
+            const plColor = pl >= 0 ? posColor : negColor;
+            plH = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${pl>=0?'+':'-'}$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+            if (leg.premiumReceived > 0) {
+                const pct = isBTO ? (mVal / leg.premiumReceived - 1) * 100 : (1 - mVal / leg.premiumReceived) * 100;
+                const pctColor = pct >= 0 ? posColor : negColor;
+                plPctH = `<span style="font-weight:700;font-size:0.9rem;color:${pctColor};">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`;
+            } else { plPctH = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
+        }
+        return { mv, plH, plPctH };
+    };
+
+    // Helper: emit a <tr> from a cell-map { colKey: htmlString } in current column order
+    const renderRow = (cellMap, trStyle) => {
+        const cells = ocColumnOrder.map(k => {
+            const cell = cellMap[k] !== undefined ? cellMap[k] : { content: '—', style: tdBase };
+            return `<td style="${cell.style}">${cell.content}</td>`;
+        }).join('');
+        return `<tr style="${trStyle}">${cells}</tr>`;
+    };
+    // Shorthand: cell with tdBase + optional extra style
+    const C = (content, extra = '') => ({ content, style: tdBase + extra });
+
+    groupedDisplayItems.forEach(item => {
+
+        // ────────── GROUP ROW (one or many positions with same symbol) ────────
+        if (item.kind === 'group') {
+            const rows = item.rows;
+            const r0 = rows[0];
+            const ticker = extractTicker(r0.symbol);
+            const pd = ocStockPrices[ticker];
+            const isExpanded = ocGroupExpanded.has(item.groupId);
+
+            // Aggregate totals across all rows in group
+            const totalContracts = rows.reduce((s, r) => s + r.contracts, 0);
+            const totalPremium = rows.reduce((s, r) => s + r.premiumReceived, 0);
+            const totalPutCommit = rows.reduce((s, r) => s + r.putCommitment, 0);
+            const totalCallCommit = rows.reduce((s, r) => s + r.callCommitment, 0);
+
+            // Aggregate market value
+            let totalMV = 0; let mvReady = true;
+            rows.forEach(r => {
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (!op || op.loading || op.error || !op.price) { mvReady = false; }
+                else { totalMV += op.price * r.contracts * 100; }
+            });
+            const mvHtml = !mvReady ? '<span style="color:#64748b;font-size:0.75rem;">—</span>'
+                : `<span style="font-weight:700;font-size:0.9rem;color:#f59e0b;">$${totalMV.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+            let plHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+            let plPctHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+            if (mvReady) {
+                // Compute per-row P/L respecting BTO vs STO direction
+                let totalPL = 0;
+                rows.forEach(r => {
+                    const occ = buildOCCSymbol(r.symbol);
+                    const op = occ ? ocOptionPrices[occ] : null;
+                    const mv = op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
+                    totalPL += r.action === 'BTO' ? mv - r.premiumReceived : r.premiumReceived - mv;
+                });
+                const plColor = totalPL >= 0 ? posColor : negColor;
+                plHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${totalPL>=0?'+':'-'}$${Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+                if (totalPremium > 0) {
+                    const pct = (totalPL / totalPremium) * 100;
+                    plPctHtml = `<span style="font-weight:700;font-size:0.9rem;color:${pct>=0?posColor:negColor};">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`;
+                }
+            }
+
+            // % from strike / OTM-ITM (same for all rows — same symbol/strike)
+            const pctFromStrikeHtml = (() => {
+                if (!pd || pd.loading || pd.error || !pd.price) return '<span style="color:#64748b;">—</span>';
+                let pct = null;
+                if (r0.type === 'Put') { const ap = totalContracts > 0 ? (totalPutCommit - totalPremium) / (totalContracts * 100) : null; if (ap !== null) pct = (1 - ap / pd.price) * 100; }
+                else if (r0.type === 'Call') { if (r0.strike) pct = (r0.strike / pd.price - 1) * 100; }
+                if (pct === null) return '<span style="color:#64748b;">—</span>';
+                return `<span style="color:${pct>=0?posColor:negColor};font-weight:700;">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`;
+            })();
+            const otmItmHtml = (() => {
+                if (!pd || pd.loading || pd.error || !pd.price) return '<span style="color:#64748b;">—</span>';
+                if (r0.type === 'Put') return pd.price > r0.strike ? `<span style="color:${posColor}">OTM</span>` : `<span style="color:${negColor}">ITM</span>`;
+                if (r0.type === 'Call') return pd.price < r0.strike ? `<span style="color:${posColor}">OTM</span>` : `<span style="color:${negColor}">ITM</span>`;
+                return '<span style="color:#64748b;">—</span>';
+            })();
+            const isAtRisk = r0.type === 'Put' && pd && !pd.loading && !pd.error && pd.price <= r0.strike;
+            const bg = isAtRisk ? (isDark ? 'rgba(248,113,113,0.12)' : 'rgba(220,38,38,0.07)') : (rowIndex % 2 === 0 ? rowBg : rowAltBg);
+            rowIndex++;
+
+            const btnStyle = `cursor:pointer;background:rgba(14,165,233,0.2);border:1px solid #0ea5e9;color:${isDark?'#fff':'#000'};border-radius:4px;padding:2px 8px;font-size:0.72rem;font-weight:700;white-space:normal;`;
+            const groupCells = {
+                date:          C(`${r0.date}${rows.length > 1 ? `<br><span style="font-size:0.7rem;color:#64748b;">${rows.length} entries</span>` : ''}`, `color:${textColor};`),
+                symbol:        C(r0.symbol, `color:${textColor};font-size:0.8rem;`),
+                strikeDate:    C(r0.strikeDate, `color:${warnColor};`),
+                action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r0.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};color:${isDark?'#fff':'#000'};">${r0.action}</span>`),
+                dte:           C(r0.dte !== '' ? r0.dte : '—', `color:${warnColor};`),
+                strike:        C(r0.strikeDisplay, `color:#a78bfa;font-weight:600;`),
+                price:         C(priceCell(ticker), `line-height:1.5;`),
+                assignPrice:   C(r0.type === 'Put' && totalContracts > 0 ? '$' + ((totalPutCommit - totalPremium) / (totalContracts * 100)).toFixed(2) : '—', `color:#e879f9;font-weight:600;`),
+                pctFromStrike: C(pctFromStrikeHtml, `font-weight:700;`),
+                otmitm:        C(otmItmHtml, `font-weight:700;`),
+                type:          C(r0.type, `color:${r0.type === 'Put' ? negColor : r0.type === 'Call' ? posColor : textColor};font-weight:600;`),
+                contracts:     C(String(totalContracts), `color:${textColor};font-weight:700;`),
+                premium:       C(totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', `color:#10b981;font-weight:600;`),
+                marketValue:   C(mvHtml, `line-height:1.5;`),
+                pl:            C(plHtml),
+                plPct:         C(plPctHtml),
+                puts:          C(fmt(totalPutCommit), `color:${negColor};font-weight:500;`),
+                calls:         C(rows.length > 1
+                    ? `${fmt(totalCallCommit)}<br><button onclick="toggleGroup('${item.groupId.replace(/'/g,"\\'")}');event.stopPropagation();" style="${btnStyle}">${isExpanded ? '▲ Hide' : '▼ Positions (' + rows.length + ')'}</button>`
+                    : fmt(totalCallCommit), `color:${posColor};font-weight:500;`),
+            };
+            rowsHtml += renderRow(groupCells, `background:${bg};${rows.length > 1 ? 'border-left:4px solid ' + (isDark ? '#fff' : '#000') + ';' : ''}`);
+
+            // Expanded individual position rows — inner table respects column order
+            if (isExpanded && rows.length > 1) {
+                const boxColor = isDark ? '#fff' : '#000';
+                const legBg = isDark ? 'rgba(14,165,233,0.06)' : 'rgba(14,165,233,0.04)';
+                const innerTd = `padding:10px 8px;text-align:center;font-size:0.88rem;border-bottom:1px solid ${borderColor};`;
+                const IC = (content, extra = '') => ({ content, style: innerTd + extra });
+
+                const innerRows = rows.map(r => {
+                    const { mv: lmv, plH: lpl, plPctH: lplpct } = legPriceHtml(r);
+                    const iCells = {
+                        date:          IC(r.date),
+                        symbol:        IC(r.symbol, `white-space:normal;word-break:break-word;overflow-wrap:break-word;`),
+                        strikeDate:    IC(r.strikeDate),
+                        action:        IC(`<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${r.action}</span>`),
+                        dte:           IC(r.dte !== '' ? r.dte : '—'),
+                        strike:        IC(r.strikeDisplay, `font-weight:600;`),
+                        price:         IC(priceCell(ticker), `line-height:1.5;`),
+                        assignPrice:   IC(r.type==='Put'&&r.contracts>0?'$'+(r.strike-(r.premiumReceived/(r.contracts*100))).toFixed(2):'—'),
+                        pctFromStrike: IC('—'),
+                        otmitm:        IC('—'),
+                        type:          IC(r.type, `font-weight:600;`),
+                        contracts:     IC(String(r.contracts)),
+                        premium:       IC(r.premiumReceived>0?'$'+r.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}):'—'),
+                        marketValue:   IC(lmv),
+                        pl:            IC(lpl),
+                        plPct:         IC(lplpct),
+                        puts:          IC(fmt(r.putCommitment)),
+                        calls:         IC(fmt(r.callCommitment)),
+                    };
+                    const cells = ocColumnOrder.map(k => {
+                        const cell = iCells[k] !== undefined ? iCells[k] : { content: '—', style: innerTd };
+                        return `<td style="${cell.style}">${cell.content}</td>`;
+                    }).join('');
+                    return `<tr style="background:${legBg};">${cells}</tr>`;
+                }).join('');
+
+                const cgCols = ocColumnOrder.map(k => { const c = OC_COLUMNS.find(x => x.key === k); return `<col style="width:${c?c.width:'6%'}">`; }).join('');
+                rowsHtml += `<tr><td colspan="${ocColumnOrder.length}" style="padding:0;border-bottom:2px solid ${boxColor};">
+                    <table style="width:100%;border-collapse:collapse;background:${legBg};border:2px solid ${boxColor};border-radius:4px;box-sizing:border-box;table-layout:fixed;font-size:0.88rem;">
+                        <colgroup>${cgCols}</colgroup>
+                        ${innerRows}
+                    </table>
+                </td></tr>`;
+            }
+
+        // ────────── BULL PUT SPREAD ROW ─────────────────────────────────────
+        } else {
+            const { sto, bto, spreadId, spreadMaxLoss } = item;
+            const ticker = extractTicker(sto.symbol);
+            const pd = ocStockPrices[ticker];
+            const stoOcc = buildOCCSymbol(sto.symbol);
+            const btoOcc = buildOCCSymbol(bto.symbol);
+            const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+            const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+            const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
+
+            const netPremium    = sto.premiumReceived - bto.premiumReceived;
+            const contracts     = sto.contracts;
+            const breakeven     = sto.strike - (netPremium / (contracts * 100));
+            const isExpanded    = ocSpreadExpanded.has(spreadId);
+            const spreadBg      = isDark ? 'rgba(14,165,233,0.09)' : 'rgba(14,165,233,0.05)';
+            rowIndex++;
+
+            // Net market value = cost to close the spread (buy back short, sell long)
+            const bothLoading = (stoOp && stoOp.loading) || (btoOp && btoOp.loading);
+            const anyError    = (stoOp && stoOp.error)   || (btoOp && btoOp.error);
+            const bothPriced  = stoOp && btoOp && !stoOp.loading && !btoOp.loading && !stoOp.error && !btoOp.error && stoOp.price && btoOp.price;
+
+            let netMarketVal = null;
+            let spreadMVHtml, spreadPlHtml, spreadPlPctHtml;
+            if (bothPriced) {
+                netMarketVal = (stoOp.price - btoOp.price) * contracts * 100;
+                spreadMVHtml = `<span style="font-weight:700;font-size:0.9rem;color:#f59e0b;">$${netMarketVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+                const pl = netPremium - netMarketVal;
+                const plColor = pl >= 0 ? posColor : negColor;
+                spreadPlHtml = `<span style="font-weight:700;font-size:0.9rem;color:${plColor};">${pl>=0?'+':'-'}$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+                if (netPremium > 0) {
+                    const pct = (1 - netMarketVal / netPremium) * 100;
+                    const pctColor = pct >= 0 ? posColor : negColor;
+                    spreadPlPctHtml = `<span style="font-weight:700;font-size:0.9rem;color:${pctColor};">${pct>=0?'+':''}${pct.toFixed(2)}%</span>`;
+                } else { spreadPlPctHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
+            } else if (bothLoading) {
+                spreadMVHtml = spreadPlHtml = spreadPlPctHtml = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+            } else if (anyError) {
+                spreadMVHtml = spreadPlHtml = spreadPlPctHtml = `<span style="color:#f87171;font-size:0.75rem;">Error ⚠</span>`;
+            } else {
+                spreadMVHtml = spreadPlHtml = spreadPlPctHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+            }
+
+            // % stock price is above breakeven
+            let pctBreakevenHtml;
+            if (pd && !pd.loading && !pd.error && pd.price) {
+                const pct = (pd.price / breakeven - 1) * 100;
+                const color = pct >= 0 ? posColor : negColor;
+                pctBreakevenHtml = `<span style="color:${color};font-weight:700;">${pct>=0?'+':''}${pct.toFixed(1)}%</span>`;
+            } else { pctBreakevenHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
+
+            // OTM/ITM based on the short (STO) strike
+            let otmItmHtml;
+            if (pd && !pd.loading && !pd.error && pd.price) {
+                const otm = pd.price > sto.strike;
+                otmItmHtml = otm ? `<span style="color:${posColor}">OTM</span>` : `<span style="color:${negColor}">ITM</span>`;
+            } else { otmItmHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
+
+            const safeId = spreadId.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+            // ── Spread summary row ──
+            const spreadCells = {
+                date:          C(sto.date, `color:${textColor};`),
+                symbol:        C(`${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} P</span>`, `color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;`),
+                strikeDate:    C(expiry, `color:${warnColor};`),
+                action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">BPS</span>`),
+                dte:           C(sto.dte !== '' ? sto.dte : '—', `color:${warnColor};font-weight:600;`),
+                strike:        C(`$${sto.strike.toFixed(2)}<br>$${bto.strike.toFixed(2)}`, `color:#a78bfa;font-weight:700;font-size:0.78rem;white-space:normal;`),
+                price:         C(priceCell(ticker), `line-height:1.5;`),
+                assignPrice:   C(`$${breakeven.toFixed(2)}<br><span style="font-size:0.65rem;color:#64748b;">Breakeven</span>`, `color:#e879f9;font-weight:700;`),
+                pctFromStrike: C(`${pctBreakevenHtml}<br><span style="font-size:0.65rem;color:#64748b;">from B/E</span>`, `font-weight:700;`),
+                otmitm:        C(`${otmItmHtml}<br><span style="font-size:0.65rem;color:#64748b;">short leg</span>`, `font-weight:700;`),
+                type:          C('Put', `color:${negColor};font-weight:600;`),
+                contracts:     C(String(contracts), `color:${textColor};`),
+                premium:       C(`${netPremium > 0 ? '$' + netPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}<br><span style="font-size:0.65rem;color:#64748b;">net credit</span>`, `color:#10b981;font-weight:700;`),
+                marketValue:   C(spreadMVHtml, `line-height:1.5;`),
+                pl:            C(spreadPlHtml),
+                plPct:         C(spreadPlPctHtml),
+                puts:          C(`$${item.spreadMaxLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`, `color:${negColor};font-weight:500;`),
+                calls:         C(`<button onclick="toggleSpread('${safeId}')" style="background:rgba(14,165,233,0.15);border:1px solid #0ea5e9;color:#0ea5e9;padding:4px 11px;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;white-space:nowrap;">${isExpanded ? '▲ Hide' : '▼ Legs'}</button>`, `text-align:center;`),
+            };
+            rowsHtml += renderRow(spreadCells, `background:${spreadBg};border-left:4px solid #0ea5e9;`);
+
+            // ── Expanded leg rows ──
+            if (isExpanded) {
+                [sto, bto].forEach((leg, legIdx) => {
+                    const isFirst = legIdx === 0;
+                    const isLast  = legIdx === 1;
+                    const legTicker = extractTicker(leg.symbol);
+                    const { mv: legMV, plH: legPl, plPctH: legPlPct } = legPriceHtml(leg);
+                    const legBg = isDark ? 'rgba(14,165,233,0.04)' : 'rgba(14,165,233,0.03)';
+                    const indent = '<span style="color:#0ea5e9;margin-right:3px;">↳</span>';
+                    const boxColor = '#0ea5e9';
+                    const topBorder    = isFirst ? `border-top:2px solid ${boxColor};` : '';
+                    const bottomBorder = isLast  ? `border-bottom:2px solid ${boxColor} !important;` : 'border-bottom:none;';
+                    const trStyle = `background:${legBg};${topBorder}${bottomBorder}border-left:2px solid ${boxColor};border-right:2px solid ${boxColor};`;
+                    const legTd = `padding:10px 8px;border-bottom:${isLast ? 'none' : '1px solid '+borderColor};text-align:center;`;
+                    const LC = (content, extra = '') => ({ content, style: legTd + extra });
+
+                    const legCells = {
+                        date:          LC(leg.date, `font-size:0.78rem;`),
+                        symbol:        LC(`${indent}${leg.symbol}`, `font-size:0.75rem;`),
+                        strikeDate:    LC(leg.strikeDate, `font-size:0.85rem;`),
+                        action:        LC(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${leg.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};">${leg.action}</span>`),
+                        dte:           LC(leg.dte !== '' ? leg.dte : '—', `font-size:0.85rem;`),
+                        strike:        LC(`$${leg.strike.toFixed(2)}`, `font-size:0.85rem;`),
+                        price:         LC(priceCell(legTicker), `line-height:1.5;`),
+                        assignPrice:   LC(leg.type === 'Put' && leg.contracts > 0 ? '$' + (leg.strike - (leg.premiumReceived / (leg.contracts * 100))).toFixed(2) : '—', `font-size:0.85rem;`),
+                        pctFromStrike: LC((() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; const ap = leg.contracts > 0 ? leg.strike - (leg.premiumReceived / (leg.contracts * 100)) : null; if (ap===null) return '—'; const pct=(1-ap/p.price)*100; return (pct>=0?'+':'')+pct.toFixed(1)+'%'; })(), `font-size:0.85rem;`),
+                        otmitm:        LC((() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; return p.price > leg.strike ? 'OTM' : 'ITM'; })(), `font-size:0.85rem;`),
+                        type:          LC('Put', `font-size:0.85rem;`),
+                        contracts:     LC(String(leg.contracts), `font-size:0.85rem;`),
+                        premium:       LC(leg.premiumReceived > 0 ? '$' + leg.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', `font-size:0.85rem;`),
+                        marketValue:   LC(legMV, `line-height:1.5;`),
+                        pl:            LC(legPl),
+                        plPct:         LC(legPlPct),
+                        puts:          LC('—', `font-size:0.85rem;`),
+                        calls:         LC('—', `font-size:0.85rem;`),
+                    };
+                    const cells = ocColumnOrder.map(k => {
+                        const cell = legCells[k] !== undefined ? legCells[k] : { content: '—', style: legTd };
+                        return `<td style="${cell.style}">${cell.content}</td>`;
+                    }).join('');
+                    rowsHtml += `<tr style="${trStyle}">${cells}</tr>`;
+                });
+            }
+        }
+    });
+
+    // Compute totals from displayItems to avoid double-counting BPS legs
+    const totalPremium = displayItems.reduce((s, item) => {
+        if (item.kind === 'spread') {
+            return s + (item.sto.premiumReceived - item.bto.premiumReceived);
+        }
+        return s + item.row.premiumReceived;
+    }, 0);
+    const totalMarketValue = displayItems.reduce((s, item) => {
+        if (item.kind === 'spread') {
+            const stoOcc = buildOCCSymbol(item.sto.symbol);
+            const btoOcc = buildOCCSymbol(item.bto.symbol);
+            const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+            const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+            if (stoOp && btoOp && !stoOp.loading && !btoOp.loading && !stoOp.error && !btoOp.error && stoOp.price && btoOp.price) {
+                return s + (stoOp.price - btoOp.price) * item.sto.contracts * 100;
+            }
+            return s;
+        }
+        const occ = buildOCCSymbol(item.row.symbol);
+        const op = occ ? ocOptionPrices[occ] : null;
+        return s + (op && !op.loading && !op.error && op.price ? op.price * item.row.contracts * 100 : 0);
+    }, 0);
+    const totalPL = totalPremium - totalMarketValue;
+    const totalPLColor = totalPL >= 0 ? posColor : negColor;
+    const totalPLStr = totalMarketValue > 0
+        ? (totalPL >= 0 ? `+$${totalPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` : `-$${Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`)
+        : '—';
+    const totalPLPctStr = (totalMarketValue > 0 && totalPremium > 0)
+        ? `${((1 - totalMarketValue / totalPremium) * 100).toFixed(2)}%`
+        : '—';
+
+    // Total row — spans up to the first numeric column, then individual cells per column
+    const totalCellValues = {
+        premium:     { content: (totalPremium >= 0 ? '$' : '-$') + Math.abs(totalPremium).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), color: totalPremium >= 0 ? '#10b981' : negColor },
+        marketValue: { content: totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: '#f59e0b' },
+        pl:          { content: totalPLStr, color: totalPLColor },
+        plPct:       { content: totalPLPctStr, color: totalPLColor },
+        puts:        { content: totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: negColor },
+        calls:       { content: totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: posColor },
+    };
+    const totalNumericKeys = new Set(Object.keys(totalCellValues));
+    // Find the first column in current order that has a total value
+    const firstNumIdx = ocColumnOrder.findIndex(k => totalNumericKeys.has(k));
+    const totalRowCells = ocColumnOrder.map((k, i) => {
+        const tdS = `padding:12px 8px;text-align:center;border-top:2px solid #0ea5e9;`;
+        if (i < firstNumIdx) return ''; // will be covered by colspan
+        if (i === firstNumIdx) {
+            // Span the non-numeric label columns, then emit the first numeric column's value as its own cell
+            const labelTd = firstNumIdx > 0
+                ? `<td colspan="${firstNumIdx}" style="${tdS}text-align:right;color:#a78bfa;">Total</td>`
+                : `<td style="${tdS}text-align:right;color:#a78bfa;">Total</td>`;
+            const valTd = totalCellValues[k]
+                ? `<td style="${tdS}color:${totalCellValues[k].color};font-weight:bold;">${totalCellValues[k].content}</td>`
+                : `<td style="${tdS}color:${textColor};">—</td>`;
+            return labelTd + valTd;
+        }
+        if (totalCellValues[k]) {
+            return `<td style="${tdS}color:${totalCellValues[k].color};">${totalCellValues[k].content}</td>`;
+        }
+        return `<td style="${tdS}color:${textColor};">—</td>`;
+    }).join('');
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">${totalRowCells}</tr>`;
+
+    // --- Summary table grouped by expiration date ---
+    // Use displayItems so BPS spreads contribute net values, not both legs independently
+    const expGroups = {};
+    groupedDisplayItems.forEach(item => {
+        if (item.kind === 'spread') {
+            const { sto, bto, spreadMaxLoss } = item;
+            const sym = sto.symbol.trim();
+            const expMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+            const expDate = expMatch ? expMatch[1] : '—';
+            const ticker = extractTicker(sto.symbol);
+            const stoOcc = buildOCCSymbol(sto.symbol);
+            const btoOcc = buildOCCSymbol(bto.symbol);
+            const stoOp = stoOcc ? ocOptionPrices[stoOcc] : null;
+            const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
+            const netMV = (stoOp && btoOp && !stoOp.loading && !btoOp.loading && !stoOp.error && !btoOp.error && stoOp.price && btoOp.price)
+                ? (stoOp.price - btoOp.price) * sto.contracts * 100 : 0;
+            const netPrem = sto.premiumReceived - bto.premiumReceived;
+            if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: sto.dte, totalPuts: 0, totalCalls: 0, totalPremium: 0, totalMarketValue: 0, tickers: new Set() };
+            expGroups[expDate].totalPuts += spreadMaxLoss;
+            expGroups[expDate].totalPremium += netPrem;
+            expGroups[expDate].totalMarketValue += netMV;
+            expGroups[expDate].tickers.add(ticker);
+        } else if (item.kind === 'group') {
+            item.rows.forEach(r => {
+                const sym = r.symbol.trim();
+                const expMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+                const expDate = expMatch ? expMatch[1] : '—';
+                const ticker = extractTicker(r.symbol);
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                const rowMarketVal = op && !op.loading && !op.error && op.price ? op.price * r.contracts * 100 : 0;
+                if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: r.dte, totalPuts: 0, totalCalls: 0, totalPremium: 0, totalMarketValue: 0, tickers: new Set() };
+                expGroups[expDate].totalPuts += r.putCommitment;
+                expGroups[expDate].totalCalls += r.callCommitment;
+                expGroups[expDate].totalPremium += r.premiumReceived;
+                expGroups[expDate].totalMarketValue += rowMarketVal;
+                expGroups[expDate].tickers.add(ticker);
+            });
+        }
+    });
+
+    const groupRows = Object.values(expGroups).sort((a, b) => {
+        const da = a.dte !== '' ? parseInt(a.dte) : 9999;
+        const db = b.dte !== '' ? parseInt(b.dte) : 9999;
+        return da - db;
+    });
+
+    const grandPuts = groupRows.reduce((s, g) => s + g.totalPuts, 0);
+    const grandCalls = groupRows.reduce((s, g) => s + g.totalCalls, 0);
+    const grandPremium = groupRows.reduce((s, g) => s + g.totalPremium, 0);
+    const grandMarketValue = groupRows.reduce((s, g) => s + g.totalMarketValue, 0);
+
+    const sumThStyle = `background:${thBg};color:#0ea5e9;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #0ea5e9;text-align:center;vertical-align:middle;padding:10px 8px;word-break:break-word;white-space:normal;`;
+    const sumTdStyle = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
+
+    const summaryRowsHtml = groupRows.map((g, i) => {
+        // Show prices for all tickers in this expiry group
+        const tickerPrices = [...g.tickers].map(t => {
+            const pd = ocStockPrices[t];
+            if (!pd) return `<span style="color:#64748b;font-size:0.75rem;">${t}: —</span>`;
+            if (pd.loading) return `<span style="font-size:0.75rem;color:#64748b;">${t}: Loading…</span>`;
+            if (pd.error) return `<span style="font-size:0.75rem;color:${negColor};">${t}: Error</span>`;
+            const chgColor = pd.change >= 0 ? posColor : negColor;
+            const sign = pd.change >= 0 ? '+' : '';
+            return `<span style="font-size:0.8rem;"><b>${t}</b> ${fmtPrice(pd.price)} <span style="color:${chgColor};">${sign}${pd.changePct.toFixed(2)}%</span></span>`;
+        }).join('<br>');
+
+        // Market Value cell for this group
+        const hasMV = g.totalMarketValue > 0;
+        const mvHtml = hasMV
+            ? `<span style="font-weight:700;color:#f59e0b;">$${g.totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+            : `<span style="color:#64748b;">—</span>`;
+
+        // P/L cell for this group
+        let plHtml;
+        if (!hasMV) {
+            plHtml = `<span style="color:#64748b;">—</span>`;
+        } else {
+            const pl = g.totalPremium - g.totalMarketValue;
+            const plColor = pl >= 0 ? posColor : negColor;
+            const plFmt = pl >= 0
+                ? `+$${pl.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`
+                : `-$${Math.abs(pl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+            plHtml = `<span style="font-weight:700;color:${plColor};">${plFmt}</span>`;
+        }
+
+        // P/L % cell for this group
+        let plPctHtml;
+        if (!hasMV || g.totalPremium === 0) {
+            plPctHtml = `<span style="color:#64748b;">—</span>`;
+        } else {
+            const plPct = (1 - g.totalMarketValue / g.totalPremium) * 100;
+            const plPctColor = plPct >= 0 ? posColor : negColor;
+            const plPctSign = plPct >= 0 ? '+' : '';
+            plPctHtml = `<span style="font-weight:700;color:${plPctColor};">${plPctSign}${plPct.toFixed(2)}%</span>`;
+        }
+
+        return `<tr style="background:${i % 2 === 0 ? rowBg : rowAltBg};">
+            <td style="${sumTdStyle}color:${textColor};">${g.expDate}</td>
+            <td style="${sumTdStyle}color:${warnColor};font-weight:600;">${g.dte !== '' ? g.dte : '—'}</td>
+            <td style="${sumTdStyle}color:#10b981;font-weight:600;">${g.totalPremium > 0 ? '$' + g.totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+            <td style="${sumTdStyle}">${mvHtml}</td>
+            <td style="${sumTdStyle}">${plHtml}</td>
+            <td style="${sumTdStyle}">${plPctHtml}</td>
+            <td style="${sumTdStyle}color:${negColor};font-weight:500;">${g.totalPuts > 0 ? '$' + g.totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+            <td style="${sumTdStyle}color:${posColor};font-weight:500;">${g.totalCalls > 0 ? '$' + g.totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    const grandPL = grandPremium - grandMarketValue;
+    const grandPLColor = grandPL >= 0 ? posColor : negColor;
+    const grandPLStr = grandMarketValue > 0
+        ? (grandPL >= 0 ? `+$${grandPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}` : `-$${Math.abs(grandPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`)
+        : '—';
+    const grandPLPctStr = (grandMarketValue > 0 && grandPremium > 0)
+        ? `${((grandPL >= 0 ? '+' : '') + ((1 - grandMarketValue / grandPremium) * 100).toFixed(2))}%`
+        : '—';
+
+    const summaryTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td colspan="2" style="${sumTdStyle}text-align:right;color:#a78bfa;border-top:2px solid #0ea5e9;">Total</td>
+        <td style="${sumTdStyle}color:#10b981;border-top:2px solid #0ea5e9;">${grandPremium > 0 ? '$' + grandPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}color:#f59e0b;border-top:2px solid #0ea5e9;">${grandMarketValue > 0 ? '$' + grandMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}color:${grandPLColor};border-top:2px solid #0ea5e9;">${grandPLStr}</td>
+        <td style="${sumTdStyle}color:${grandPLColor};border-top:2px solid #0ea5e9;">${grandPLPctStr}</td>
+        <td style="${sumTdStyle}color:${negColor};border-top:2px solid #0ea5e9;">${grandPuts > 0 ? '$' + grandPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+        <td style="${sumTdStyle}color:${posColor};border-top:2px solid #0ea5e9;">${grandCalls > 0 ? '$' + grandCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—'}</td>
+    </tr>`;
+
+    // Update timestamp
+    const tsEl = document.getElementById('priceTimestamp');
+    if (tsEl) {
+        if (ocPriceFetchTime) {
+            tsEl.textContent = 'Prices last updated: ' + ocPriceFetchTime.toLocaleTimeString();
+        } else {
+            tsEl.textContent = 'Click "Refresh Prices" to load real-time stock prices via Yahoo Finance.';
+        }
+    }
+
+    const isFirstRender = !document.getElementById('ocPositionsTable');
+
+    if (isFirstRender) {
+        document.getElementById('openCommitmentsContainer').innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;">
+                <h3 style="color:#0ea5e9;margin:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">All Open Positions</h3>
+                <input id="commitmentSearch" type="text" placeholder="Search (e.g. ORCL, TTD)" oninput="ocSearchValue=this.value; renderOpenCommitmentsTable()"
+                    style="background:var(--bg-input);border:2px solid #0ea5e9;color:var(--text-primary);padding:6px 12px;border-radius:8px;outline:none;font-size:0.85rem;width:192px;">
+            </div>
+            <div style="overflow-x:auto;border:1px solid #0ea5e9;border-radius:8px;">
+            <table id="ocPositionsTable" style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
+                <colgroup>${ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<col style="width:${c?c.width:'6%'}">`}).join('')}</colgroup>
+                <thead id="ocDetailThead" style="position:sticky;top:0;z-index:2;"><tr>
+                    ${ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<th style="${thBase}" onclick="sortOpenCommitments('${k}')" title="Drag to reorder">${c?c.label:k}${arrow(k)}</th>`}).join('')}
+                </tr></thead>
+                <tbody id="ocPositionsBody"></tbody>
+            </table>
+            </div>
+            <h3 style="color:#0ea5e9;margin:28px 0 12px;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.05em;">Summary by Expiration</h3>
+            <div style="overflow-x:auto;margin-bottom:28px;">
+            <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;">
+                <colgroup><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:12.5%"></colgroup>
+                <thead><tr>
+                    <th style="${sumThStyle}">Strike Date</th>
+                    <th style="${sumThStyle}">DTE</th>
+                    <th style="${sumThStyle}">Premium</th>
+                    <th style="${sumThStyle}">Market Value</th>
+                    <th style="${sumThStyle}">Profit / Loss</th>
+                    <th style="${sumThStyle}">Profit / Loss %</th>
+                    <th style="${sumThStyle}">Total Commitments (Puts)</th>
+                    <th style="${sumThStyle}">Total Commitments (Calls)</th>
+                </tr></thead>
+                <tbody id="ocSummaryBody">${summaryRowsHtml}${summaryTotalRow}</tbody>
+            </table>
+            </div>`;
+    } else {
+        // Update thead arrows and column order (handles sort + drag reorder)
+        document.getElementById('ocDetailThead').querySelector('tr').innerHTML =
+            ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<th style="${thBase}" onclick="sortOpenCommitments('${k}')" title="Drag to reorder">${c?c.label:k}${arrow(k)}</th>`}).join('');
+        // Also update colgroup widths to match current order
+        const cg = document.querySelector('#ocPositionsTable colgroup');
+        if (cg) cg.innerHTML = ocColumnOrder.map(k=>{const c=OC_COLUMNS.find(x=>x.key===k);return`<col style="width:${c?c.width:'6%'}">`}).join('');
+    }
+
+    document.getElementById('ocPositionsBody').innerHTML = rowsHtml + totalRow;
+
+    // Always update table background to match current theme
+    const ocTable = document.getElementById('ocPositionsTable');
+    if (ocTable) ocTable.style.background = rowBg;
+    const ocModalInner = document.querySelector('#openCommitmentsModal > div');
+    if (ocModalInner) ocModalInner.style.background = isDark ? '#1e293b' : '#ffffff';
+
+    // Always refresh the summary tbody so market value / P&L update as prices arrive
+    const summaryTbody = document.getElementById('ocSummaryBody');
+    if (summaryTbody) summaryTbody.innerHTML = summaryRowsHtml + summaryTotalRow;
+
+    // Set up scroll-based thead pin after DOM updates
+    setTimeout(() => {
+        const modalInner = document.querySelector('#openCommitmentsModal > div');
+        if (!modalInner) return;
+
+        // Remove any previous listener
+        if (modalInner._ocScrollHandler) {
+            modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
+        }
+
+        modalInner._ocScrollHandler = function() {
+            const thead = document.getElementById('ocDetailThead');
+            if (!thead) return;
+            const theadRect = thead.parentElement.getBoundingClientRect(); // table
+            const modalRect = modalInner.getBoundingClientRect();
+            // How far has the table top scrolled above the modal top?
+            const scrolledPast = modalRect.top - theadRect.top;
+            if (scrolledPast > 0) {
+                thead.style.transform = `translateY(${scrolledPast}px)`;
+                thead.style.boxShadow = '0 4px 8px rgba(0,0,0,0.4)';
+            } else {
+                thead.style.transform = '';
+                thead.style.boxShadow = '';
+            }
+        };
+
+        modalInner.addEventListener('scroll', modalInner._ocScrollHandler);
+    }, 50);
+
+    // Attach drag-to-reorder listeners to the newly rendered thead
+    setTimeout(initOcColumnDrag, 0);
+}
+
+// ============================================================
+// ASSIGNMENTS
+// ============================================================
+let assignmentStockPrices = {};
+let assignmentPriceFetchTime = null;
+let assignSortKey = 'date';
+let assignSortDir = 1;
+
+function closeAssignments() {
+    const _di = document.getElementById('assignmentsInner'); if (_di) _di._dragInit = false;
+    document.getElementById('assignmentsModal').style.display = 'none';
+}
+
+function setAssignmentQuickRange() {
+    const range = document.getElementById('assignDatePreset').value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let start = new Date(today), end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    switch(range) {
+        case 'today': break;
+        case '7days': start.setDate(today.getDate() - 6); break;
+        case 'lastMonth': start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last3Months': start = new Date(today.getFullYear(), today.getMonth() - 3, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last6Months': start = new Date(today.getFullYear(), today.getMonth() - 6, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'last12Months': start = new Date(today.getFullYear(), today.getMonth() - 12, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); break;
+        case 'lastYear': start = new Date(today.getFullYear() - 1, 0, 1); end = new Date(today.getFullYear() - 1, 11, 31); break;
+        case 'currentMonth': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'currentYear': start = new Date(today.getFullYear(), 0, 1); end = new Date(); end.setHours(23,59,59,999); break;
+        case 'all': default: start = null; end = null; break;
+    }
+
+    document.getElementById('assignDateFrom').value = start ? toISODate(start) : '';
+    document.getElementById('assignDateTo').value = end ? toISODate(end) : '';
+    renderAssignmentsTable();
+}
+
+function resetAssignmentFilters() {
+    document.getElementById('assignDatePreset').value = 'all';
+    document.getElementById('assignDateFrom').value = '';
+    document.getElementById('assignDateTo').value = '';
+    document.getElementById('assignmentSearch').value = '';
+    document.getElementById('assignNotSoldFilter').checked = false;
+    document.getElementById('assignSoldFilter').checked = false;
+    renderAssignmentsTable();
+}
+
+function getAssignedTrades() {
+    return finalTrades.filter(t => {
+        if (!t.status.toLowerCase().includes('assigned')) return false;
+        const isPut = /[\d.]+\s+P\s*$/.test(t.symbol);
+        if (!isPut) return false;
+        return true;
+    });
+}
+
+// Find if the assigned stock ticker was later sold (sell to close stock)
+// We look in allTransactions for a "Sell" of the base ticker (not an option)
+function findStockSalePrice(ticker, assignDate) {
+    if (!window.allTransactions) return null;
+    // Stock sales in Schwab appear as action containing "sell" but NOT "to open" or "to close" option actions
+    // and the symbol would just be the ticker. We also check finalTrades for sell-to-close on stock.
+    // Look for transactions with symbol === ticker and action = "sell"
+    // Since allTransactions doesn't store symbol separately, scan the raw data.
+    // Instead, check window.rawRows if available.
+    if (window.rawRows) {
+        const tickerUpper = ticker.toUpperCase();
+        const sales = window.rawRows.filter(r => {
+            const sym = (r.Symbol || '').trim().toUpperCase();
+            const action = (r.Action || '').toLowerCase();
+            const d = parseDateString(r.Date);
+            return sym === tickerUpper && action.includes('sell') && d && d >= assignDate;
+        });
+        if (sales.length > 0) {
+            // Return price of earliest sale after assignment
+            sales.sort((a, b) => parseDateString(a.Date) - parseDateString(b.Date));
+            const price = cleanNum(sales[0].Price);
+            return price > 0 ? price : null;
+        }
+    }
+    return null;
+}
+
+// Sum calls sold against shares (closed + active) for a given ticker after an assignment date
+function getCallsSoldAgainstShares(ticker, assignDate) {
+    // Look in finalTrades for calls sold on this ticker after assignDate
+    let total = 0;
+    finalTrades.forEach(t => {
+        const tTicker = extractTicker(t.symbol);
+        if (tTicker !== ticker) return;
+        const st = t.status.toLowerCase();
+        const isCall = t.symbol.match(/[\d.]+\s+C\s*$/);
+        if (!isCall) return;
+        const tradeDate = t.openDate || t.closeDate;
+        if (tradeDate && tradeDate >= assignDate) {
+            // opening premium (sell to open a call)
+            if (st.includes('buy') && st.includes('close')) {
+                // closed call: profit = openingPremium + closingPremium (closingPremium is negative)
+                total += t.openingPremium; // just credit received when opened
+            } else if (st.includes('expired') || st.includes('sell') && st.includes('close')) {
+                total += t.openingPremium;
+            } else {
+                total += t.openingPremium;
+            }
+        }
+    });
+    // Also check openPositions for open calls on this ticker
+    openPositions.forEach(p => {
+        const pTicker = extractTicker(p.symbol);
+        if (pTicker !== ticker) return;
+        const isCall = p.symbol.match(/[\d.]+\s+C\s*$/);
+        if (!isCall) return;
+        if (p.openDate && p.openDate >= assignDate) {
+            total += p.openingPremium;
+        }
+    });
+    return total;
+}
+
+async function refreshAssignmentPrices() {
+    const assigned = getAssignedTrades();
+    if (!assigned.length) return;
+    const tickers = [...new Set(assigned.map(t => extractTicker(t.symbol)))];
+    tickers.forEach(t => { assignmentStockPrices[t] = { loading: true }; });
+    renderAssignmentsTable();
+
+    const tsEl = document.getElementById('assignmentPriceTimestamp');
+    if (tsEl) tsEl.textContent = `Fetching prices for: ${tickers.join(', ')}…`;
+
+    for (const ticker of tickers) {
+        try {
+            const data = await fetchSinglePrice(ticker);
+            assignmentStockPrices[ticker] = { ...data, loading: false, error: false };
+        } catch(e) {
+            assignmentStockPrices[ticker] = { loading: false, error: true, errMsg: e.message };
+        }
+        renderAssignmentsTable();
+        if (tickers.length > 1) await new Promise(r => setTimeout(r, 150));
+    }
+    assignmentPriceFetchTime = new Date();
+    renderAssignmentsTable();
+}
+
+function sortAssignments(key) {
+    if (assignSortKey === key) assignSortDir *= -1;
+    else { assignSortKey = key; assignSortDir = 1; }
+    renderAssignmentsTable();
+}
+
+function renderAssignmentsTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+    const warnColor = isDark ? '#fbbf24' : '#d97706';
+
+    const fmtD = (n) => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtU = (n) => '$' + n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    const assigned = getAssignedTrades();
+
+    const tsEl = document.getElementById('assignmentPriceTimestamp');
+    if (tsEl) {
+        if (assignmentPriceFetchTime) tsEl.textContent = 'Prices last updated: ' + assignmentPriceFetchTime.toLocaleTimeString();
+        else tsEl.textContent = 'Click "Refresh Prices" to load real-time stock prices via Finnhub.';
+    }
+
+    if (!assigned.length) {
+        document.getElementById('assignmentsContainer').innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:40px;">No assigned options found in the uploaded data.</p>';
+        return;
+    }
+    const enriched = assigned.map(t => {
+        const ticker = extractTicker(t.symbol);
+        const putMatch = t.symbol.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = t.symbol.match(/([\d.]+)\s+C\s*$/);
+        const strike = putMatch ? parseFloat(putMatch[1]) : callMatch ? parseFloat(callMatch[1]) : 0;
+        const isCall = !!callMatch;
+        const contracts = parseFloat(t.contracts) || 0;
+        const sharesAssigned = contracts * 100;
+        const premiumPaid = Math.abs(t.openingPremium);
+        const purchasePrice = sharesAssigned > 0
+            ? isCall
+                ? ((sharesAssigned * strike) + premiumPaid) / sharesAssigned
+                : ((sharesAssigned * strike) - premiumPaid) / sharesAssigned
+            : 0;
+        const assignDate = t.closeDate || t.openDate;
+        const soldPrice = findStockSalePrice(ticker, assignDate);
+        const pd = assignmentStockPrices[ticker];
+        const currentPriceVal = (pd && !pd.loading && !pd.error) ? pd.price : null;
+        const costBasis = purchasePrice * sharesAssigned;
+        const priceForMV = soldPrice !== null ? soldPrice : currentPriceVal;
+        const marketValue = priceForMV !== null ? priceForMV * sharesAssigned : null;
+        const callsSold = getCallsSoldAgainstShares(ticker, assignDate);
+        const pl = marketValue !== null ? (marketValue - costBasis) : null;
+        return { t, ticker, strike, isCall, contracts, sharesAssigned, premiumPaid, purchasePrice,
+                 assignDate, soldPrice, pd, currentPriceVal, costBasis, marketValue, callsSold, pl };
+    });
+
+    // Full-table search filter (runs after enrichment so all computed columns are searchable)
+    const assignSearchTerms = (document.getElementById('assignmentSearch')?.value || '').split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+
+    // Date range filter
+    const fromVal = document.getElementById('assignDateFrom')?.value;
+    const toVal = document.getElementById('assignDateTo')?.value;
+    const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
+
+    // Unsold / Sold checkbox filters
+    const notSoldOnly = document.getElementById('assignNotSoldFilter')?.checked || false;
+    const soldOnly = document.getElementById('assignSoldFilter')?.checked || false;
+
+    const filteredEnriched = enriched.filter(row => {
+        const { t, ticker, strike, contracts, sharesAssigned, premiumPaid, purchasePrice,
+                assignDate, soldPrice, currentPriceVal, costBasis, marketValue, callsSold, pl } = row;
+
+        // Unsold filter
+        if (notSoldOnly && soldPrice !== null) return false;
+        // Sold filter
+        if (soldOnly && soldPrice === null) return false;
+
+        // Date filter
+        if (assignDate) {
+            if (fromDate && assignDate < fromDate) return false;
+            if (toDate && assignDate > toDate) return false;
+        }
+
+        // Search filter
+        if (assignSearchTerms.length > 0) {
+            const dateStr = assignDate ? fmtDateMMDDYYYY(assignDate) : '';
+            const vals = [
+                dateStr,
+                t.symbol,
+                ticker,
+                strike > 0 ? strike.toFixed(2) : '',
+                String(contracts),
+                String(sharesAssigned),
+                premiumPaid.toFixed(2),
+                purchasePrice > 0 ? purchasePrice.toFixed(2) : '',
+                soldPrice !== null ? soldPrice.toFixed(2) : 'unsold',
+                currentPriceVal !== null ? currentPriceVal.toFixed(2) : '',
+                costBasis.toFixed(2),
+                marketValue !== null ? marketValue.toFixed(2) : '',
+                callsSold !== 0 ? callsSold.toFixed(2) : '',
+                pl !== null ? pl.toFixed(2) : '',
+            ];
+            if (!assignSearchTerms.some(term => vals.some(v => v.toLowerCase().includes(term)))) return false;
+        }
+
+        return true;
+    });
+
+    if (!filteredEnriched.length) {
+        document.getElementById('assignmentsContainer').innerHTML = `<p style="color:var(--text-secondary);text-align:center;padding:40px;">No results match your search for "<strong>${assignSearchTerms.join(', ')}</strong>".</p>`;
+        return;
+    }
+
+    // Sort
+    const arrow = (key) => assignSortKey === key ? (assignSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+
+    filteredEnriched.sort((a, b) => {
+        let v1, v2;
+        switch(assignSortKey) {
+            case 'date':       v1 = a.assignDate ? a.assignDate.getTime() : 0; v2 = b.assignDate ? b.assignDate.getTime() : 0; break;
+            case 'symbol':     v1 = a.t.symbol.toLowerCase(); v2 = b.t.symbol.toLowerCase(); break;
+            case 'strike':     v1 = a.strike; v2 = b.strike; break;
+            case 'contracts':  v1 = a.contracts; v2 = b.contracts; break;
+            case 'shares':     v1 = a.sharesAssigned; v2 = b.sharesAssigned; break;
+            case 'premium':    v1 = a.premiumPaid; v2 = b.premiumPaid; break;
+            case 'purchase':   v1 = a.purchasePrice; v2 = b.purchasePrice; break;
+            case 'sold':       v1 = a.soldPrice !== null ? a.soldPrice : -Infinity; v2 = b.soldPrice !== null ? b.soldPrice : -Infinity; break;
+            case 'current':    v1 = a.currentPriceVal !== null ? a.currentPriceVal : -Infinity; v2 = b.currentPriceVal !== null ? b.currentPriceVal : -Infinity; break;
+            case 'costbasis':  v1 = a.costBasis; v2 = b.costBasis; break;
+            case 'mktvalue':   v1 = a.marketValue !== null ? a.marketValue : -Infinity; v2 = b.marketValue !== null ? b.marketValue : -Infinity; break;
+            case 'calls':      v1 = a.callsSold; v2 = b.callsSold; break;
+            case 'pl':         v1 = a.pl !== null ? a.pl : -Infinity; v2 = b.pl !== null ? b.pl : -Infinity; break;
+            default:           v1 = 0; v2 = 0;
+        }
+        if (v1 < v2) return -assignSortDir;
+        if (v1 > v2) return assignSortDir;
+        return 0;
+    });
+
+    const thStyle = `background:${thBg};color:#f59e0b;font-size:0.7rem;letter-spacing:0.02em;border-bottom:2px solid #f59e0b;text-align:center;vertical-align:middle;padding:8px 5px;word-break:break-word;white-space:normal;cursor:pointer;user-select:none;min-width:70px;position:relative;`;
+    const tdBase = `padding:8px 6px;border-bottom:1px solid ${borderColor};text-align:center;font-size:0.8rem;white-space:nowrap;`;
+
+    const cols = [
+        { label: 'Transaction Date', key: 'date' },
+        { label: 'Symbol',           key: 'symbol' },
+        { label: 'Strike Price',     key: 'strike' },
+        { label: '# of Contracts',  key: 'contracts' },
+        { label: '# of Shares Assigned', key: 'shares' },
+        { label: 'Premium Paid',    key: 'premium' },
+        { label: 'Purchase Price',  key: 'purchase' },
+        { label: 'Sold Price',      key: 'sold' },
+        { label: 'Current Stock Price', key: 'current' },
+        { label: 'Cost Basis',      key: 'costbasis' },
+        { label: 'Market Value',    key: 'mktvalue' },
+        { label: 'Profit / Loss',   key: 'pl' },
+    ];
+
+    let totCostBasis = 0, totMarketValue = 0, totCallsSold = 0, totPL = 0, totPremium = 0;
+    let hasMarketValue = false;
+
+    const rowsHtml = filteredEnriched.map(({ t, ticker, strike, contracts, sharesAssigned, premiumPaid,
+                                     purchasePrice, assignDate, soldPrice, pd, currentPriceVal,
+                                     costBasis, marketValue, callsSold, pl }, i) => {
+
+        const soldPriceDisplay = soldPrice !== null ? fmtU(soldPrice) : 'Unsold';
+
+        let currentPriceDisplay = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        if (pd) {
+            if (pd.loading) currentPriceDisplay = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">Loading…</span>';
+            else if (pd.error) currentPriceDisplay = `<span style="color:${negColor};font-size:0.75rem;" title="${pd.errMsg||''}">Error ⚠</span>`;
+            else {
+                const chgColor = pd.change >= 0 ? posColor : negColor;
+                const sign = pd.change >= 0 ? '+' : '';
+                currentPriceDisplay = `<span style="font-weight:700;">${fmtU(pd.price)}</span><br><span style="font-size:0.7rem;color:${chgColor};">${sign}${pd.change.toFixed(2)} (${sign}${pd.changePct.toFixed(2)}%)</span>`;
+            }
+        }
+
+        totPremium += premiumPaid;
+        if (!isNaN(costBasis)) totCostBasis += costBasis;
+        if (marketValue !== null && !isNaN(marketValue)) { totMarketValue += marketValue; hasMarketValue = true; }
+        if (!isNaN(callsSold)) totCallsSold += callsSold;
+        if (pl !== null && !isNaN(pl)) totPL += pl;
+
+        const bg = i % 2 === 0 ? rowBg : rowAltBg;
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:${textColor};">${assignDate ? fmtDateMMDDYYYY(assignDate) : '—'}</td>
+            <td style="${tdBase}color:${textColor};font-size:0.78rem;">${t.symbol}</td>
+            <td style="${tdBase}color:#a78bfa;font-weight:600;">${strike > 0 ? fmtU(strike) : '—'}</td>
+            <td style="${tdBase}color:${textColor};">${contracts}</td>
+            <td style="${tdBase}color:${textColor};">${sharesAssigned}</td>
+            <td style="${tdBase}color:${negColor};">${fmtU(premiumPaid)}</td>
+            <td style="${tdBase}color:#e879f9;font-weight:600;">${sharesAssigned > 0 ? fmtU(purchasePrice) : '—'}</td>
+            <td style="${tdBase}color:${soldPrice !== null ? posColor : warnColor};">${soldPriceDisplay}</td>
+            <td style="${tdBase}line-height:1.5;">${currentPriceDisplay}</td>
+            <td style="${tdBase}color:${textColor};font-weight:600;">${fmtU(costBasis)}</td>
+            <td style="${tdBase}color:${marketValue !== null ? textColor : '#64748b'};font-weight:600;">${marketValue !== null ? fmtU(marketValue) : '—'}</td>
+            <td style="${tdBase}color:${pl === null ? '#64748b' : pl >= 0 ? posColor : negColor};font-weight:700;">${pl !== null ? fmtD(pl) : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td colspan="5" style="padding:12px 8px;text-align:right;color:#a78bfa;border-top:2px solid #f59e0b;">Total</td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${negColor};">${fmtU(totPremium)}</td>
+        <td colspan="3" style="padding:12px 8px;border-top:2px solid #f59e0b;"></td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${textColor};">${fmtU(totCostBasis)}</td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${textColor};">${hasMarketValue ? fmtU(totMarketValue) : '—'}</td>
+        <td style="padding:12px 8px;text-align:center;border-top:2px solid #f59e0b;color:${totPL >= 0 ? posColor : negColor};">${hasMarketValue ? fmtD(totPL) : '—'}</td>
+    </tr>`;
+
+    // Update summary boxes
+    const summaryBoxStyle = (color) => `display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 10px;border-radius:7px;background:var(--bg-input);border:1px solid var(--border-color);`;
+    const summaryLabel = `font-size:0.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;font-weight:600;white-space:nowrap;`;
+    const summaryValue = (color) => `font-size:0.9rem;font-weight:700;color:${color};white-space:nowrap;`;
+    const summaryEl = document.getElementById('assignSummaryInner');
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Premium Paid</span>
+                <span style="${summaryValue(negColor)}">${fmtU(totPremium)}</span>
+            </div>
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Cost Basis</span>
+                <span style="${summaryValue(textColor)}">${fmtU(totCostBasis)}</span>
+            </div>
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Market Value</span>
+                <span style="${summaryValue(textColor)}">${hasMarketValue ? fmtU(totMarketValue) : '—'}</span>
+            </div>
+            <div style="${summaryBoxStyle()}">
+                <span style="${summaryLabel}">Profit / Loss</span>
+                <span style="${summaryValue(hasMarketValue ? (totPL >= 0 ? posColor : negColor) : '#64748b')}">${hasMarketValue ? fmtD(totPL) : '—'}</span>
+            </div>`;
+    }
+
+    const colCount = cols.length;
+    const colW = `width:${(100/colCount).toFixed(2)}%;`;
+
+    document.getElementById('assignmentsContainer').innerHTML = `
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="width:100%;border-collapse:collapse;background:${rowBg};font-size:0.85rem;table-layout:auto;min-width:900px;">
+            <colgroup>${cols.map(() => `<col>`).join('')}</colgroup>
+            <thead><tr>${cols.map(c => `<th style="${thStyle}" onclick="sortAssignments('${c.key}')">${c.label}${arrow(c.key)}<div class="resizer"></div></th>`).join('')}</tr></thead>
+            <tbody>${rowsHtml}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    // Wire up column resizers
+    document.querySelectorAll('#assignmentsContainer .resizer').forEach(resizer => {
+        let startX, startWidth;
+        resizer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startX = e.pageX;
+            const th = resizer.parentElement;
+            startWidth = th.offsetWidth;
+            const onMouseMove = (e) => { th.style.width = (startWidth + e.pageX - startX) + 'px'; th.style.minWidth = th.style.width; };
+            const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    });
+}
+
+function showAssignments() {
+    document.getElementById('assignmentSearch').value = '';
+    const assigned = getAssignedTrades();
+    if (!assigned.length) {
+        alert('No assigned options found. Please upload a file that contains assigned trades.');
+        return;
+    }
+
+    assignSortKey = 'date';
+    assignSortDir = 1;
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalInner = document.querySelector('#assignmentsModal > div');
+    modalInner.style.background = isDark ? '#1e293b' : '#ffffff';
+    modalInner.style.border = '1px solid #f59e0b';
+
+    renderAssignmentsTable();
+
+    const modal = document.getElementById('assignmentsModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeAssignments(); };
+    initDraggableModal('assignmentsInner', '#f59e0b', 1600);
+
+    // Auto-refresh prices once per session for assignments
+    if (!window._pricesRefreshedAssign) {
+        window._pricesRefreshedAssign = true;
+        setTimeout(() => refreshAssignmentPrices(), 200);
+    }
+}
+
+function showMonthlySummary() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg = isDark ? '#1e293b' : '#ffffff';
+    const modalBorder = '#6d28d9';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+
+    // Update modal div style dynamically
+    const modalInner = document.querySelector('#monthlyModal > div');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = `1px solid ${modalBorder}`;
+
+    const startYear = finalTrades.length > 0 ? Math.min(...finalTrades.map(t => t.closeDate ? t.closeDate.getFullYear() : 9999)) : new Date().getFullYear();
+    const now = new Date();
+    const months = [];
+    for (let y = startYear; y <= now.getFullYear(); y++) {
+        const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
+        for (let m = 0; m <= mEnd; m++) {
+            months.push({ year: y, month: m });
+        }
+    }
+
+    const fmt = (n) => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtNeg = (n) => n === 0 ? '$0.00' : (n > 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    let totSellOpen = 0, totBuyClose = 0, totProfit = 0, totAssigned = 0;
+
+    // Build per-month data grouped by year (descending)
+    const uniqueYears = [...new Set(months.map(m => m.year))].sort((a,b) => b - a);
+    const currentYear = now.getFullYear();
+    // Default: only current year expanded, unless we have saved state
+    const defaultExpandedYears = monthlySavedState.expandedYears
+        ? new Set(monthlySavedState.expandedYears)
+        : new Set([String(currentYear), String(currentYear - 1)]);
+
+    // Compute monthly rows grouped by year
+    const monthlyByYear = {};
+    months.forEach(({year, month}) => {
+        const mStart = new Date(year, month, 1);
+        const mEnd = new Date(year, month + 1, 0, 23, 59, 59);
+        const monthLabel = mStart.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+        let sellOpen = 0, buyClose = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= mStart && t.date <= mEnd) {
+                if (t.action.includes('to open')) sellOpen += t.amount;
+                if (t.action.includes('to close')) buyClose += t.amount;
+            }
+        });
+        let profit = 0, assignedPaid = 0;
+        finalTrades.forEach(t => {
+            if (t.closeDate >= mStart && t.closeDate <= mEnd) {
+                const st = t.status.toLowerCase();
+                if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) assignedPaid += Math.abs(t.openingPremium);
+            }
+        });
+        const cashFlow = sellOpen + buyClose;
+        totSellOpen += sellOpen;
+        totBuyClose += buyClose;
+        totProfit += profit;
+        totAssigned += assignedPaid;
+        if (!monthlyByYear[year]) monthlyByYear[year] = [];
+        monthlyByYear[year].push({ month, monthLabel, sellOpen, buyClose, cashFlow, profit, assignedPaid });
+    });
+
+    // Sort each year's months descending (most recent first)
+    uniqueYears.forEach(y => { monthlyByYear[y].sort((a,b) => b.month - a.month); });
+
+    // Build HTML rows for the monthly breakdown table grouped by year
+    const buildMonthlyRows = () => {
+        let html = '';
+        uniqueYears.forEach(year => {
+            const yMonths = monthlyByYear[year];
+            const isExpanded = defaultExpandedYears.has(String(year));
+            // Most recent month row gets the toggle button
+            yMonths.forEach((md, idx) => {
+                const isFirst = idx === 0;
+                const topBorder = `border-top:2px solid #6d28d9;`;
+                const botBorder = `border-bottom:1px solid ${borderColor};`;
+                const toggleBtn = isFirst
+                    ? `<button onclick="toggleMonthlyYear(${year})" id="mbtn-${year}" style="background:none;border:none;cursor:pointer;color:#a78bfa;font-size:1rem;padding:0;line-height:1;position:absolute;left:8px;top:50%;transform:translateY(-50%);" title="Collapse/expand ${year}">${isExpanded ? '➖' : '➕'}</button>`
+                    : '';
+                html += `<tr class="mb-month-row mb-year-${year}" style="background:${rowBg};display:${isExpanded ? 'table-row' : 'none'};">
+                    <td style="color:${textColor};text-align:center;padding:10px 14px;${isFirst ? topBorder : ''}${botBorder}font-weight:500;position:relative;">${toggleBtn}${md.monthLabel}</td>
+                    <td style="padding:10px 14px;${isFirst ? topBorder : ''}${botBorder}color:#16a34a;">${fmt(md.sellOpen)}</td>
+                    <td style="padding:10px 14px;${isFirst ? topBorder : ''}${botBorder}color:${md.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(md.buyClose)}</td>
+                    <td style="padding:10px 14px;${isFirst ? topBorder : ''}${botBorder}color:${md.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(md.cashFlow)}</td>
+                    <td style="padding:10px 14px;${isFirst ? topBorder : ''}${botBorder}color:${md.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(md.profit)}</td>
+                    <td style="padding:10px 14px;${isFirst ? topBorder : ''}${botBorder}color:#d97706;">${md.assignedPaid > 0 ? fmt(md.assignedPaid) : '$0.00'}</td>
+                </tr>`;
+            });
+            // Collapsed year summary row (shown only when collapsed)
+            const yData = yMonths.reduce((acc, md) => {
+                acc.sellOpen += md.sellOpen; acc.buyClose += md.buyClose;
+                acc.profit += md.profit; acc.assignedPaid += md.assignedPaid; return acc;
+            }, {sellOpen:0, buyClose:0, profit:0, assignedPaid:0});
+            const yCashFlow = yData.sellOpen + yData.buyClose;
+            html += `<tr class="mb-year-collapsed-${year}" style="background:${rowBg};display:${isExpanded ? 'none' : 'table-row'};">
+                <td style="color:${textColor};text-align:center;padding:10px 14px;border-top:2px solid #6d28d9;border-bottom:1px solid ${borderColor};font-weight:600;position:relative;">
+                    <button onclick="toggleMonthlyYear(${year})" id="mbtn-${year}" style="background:none;border:none;cursor:pointer;color:#a78bfa;font-size:1rem;padding:0;line-height:1;position:absolute;left:8px;top:50%;transform:translateY(-50%);" title="Expand ${year}">➕</button>${year}
+                </td>
+                <td style="padding:10px 14px;border-top:2px solid #6d28d9;border-bottom:1px solid ${borderColor};color:#16a34a;">${fmt(yData.sellOpen)}</td>
+                <td style="padding:10px 14px;border-top:2px solid #6d28d9;border-bottom:1px solid ${borderColor};color:${yData.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(yData.buyClose)}</td>
+                <td style="padding:10px 14px;border-top:2px solid #6d28d9;border-bottom:1px solid ${borderColor};color:${yCashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(yCashFlow)}</td>
+                <td style="padding:10px 14px;border-top:2px solid #6d28d9;border-bottom:1px solid ${borderColor};color:${yData.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(yData.profit)}</td>
+                <td style="padding:10px 14px;border-top:2px solid #6d28d9;border-bottom:1px solid ${borderColor};color:#d97706;">${yData.assignedPaid > 0 ? fmt(yData.assignedPaid) : '$0.00'}</td>
+            </tr>`;
+        });
+        return html;
+    };
+
+    const totCashFlow = totSellOpen + totBuyClose;
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td style="text-align:center;padding:12px 14px;color:#a78bfa;">Total</td>
+        <td style="padding:12px 14px;color:#16a34a;">${fmt(totSellOpen)}</td>
+        <td style="padding:12px 14px;color:${totBuyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(totBuyClose)}</td>
+        <td style="padding:12px 14px;color:${totCashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(totCashFlow)}</td>
+        <td style="padding:12px 14px;color:${totProfit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(totProfit)}</td>
+        <td style="padding:12px 14px;color:#d97706;">${totAssigned > 0 ? fmt(totAssigned) : '$0.00'}</td>
+    </tr>`;
+
+
+    const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
+    const tblStyle = `width:100%;min-width:540px;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
+
+    document.getElementById('monthlyTableContainer').innerHTML = `
+        <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
+        <table id="monthlyBreakdownTable" style="${tblStyle}">
+            <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
+            <thead><tr>
+                <th style="${thStyle}">Month / Year</th>
+                <th style="${thStyle}">Sell to Open + Buy to Open</th>
+                <th style="${thStyle}">Buy to Close + Sell to Close</th>
+                <th style="${thStyle}">Cash Flow</th>
+                <th style="${thStyle}">Profit from Closed Options</th>
+                <th style="${thStyle}">Paid Premium Assigned</th>
+            </tr></thead>
+            <tbody id="monthlyBreakdownBody">${buildMonthlyRows()}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('monthlyModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeMonthlySummary(); };
+
+    // Restore expand-all checkbox state
+    const expandAllCb = document.getElementById('monthlyExpandAll');
+    if (expandAllCb) expandAllCb.checked = monthlySavedState.expandAllChecked;
+
+    // Restore scroll position after render
+    setTimeout(() => {
+        const miScroll = document.getElementById('monthlyInner');
+        if (miScroll && monthlySavedState.scrollTop) miScroll.scrollTop = monthlySavedState.scrollTop;
+    }, 60);
+
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+        initDraggableModal('monthlyInner', '#6d28d9', 1600);
+        const mi = document.getElementById('monthlyInner');
+        // Restore saved position/size if available, otherwise enlarge default
+        if (monthlySavedState.modalPos && mi) {
+            mi.style.left = monthlySavedState.modalPos.left;
+            mi.style.top = monthlySavedState.modalPos.top;
+            mi.style.width = monthlySavedState.modalPos.width;
+            mi.style.height = monthlySavedState.modalPos.height;
+        } else {
+            // Double height + center in viewport
+            setTimeout(() => {
+                const vw = window.innerWidth, vh = window.innerHeight;
+                const w = Math.min(Math.round(vw * 0.95), 1600);
+                const h = Math.min(Math.round(vh * 0.90), vh - 20);
+                mi.style.width  = w + 'px';
+                mi.style.height = h + 'px';
+                mi.style.left   = Math.round((vw - w) / 2) + 'px';
+                mi.style.top    = Math.round((vh - h) / 2) + 'px';
+            }, 50);
+        }
+    } else {
+        // Mobile: reset any previously applied draggable styles
+        const mi = document.getElementById('monthlyInner');
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
+        }
+    }
+
+    // Floating sticky header for Monthly Breakdown (desktop only)
+    if (!isMobile) setTimeout(() => {
+        const modalInner = document.getElementById('monthlyInner');
+        const monthTable = document.getElementById('monthlyBreakdownTable');
+        const monthThead = monthTable ? monthTable.querySelector('thead') : null;
+        if (!modalInner || !monthTable || !monthThead) return;
+
+        // Remove old floating headers if re-opened
+        ['yearFloatingHeader','monthFloatingHeader'].forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
+
+        const makeFloatHeader = (id, srcThead) => {
+            const div = document.createElement('div');
+            div.id = id;
+            div.style.cssText = `position:absolute;left:0;top:0;pointer-events:none;z-index:50;display:none;box-sizing:border-box;`;
+            const tbl = document.createElement('table');
+            tbl.style.cssText = `width:100%;border-collapse:collapse;table-layout:fixed;font-size:0.9rem;`;
+            tbl.innerHTML = `<colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>` + srcThead.outerHTML;
+            div.appendChild(tbl);
+            modalInner.appendChild(div);
+            return div;
+        };
+
+        const monthFloatDiv = makeFloatHeader('monthFloatingHeader', monthThead);
+
+        const onScroll = () => {
+            const innerRect  = modalInner.getBoundingClientRect();
+            const mTheadRect = monthThead.getBoundingClientRect();
+            const mTableRect = monthTable.getBoundingClientRect();
+            const mTheadH    = monthThead.offsetHeight;
+            if (mTheadRect.top < innerRect.top && mTableRect.bottom > innerRect.top + mTheadH) {
+                monthFloatDiv.style.display = 'block';
+                monthFloatDiv.style.top   = modalInner.scrollTop + 'px';
+                monthFloatDiv.style.width = monthTable.offsetWidth + 'px';
+                monthFloatDiv.style.left  = monthTable.offsetLeft + 'px';
+            } else {
+                monthFloatDiv.style.display = 'none';
+            }
+        };
+
+        if (modalInner._monthlyScrollHandler) {
+            modalInner.removeEventListener('scroll', modalInner._monthlyScrollHandler);
+        }
+        modalInner._monthlyScrollHandler = onScroll;
+        modalInner.addEventListener('scroll', onScroll);
+    }, 100);
+}
+
+// ============================================================
+// WEEKLY SUMMARY
+// ============================================================
+function showWeeklySummary() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg    = isDark ? '#1e293b' : '#ffffff';
+    const textColor  = isDark ? '#f8fafc' : '#0f172a';
+    const thBg       = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg      = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg   = isDark ? '#1a2840' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const accentColor = '#0891b2';
+
+    const modalInner = document.getElementById('weeklyInner');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = `1px solid ${accentColor}`;
+
+    const fmt    = n => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtNeg = n => n === 0 ? '$0.00' : (n > 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    // Helper: get Monday of the week containing a date
+    const getMonday = d => {
+        const dt = new Date(d);
+        const day = dt.getDay();
+        const diff = (day === 0) ? -6 : 1 - day;
+        dt.setDate(dt.getDate() + diff);
+        dt.setHours(0, 0, 0, 0);
+        return dt;
+    };
+
+    // Helper: ISO week number
+    const getISOWeek = d => {
+        const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const dayNum = dt.getUTCDay() || 7;
+        dt.setUTCDate(dt.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+        return Math.ceil((((dt - yearStart) / 86400000) + 1) / 7);
+    };
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Build week starts from Jan 1 2025 to now
+    const startDate = new Date(2025, 0, 1);
+    const startMonday = getMonday(startDate);
+    const weeks = [];
+    let wk = new Date(startMonday);
+    while (wk <= now) {
+        weeks.push(new Date(wk));
+        wk.setDate(wk.getDate() + 7);
+    }
+
+    // Group weeks by month key "YYYY-MM" based on the Friday (end of trading week) or Sunday
+    // Use the month the week's Monday falls in
+    const groupedByMonth = {};
+    const weekData = [];
+
+    weeks.forEach(monday => {
+        const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+        const wkEnd  = sunday > now ? now : sunday;
+        const wkStart = monday;
+        const isoWeek = getISOWeek(monday);
+        const weekYear = monday.getFullYear();
+        const monthKey = `${monday.getFullYear()}-${String(monday.getMonth()).padStart(2,'0')}`;
+        const monthLabel = monday.toLocaleDateString('en-US', {month:'short', year:'numeric'});
+        const weekLabel = monday.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' – ' +
+                          wkEnd.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        const calWeek = `W${String(isoWeek).padStart(2,'0')} ${weekYear}`;
+
+        let sellOpen = 0, buyClose = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= wkStart && t.date <= wkEnd) {
+                if (t.action.includes('to open')) sellOpen += t.amount;
+                if (t.action.includes('to close')) buyClose += t.amount;
+            }
+        });
+        let profit = 0, assignedPaid = 0;
+        finalTrades.forEach(t => {
+            if (t.closeDate >= wkStart && t.closeDate <= wkEnd) {
+                const st = t.status.toLowerCase();
+                if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) assignedPaid += Math.abs(t.openingPremium);
+            }
+        });
+        const cashFlow = sellOpen + buyClose;
+        const wd = { monday, wkEnd, weekLabel, calWeek, monthKey, monthLabel, sellOpen, buyClose, cashFlow, profit, assignedPaid };
+        weekData.push(wd);
+        if (!groupedByMonth[monthKey]) groupedByMonth[monthKey] = { monthLabel, weeks: [], sellOpen:0, buyClose:0, cashFlow:0, profit:0, assignedPaid:0 };
+        const mg = groupedByMonth[monthKey];
+        mg.weeks.push(wd);
+        mg.sellOpen += sellOpen; mg.buyClose += buyClose; mg.cashFlow += cashFlow;
+        mg.profit += profit; mg.assignedPaid += assignedPaid;
+    });
+
+    // Sort months descending
+    const sortedMonthKeys = Object.keys(groupedByMonth).sort((a,b) => b.localeCompare(a));
+
+    // Default: expand only months in current year, unless we have saved state
+    let defaultExpanded;
+    if (weeklySavedState.expandedMonths) {
+        // Saved state uses underscore keys (safeKey format); convert mKey (dash) to safeKey for lookup
+        defaultExpanded = new Set(sortedMonthKeys.filter(k => weeklySavedState.expandedMonths.has(k.replace('-','_'))));
+    } else {
+        defaultExpanded = new Set(sortedMonthKeys.filter(k => k.startsWith(String(currentYear))));
+    }
+
+    const thStyle = `padding:10px 8px;background:${thBg};color:${accentColor};font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid ${accentColor};white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
+    const tblStyle = `width:100%;min-width:640px;border-collapse:collapse;background:${rowBg};font-size:0.88rem;table-layout:fixed;`;
+    const bdBase = `border-bottom:1px solid ${borderColor};`;
+
+    let html = '';
+    let grandSell = 0, grandBuy = 0, grandCF = 0, grandProfit = 0, grandAssigned = 0;
+
+    sortedMonthKeys.forEach((mKey, mIdx) => {
+        const mg = groupedByMonth[mKey];
+        const isExpanded = defaultExpanded.has(mKey);
+        const safeKey = mKey.replace('-','_');
+        const weeksDesc = [...mg.weeks].reverse();
+
+        grandSell += mg.sellOpen; grandBuy += mg.buyClose; grandCF += mg.cashFlow;
+        grandProfit += mg.profit; grandAssigned += mg.assignedPaid;
+
+        const topBorder = `border-top:2px solid ${accentColor};`;
+
+        // Week rows
+        weeksDesc.forEach((wd, wIdx) => {
+            const isFirst = wIdx === 0;
+            const bg = wIdx % 2 === 0 ? rowBg : rowAltBg;
+            const toggleBtn = isFirst
+                ? `<button onclick="toggleWeeklyMonth('${safeKey}')" id="wkbtn-${safeKey}" style="background:none;border:none;cursor:pointer;color:${accentColor};font-size:1rem;padding:0;line-height:1;position:absolute;left:8px;top:50%;transform:translateY(-50%);" title="Collapse">${isExpanded ? '➖' : '➕'}</button>`
+                : '';
+            html += `<tr class="wk-week-row-${safeKey}" style="background:${bg};display:${isExpanded ? 'table-row' : 'none'};">
+                <td style="color:${textColor};text-align:center;padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}font-weight:500;position:relative;white-space:nowrap;">${toggleBtn}${wd.weekLabel}</td>
+                <td style="text-align:center;padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${textColor};">${wd.calWeek}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:#16a34a;">${fmt(wd.sellOpen)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${wd.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(wd.buyClose)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${wd.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(wd.cashFlow)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:${wd.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(wd.profit)}</td>
+                <td style="padding:8px 14px;${isFirst ? topBorder : ''}${bdBase}color:#d97706;">${wd.assignedPaid > 0 ? fmt(wd.assignedPaid) : '$0.00'}</td>
+            </tr>`;
+        });
+
+        // Collapsed month row
+        html += `<tr class="wk-month-collapsed-${safeKey}" style="background:${totalRowBg};display:${isExpanded ? 'none' : 'table-row'};">
+            <td style="color:${textColor};text-align:center;padding:9px 14px;${topBorder}${bdBase}font-weight:600;position:relative;">
+                <button onclick="toggleWeeklyMonth('${safeKey}')" id="wkbtn-${safeKey}" style="background:none;border:none;cursor:pointer;color:${accentColor};font-size:1rem;padding:0;line-height:1;position:absolute;left:8px;top:50%;transform:translateY(-50%);" title="Expand">➕</button>${mg.monthLabel}
+            </td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}"></td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:#16a34a;">${fmt(mg.sellOpen)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:${mg.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(mg.buyClose)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:${mg.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(mg.cashFlow)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:${mg.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(mg.profit)}</td>
+            <td style="padding:9px 14px;${topBorder}${bdBase}color:#d97706;">${mg.assignedPaid > 0 ? fmt(mg.assignedPaid) : '$0.00'}</td>
+        </tr>`;
+    });
+
+    // Grand total row
+    const grandTotalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td style="text-align:center;padding:12px 14px;color:${accentColor};" colspan="2">Total</td>
+        <td style="padding:12px 14px;color:#16a34a;">${fmt(grandSell)}</td>
+        <td style="padding:12px 14px;color:${grandBuy < 0 ? '#dc2626' : textColor};">${fmtNeg(grandBuy)}</td>
+        <td style="padding:12px 14px;color:${grandCF >= 0 ? '#16a34a' : '#dc2626'};">${fmt(grandCF)}</td>
+        <td style="padding:12px 14px;color:${grandProfit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(grandProfit)}</td>
+        <td style="padding:12px 14px;color:#d97706;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
+    </tr>`;
+
+    document.getElementById('weeklyTableContainer').innerHTML = `
+        <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
+        <table id="weeklyBreakdownTable" style="${tblStyle}">
+            <colgroup><col style="width:22%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
+            <thead><tr>
+                <th style="${thStyle}">Week / Month</th>
+                <th style="${thStyle}">Calendar Week</th>
+                <th style="${thStyle}">Sell to Open + Buy to Open</th>
+                <th style="${thStyle}">Buy to Close + Sell to Close</th>
+                <th style="${thStyle}">Cash Flow</th>
+                <th style="${thStyle}">Profit from Closed Options</th>
+                <th style="${thStyle}">Paid Premium Assigned</th>
+            </tr></thead>
+            <tbody>${html}${grandTotalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('weeklyModal');
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) closeWeeklySummary(); };
+
+    // Restore expand-all checkbox state
+    const expandAllCbWk = document.getElementById('weeklyExpandAll');
+    if (expandAllCbWk) expandAllCbWk.checked = weeklySavedState.expandAllChecked;
+
+    // Restore scroll position after render
+    setTimeout(() => {
+        const miScroll = document.getElementById('weeklyInner');
+        if (miScroll && weeklySavedState.scrollTop) miScroll.scrollTop = weeklySavedState.scrollTop;
+    }, 60);
+
+    const isMobileWk = window.innerWidth <= 768;
+    if (!isMobileWk) {
+        initDraggableModal('weeklyInner', accentColor, 1600);
+        // Restore saved position/size if available
+        const miWk = document.getElementById('weeklyInner');
+        if (weeklySavedState.modalPos && miWk) {
+            miWk.style.left = weeklySavedState.modalPos.left;
+            miWk.style.top = weeklySavedState.modalPos.top;
+            miWk.style.width = weeklySavedState.modalPos.width;
+            miWk.style.height = weeklySavedState.modalPos.height;
+        }
+    } else {
+        const mi = document.getElementById('weeklyInner');
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
+        }
+    }
+
+    // Floating sticky header (desktop only)
+    if (!isMobileWk) setTimeout(() => {
+        const mi = document.getElementById('weeklyInner');
+        const wt = document.getElementById('weeklyBreakdownTable');
+        const wth = wt ? wt.querySelector('thead') : null;
+        if (!mi || !wt || !wth) return;
+        const old = document.getElementById('weeklyFloatingHeader');
+        if (old) old.remove();
+        const floatDiv = document.createElement('div');
+        floatDiv.id = 'weeklyFloatingHeader';
+        floatDiv.style.cssText = `position:absolute;left:0;top:0;pointer-events:none;z-index:50;display:none;box-sizing:border-box;`;
+        const ft = document.createElement('table');
+        ft.style.cssText = `width:100%;border-collapse:collapse;table-layout:fixed;font-size:0.88rem;`;
+        ft.innerHTML = `<colgroup><col style="width:22%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>` + wth.outerHTML;
+        floatDiv.appendChild(ft);
+        mi.appendChild(floatDiv);
+        const onScroll = () => {
+            const ir = mi.getBoundingClientRect();
+            const tr = wth.getBoundingClientRect();
+            const mr = wt.getBoundingClientRect();
+            if (tr.top < ir.top && mr.bottom > ir.top + wth.offsetHeight) {
+                floatDiv.style.display = 'block';
+                floatDiv.style.top   = mi.scrollTop + 'px';
+                floatDiv.style.width = wt.offsetWidth + 'px';
+                floatDiv.style.left  = wt.offsetLeft + 'px';
+            } else {
+                floatDiv.style.display = 'none';
+            }
+        };
+        if (mi._weeklyScrollHandler) mi.removeEventListener('scroll', mi._weeklyScrollHandler);
+        mi._weeklyScrollHandler = onScroll;
+        mi.addEventListener('scroll', onScroll);
+    }, 100);
+}
+
+// ============================================================
+// TRANSACTION DATA SORTER
+// ============================================================
+let tsData = [];
+let tsFiltered = [];
+let tsSortKey = 'parsedDate';
+let tsSortDir = -1;
+
+const tsState = { checkedActions:[], datePreset:'all', dateFrom:'', dateTo:'', symbolSearch:'' };
+function tsSaveState() {
+    tsState.checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
+    tsState.datePreset = document.getElementById('tsDatePreset').value;
+    tsState.dateFrom = document.getElementById('tsDateFrom').value;
+    tsState.dateTo = document.getElementById('tsDateTo').value;
+    tsState.symbolSearch = document.getElementById('tsSymbolSearch').value;
+}
+function tsRestoreState() {
+    document.getElementById('tsDatePreset').value = tsState.datePreset || 'all';
+    document.getElementById('tsDateFrom').value = tsState.dateFrom || '';
+    document.getElementById('tsDateTo').value = tsState.dateTo || '';
+    document.getElementById('tsSymbolSearch').value = tsState.symbolSearch || '';
+    if (tsState.checkedActions.length > 0) {
+        document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => { cb.checked = tsState.checkedActions.includes(cb.value); });
+    }
+}
+function showTransactionSorter() {
+    if (!window.allRawRows || window.allRawRows.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const inner = document.getElementById('txSorterInner');
+    inner.style.background = isDark ? '#1e293b' : '#ffffff';
+    inner.style.border = '1px solid #10b981';
+
+    tsData = window.allRawRows.map(r => ({ ...r }));
+    tsFiltered = [...tsData];
+    tsSortKey = 'parsedDate';
+    tsSortDir = -1;
+
+    tsPopulateActionCheckboxes();
+    tsRestoreState();
+    tsApplyDatePreset();
+    tsApplyFilters();
+
+    const modal = document.getElementById('txSorterModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeTxSorter(); };
+    initDraggableModal('txSorterInner', '#10b981', 1400);
+}
+
+function closeTxSorter() {
+    const _di = document.getElementById('txSorterInner'); if (_di) _di._dragInit = false;
+    tsSaveState();
+    document.getElementById('txSorterModal').style.display = 'none';
+}
+
+function tsPopulateActionCheckboxes() {
+    const container = document.getElementById('tsActionCheckboxes');
+    const uniqueActions = [...new Set(tsData.map(r => r.Action || '').filter(Boolean))].sort();
+    container.innerHTML = uniqueActions.map(a => `
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85rem;color:var(--text-primary);">
+            <input type="checkbox" value="${a}" onchange="tsApplyFilters()" style="width:14px;height:14px;cursor:pointer;accent-color:#10b981;">
+            ${a}
+        </label>`).join('');
+}
+
+function tsApplyDatePreset() {
+    const preset = document.getElementById('tsDatePreset').value;
+    if (preset === 'all') {
+        document.getElementById('tsDateFrom').value = '';
+        document.getElementById('tsDateTo').value = '';
+    } else {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        let from, to;
+        switch(preset) {
+            case 'today':        from = new Date(today); to = new Date(today); break;
+            case 'last7':        from = new Date(today); from.setDate(today.getDate()-6); to = new Date(today); break;
+            case 'currentMonth': from = new Date(today.getFullYear(), today.getMonth(), 1); to = new Date(today); break;
+            case 'lastMonth':    from = new Date(today.getFullYear(), today.getMonth()-1, 1); to = new Date(today.getFullYear(), today.getMonth(), 0); break;
+            case 'last3Months':  from = new Date(today); from.setMonth(today.getMonth()-3); to = new Date(today); break;
+            case 'last6Months':  from = new Date(today); from.setMonth(today.getMonth()-6); to = new Date(today); break;
+            case 'last12Months': from = new Date(today); from.setMonth(today.getMonth()-12); to = new Date(today); break;
+            case 'lastYear':     from = new Date(today.getFullYear()-1,0,1); to = new Date(today.getFullYear()-1,11,31); break;
+            case 'currentYear':  from = new Date(today.getFullYear(),0,1); to = new Date(today); break;
+        }
+        const fmtD = d => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; };
+        document.getElementById('tsDateFrom').value = fmtD(from);
+        document.getElementById('tsDateTo').value = fmtD(to);
+    }
+    tsApplyFilters();
+}
+
+function tsApplyFilters() {
+    const checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
+    const totalActions = document.querySelectorAll('#tsActionCheckboxes input').length;
+    const fromVal = document.getElementById('tsDateFrom').value;
+    const toVal = document.getElementById('tsDateTo').value;
+    const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
+    const tsSearchTerms = (document.getElementById('tsSymbolSearch').value || '').split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+    tsFiltered = tsData.filter(r => {
+        // If some (but not all) actions are unchecked, filter by checked ones; rows with no Action always pass
+        if (checkedActions.length > 0 && checkedActions.length < totalActions) {
+            if (r.Action && !checkedActions.includes(r.Action)) return false;
+        }
+        const dateForFilter = r.parsedDate;
+        if (dateForFilter) {
+            if (fromDate && dateForFilter < fromDate) return false;
+            if (toDate && dateForFilter > toDate) return false;
+        }
+        if (tsSearchTerms.length > 0) {
+            const sym = (r.Symbol || '').toLowerCase();
+            const act = (r.Action || '').toLowerCase();
+            const desc = (r.Description || '').toLowerCase();
+            const date = (r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')).toLowerCase();
+            const qty = String(r.Quantity || '').toLowerCase();
+            const price = String(r.Price || '').toLowerCase();
+            const fees = String(r['Fees & Comm'] || r['Fees'] || '').toLowerCase();
+            const amt = String(r.Amount || '').toLowerCase();
+            const haystack = [sym, act, desc, date, qty, price, fees, amt];
+            if (!tsSearchTerms.some(term => haystack.some(h => h.includes(term)))) return false;
+        }
+        return true;
+    });
+
+    tsRenderSummary();
+    tsRenderTable();
+}
+
+function tsReset() {
+    document.querySelectorAll('#tsActionCheckboxes input').forEach(cb => cb.checked = false);
+    document.getElementById('tsDatePreset').value = 'all';
+    document.getElementById('tsDateFrom').value = '';
+    document.getElementById('tsDateTo').value = '';
+    document.getElementById('tsSymbolSearch').value = '';
+    Object.assign(tsState,{checkedActions:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
+    tsFiltered = [...tsData];
+    tsSortKey = 'parsedDate';
+    tsSortDir = -1;
+    tsRenderSummary();
+    tsRenderTable();
+}
+
+function tsRenderSummary() {
+    const totalRows = tsFiltered.length;
+    const totalAmount = tsFiltered.reduce((s, r) => s + cleanNum(r.Amount), 0);
+    const totalFees = tsFiltered.reduce((s, r) => s + cleanNum(r['Fees & Comm'] || r['Fees'] || 0), 0);
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const cardBg = isDark ? '#0f172a' : '#f8fafc';
+    const fmtAmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Compute available date range from full dataset
+    const dates = tsData.map(r => r.parsedDate).filter(Boolean);
+    if (dates.length > 0) {
+        const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+        const fmt = d => {
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const y = d.getFullYear();
+            return `${m}/${day}/${y}`;
+        };
+        const rangeLabel = 'Available Date Range';
+        document.getElementById('tsDateRangeBar').innerHTML =
+            `<span style="display:inline-flex;align-items:center;gap:6px;">${rangeLabel}: <span style="color:var(--text-primary);font-weight:600;">${fmt(minDate)}</span><span style="font-size:2em;line-height:1;position:relative;top:-0.05em;">→</span><span style="color:var(--text-primary);font-weight:600;">${fmt(maxDate)}</span></span>`;
+    } else {
+        document.getElementById('tsDateRangeBar').innerHTML = '';
+    }
+
+    const checkedActions = Array.from(document.querySelectorAll('#tsActionCheckboxes input:checked')).map(cb => cb.value);
+    const totalActions = document.querySelectorAll('#tsActionCheckboxes input').length;
+    const showingAll = checkedActions.length === 0 || checkedActions.length === totalActions;
+    const actionsToShow = showingAll ? [...new Set(tsFiltered.map(r => r.Action).filter(Boolean))] : checkedActions;
+    let actionBoxes = '';
+    actionsToShow.forEach(action => {
+        const rows = tsFiltered.filter(r => r.Action === action);
+        const hasAmount = rows.some(r => r.Amount != null && r.Amount !== '');
+        if (!hasAmount) return;
+        const amt = rows.reduce((s, r) => s + cleanNum(r.Amount), 0);
+        const color = amt >= 0 ? '#10b981' : '#ef4444';
+        const label = action.length > 22 ? action.slice(0, 20) + '…' : action;
+        actionBoxes += `<div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;"><div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${action}">${label}</div><div style="font-size:1.3rem;font-weight:bold;color:${color};">${fmtAmt(amt)}</div></div>`;
+    });
+    document.getElementById('tsSummaryGrid').innerHTML = `
+        ${actionBoxes}
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Amount</div>
+            <div style="font-size:1.3rem;font-weight:bold;color:${totalAmount >= 0 ? '#10b981' : '#ef4444'};">${fmtAmt(totalAmount)}</div>
+        </div>
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Fees & Comm</div>
+            <div style="font-size:1.3rem;font-weight:bold;color:#f59e0b;">${fmtAmt(totalFees)}</div>
+        </div>
+        <div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:120px;">
+            <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Total Rows</div>
+            <div style="font-size:1.3rem;font-weight:bold;color:#10b981;">${totalRows.toLocaleString()}</div>
+        </div>`;
+}
+
+function tsSortBy(key) {
+    if (tsSortKey === key) tsSortDir *= -1;
+    else { tsSortKey = key; tsSortDir = 1; }
+    tsRenderTable();
+}
+
+function tsRenderTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+
+    const cols = [
+        { lab: 'Date', key: 'parsedDate' },
+        { lab: 'Action',      key: 'Action' },
+        { lab: 'Symbol',      key: 'Symbol' },
+        { lab: 'Description', key: 'Description' },
+        { lab: 'Quantity',    key: 'Quantity' },
+        { lab: 'Price',       key: 'Price' },
+        { lab: 'Fees & Comm', key: 'Fees & Comm' },
+        { lab: 'Amount',      key: 'Amount' },
+    ];
+
+    const arrow = key => tsSortKey === key ? (tsSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
+    const thStyle = `background:${thBg};color:#10b981;padding:10px 8px;text-align:center;font-size:0.78rem;border-bottom:2px solid #10b981;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10;`;
+
+    document.getElementById('tsSorterHead').innerHTML = cols.map(c =>
+        `<th onclick="tsSortBy('${c.key}')" style="${thStyle}">${c.lab}${arrow(c.key)}</th>`
+    ).join('');
+
+    const sorted = [...tsFiltered].sort((a, b) => {
+        let v1, v2;
+        if (tsSortKey === 'parsedDate') {
+            v1 = a.parsedDate ? a.parsedDate.getTime() : 0;
+            v2 = b.parsedDate ? b.parsedDate.getTime() : 0;
+        } else if (['Amount','Price','Quantity','Fees & Comm'].includes(tsSortKey)) {
+            v1 = parseFloat(a[tsSortKey]) || 0;
+            v2 = parseFloat(b[tsSortKey]) || 0;
+        } else {
+            v1 = (a[tsSortKey] || '').toString().toLowerCase();
+            v2 = (b[tsSortKey] || '').toString().toLowerCase();
+        }
+        if (v1 < v2) return -tsSortDir;
+        if (v1 > v2) return tsSortDir;
+        return 0;
+    });
+
+    const fmtAmt = n => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2});
+    const tdBase = `padding:8px;border-bottom:1px solid ${borderColor};font-size:0.8rem;text-align:center;`;
+
+    document.getElementById('tsSorterBody').innerHTML = sorted.map((r, i) => {
+        const bg = i % 2 === 0 ? rowBg : rowAltBg;
+        const amt = cleanNum(r.Amount);
+        const amtColor = amt >= 0 ? posColor : negColor;
+        const price = parseFloat(r.Price);
+        const fees = cleanNum(r['Fees & Comm'] || r['Fees'] || 0);
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || '')}</td>
+            <td style="${tdBase}color:${textColor};"><span class="tag">${r.Action || ''}</span></td>
+            <td style="${tdBase}color:${textColor};font-weight:600;">${r.Symbol || ''}</td>
+            <td style="${tdBase}color:${textColor};max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.Description || ''}</td>
+            <td style="${tdBase}color:${textColor};">${r.Quantity || ''}</td>
+            <td style="${tdBase}color:${textColor};">${!isNaN(price) && r.Price !== '' && r.Price != null ? '$'+price.toFixed(2) : ''}</td>
+            <td style="${tdBase}color:${fees !== 0 ? negColor : textColor};">${fees !== 0 ? fmtAmt(fees) : ''}</td>
+            <td style="${tdBase}color:${amtColor};font-weight:600;">${r.Amount != null && r.Amount !== '' ? fmtAmt(amt) : ''}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ============================================================
+// MONTHLY DATA TABLE
+// ============================================================
+const MDT_ACTIONS = [
+    { key: 'Sell to Open',        label: 'Sell to Open',        color: '#4ade80' },
+    { key: 'Buy to Open',         label: 'Buy to Open',         color: '#f87171' },
+    { key: 'Buy to Close',        label: 'Buy to Close',        color: '#f87171' },
+    { key: 'Sell to Close',       label: 'Sell to Close',       color: '#4ade80' },
+    { key: 'Cash Dividend',       label: 'Cash Dividend',       color: '#4ade80' },
+    { key: 'Qualified Dividend',  label: 'Qualified Dividend',  color: '#4ade80' },
+    { key: 'Reinvest Dividend',   label: 'Reinvest Dividend',   color: '#4ade80' },
+    { key: 'Buy',                 label: 'Buy',                 color: '#f87171' },
+    { key: 'Sell',                label: 'Sell',                color: '#4ade80' },
+    { key: 'Margin Interest',     label: 'Margin Interest',     color: '#f87171' },
+    { key: '__fees__',            label: 'Total Fees & Comm',   color: '#f87171' },
+    { key: 'Bank Interest',       label: 'Bank Interest',       color: '#4ade80' },
+    { key: 'MoneyLink Transfer',  label: 'MoneyLink Transfer',  color: '#a78bfa' },
+    { key: 'Moneylink Adj',       label: 'Moneylink Adj',       color: '#a78bfa' },
+    { key: 'ADR Mgmt Fee',        label: 'ADR Mgmt Fee',        color: '#f87171' },
+    { key: 'Journaled Shares',    label: 'Journaled Shares',    color: '#a78bfa' },
+    { key: 'Internal Transfer',   label: 'Internal Transfer',   color: '#a78bfa' },
+    { key: 'Bond Interest',       label: 'Bond Interest',       color: '#4ade80' },
+];
+
+let mdtSavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0, modalPos: null };
+let mdtTableCache = null; // stores { allMonths, monthData, yearData, grandTotals, uniqueYears } for download
+
+function showMonthlyDataTable() {
+    if (!window.allRawRows || window.allRawRows.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const posColor = isDark ? '#4ade80' : '#16a34a';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+
+    const modalInner = document.getElementById('monthlyDataInner');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = '1px solid #0891b2';
+
+    const rows = window.allRawRows;
+
+    // Collect all months present in data
+    const monthSet = new Set();
+    rows.forEach(r => {
+        if (r.parsedDate) {
+            const y = r.parsedDate.getFullYear();
+            const m = r.parsedDate.getMonth();
+            monthSet.add(`${y}-${String(m).padStart(2,'0')}`);
+        }
+    });
+    const allMonths = [...monthSet].sort().reverse(); // newest first
+
+    const uniqueYears = [...new Set(allMonths.map(k => parseInt(k.split('-')[0])))].sort((a,b) => b-a);
+    const currentYear = new Date().getFullYear();
+    const defaultExpandedYears = mdtSavedState.expandedYears
+        ? new Set(mdtSavedState.expandedYears)
+        : new Set([String(currentYear), String(currentYear - 1)]);
+
+    const fmtAmt = (n) => {
+        if (n === 0) return '<span style="color:#64748b;">—</span>';
+        return `<span style="color:${n > 0 ? posColor : negColor};font-weight:600;">${n >= 0 ? '$' : '-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+    };
+    const fmtTotal = (n) => {
+        if (n === 0) return '<span style="color:#64748b;">—</span>';
+        return `${n >= 0 ? '$' : '-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    };
+
+    // Build per-month aggregates
+    const monthData = {}; // key -> { action_key -> total, __fees__ -> total }
+    rows.forEach(r => {
+        if (!r.parsedDate) return;
+        const y = r.parsedDate.getFullYear();
+        const m = r.parsedDate.getMonth();
+        const key = `${y}-${String(m).padStart(2,'0')}`;
+        if (!monthData[key]) {
+            monthData[key] = {};
+            MDT_ACTIONS.forEach(a => { monthData[key][a.key] = 0; });
+        }
+        const action = (r.Action || '').trim();
+        // Match action (case-insensitive)
+        const match = MDT_ACTIONS.find(a => a.key !== '__fees__' && a.key.toLowerCase() === action.toLowerCase());
+        if (match) monthData[key][match.key] += cleanNum(r.Amount);
+        // Always accumulate fees
+        monthData[key]['__fees__'] += cleanNum(r['Fees & Comm'] || r['Fees'] || 0);
+    });
+
+    // Build per-year aggregates
+    const yearData = {};
+    uniqueYears.forEach(y => {
+        yearData[y] = {};
+        MDT_ACTIONS.forEach(a => { yearData[y][a.key] = 0; });
+        Object.keys(monthData).forEach(k => {
+            if (parseInt(k.split('-')[0]) === y) {
+                MDT_ACTIONS.forEach(a => { yearData[y][a.key] += monthData[k][a.key]; });
+            }
+        });
+    });
+
+    // Grand totals
+    const grandTotals = {};
+    MDT_ACTIONS.forEach(a => { grandTotals[a.key] = 0; });
+    Object.values(monthData).forEach(md => {
+        MDT_ACTIONS.forEach(a => { grandTotals[a.key] += md[a.key]; });
+    });
+
+    // Cache computed data for download
+    mdtTableCache = { allMonths, monthData, yearData, grandTotals, uniqueYears };
+
+    // Fixed pixel widths per column to prevent number overlap
+    const COL_MONTH_W = 110; // px
+    const COL_DATA_W  = 115; // px — wide enough for e.g. "$12,345.67"
+    const tableMinWidth = COL_MONTH_W + MDT_ACTIONS.length * COL_DATA_W;
+
+    const thStyle = `padding:8px 6px;background:${thBg};color:#0891b2;font-size:0.7rem;letter-spacing:0.03em;border-bottom:2px solid #0891b2;white-space:nowrap;text-align:center;vertical-align:middle;min-width:${COL_DATA_W}px;`;
+    const tblStyle = `width:100%;min-width:${tableMinWidth}px;border-collapse:collapse;background:${rowBg};font-size:0.82rem;table-layout:fixed;`;
+
+    const fmtMonthLabel = (key) => {
+        const [y, m] = key.split('-');
+        return new Date(parseInt(y), parseInt(m), 1).toLocaleDateString('en-US', {month:'short', year:'numeric'});
+    };
+
+    const buildMonthRow = (key, isFirst, isExpanded) => {
+        const year = parseInt(key.split('-')[0]);
+        const topBorder = isFirst ? `border-top:2px solid #0891b2;` : '';
+        const botBorder = `border-bottom:1px solid ${borderColor};`;
+        const toggleBtn = isFirst
+            ? `<button onclick="mdtToggleYear(${year})" id="mdtbtn-${year}" style="background:none;border:none;cursor:pointer;color:#0891b2;font-size:1rem;padding:0;line-height:1;position:absolute;left:6px;top:50%;transform:translateY(-50%);" title="Collapse/expand ${year}">${isExpanded ? '➖' : '➕'}</button>`
+            : '';
+        const md = monthData[key] || {};
+        let cells = `<td style="color:${textColor};text-align:center;padding:8px 10px;${topBorder}${botBorder}font-weight:500;position:sticky;left:0;z-index:1;background:${rowBg};white-space:nowrap;min-width:${COL_MONTH_W}px;">${toggleBtn}${fmtMonthLabel(key)}</td>`;
+        MDT_ACTIONS.forEach(a => {
+            cells += `<td style="padding:8px 6px;${topBorder}${botBorder}text-align:center;white-space:nowrap;min-width:${COL_DATA_W}px;">${fmtAmt(md[a.key] || 0)}</td>`;
+        });
+        return `<tr class="mdt-month-row mdt-year-${year}" style="background:${rowBg};display:${isExpanded ? 'table-row' : 'none'};">${cells}</tr>`;
+    };
+
+    const buildYearCollapsedRow = (year, isExpanded) => {
+        const yd = yearData[year] || {};
+        const topBorder = `border-top:2px solid #0891b2;`;
+        const botBorder = `border-bottom:1px solid ${borderColor};`;
+        let cells = `<td style="color:${textColor};text-align:center;padding:8px 10px;${topBorder}${botBorder}font-weight:700;position:sticky;left:0;z-index:1;background:${rowAltBg};white-space:nowrap;min-width:${COL_MONTH_W}px;">
+            <button onclick="mdtToggleYear(${year})" id="mdtbtn-${year}" style="background:none;border:none;cursor:pointer;color:#0891b2;font-size:1rem;padding:0;line-height:1;position:absolute;left:6px;top:50%;transform:translateY(-50%);" title="Expand ${year}">➕</button>${year}
+        </td>`;
+        MDT_ACTIONS.forEach(a => {
+            const val = yd[a.key] || 0;
+            const color = val > 0 ? posColor : val < 0 ? negColor : '#64748b';
+            cells += `<td style="padding:8px 6px;${topBorder}${botBorder}text-align:center;color:${color};font-weight:600;white-space:nowrap;min-width:${COL_DATA_W}px;">${val !== 0 ? (val>=0?'$':'-$')+Math.abs(val).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>`;
+        });
+        return `<tr class="mdt-year-collapsed-${year}" style="background:${rowAltBg};display:${isExpanded ? 'none' : 'table-row'};">${cells}</tr>`;
+    };
+
+    const buildAllRows = () => {
+        let html = '';
+        uniqueYears.forEach(year => {
+            const isExpanded = defaultExpandedYears.has(String(year));
+            const yearMonths = allMonths.filter(k => parseInt(k.split('-')[0]) === year);
+            yearMonths.forEach((key, idx) => {
+                html += buildMonthRow(key, idx === 0, isExpanded);
+            });
+            html += buildYearCollapsedRow(year, isExpanded);
+        });
+        return html;
+    };
+
+    // Grand total row
+    let totalCells = `<td style="text-align:center;padding:10px 10px;color:#a78bfa;font-weight:bold;border-top:2px solid #0891b2;white-space:nowrap;position:sticky;left:0;z-index:1;background:${totalRowBg};min-width:${COL_MONTH_W}px;">Total</td>`;
+    MDT_ACTIONS.forEach(a => {
+        const val = grandTotals[a.key];
+        const color = val > 0 ? posColor : val < 0 ? negColor : '#64748b';
+        totalCells += `<td style="padding:10px 6px;border-top:2px solid #0891b2;text-align:center;color:${color};font-weight:bold;white-space:nowrap;min-width:${COL_DATA_W}px;">${val !== 0 ? (val>=0?'$':'-$')+Math.abs(val).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>`;
+    });
+    const totalRow = `<tr style="background:${totalRowBg};">${totalCells}</tr>`;
+
+    const colgroup = `<col style="width:${COL_MONTH_W}px;min-width:${COL_MONTH_W}px;">` + MDT_ACTIONS.map(() => `<col style="width:${COL_DATA_W}px;min-width:${COL_DATA_W}px;">`).join('');
+    const headerCells = MDT_ACTIONS.map(a => `<th style="${thStyle}">${a.label}</th>`).join('');
+
+    document.getElementById('monthlyDataTableContainer').innerHTML = `
+        <div style="overflow-x:auto;overflow-y:auto;flex:1;border:1px solid ${borderColor};border-radius:8px;min-height:0;">
+        <table id="mdtBreakdownTable" style="${tblStyle}">
+            <colgroup>${colgroup}</colgroup>
+            <thead style="position:sticky;top:0;z-index:2;"><tr>
+                <th style="padding:8px 10px;background:${thBg};color:#0891b2;font-size:0.7rem;letter-spacing:0.03em;border-bottom:2px solid #0891b2;white-space:nowrap;text-align:center;vertical-align:middle;min-width:${COL_MONTH_W}px;position:sticky;left:0;z-index:3;">Month / Year</th>
+                ${headerCells}
+            </tr></thead>
+            <tbody id="mdtBreakdownBody">${buildAllRows()}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('monthlyDataModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeMonthlyDataTable(); };
+
+    const expandAllCb = document.getElementById('mdtExpandAll');
+    if (expandAllCb) expandAllCb.checked = mdtSavedState.expandAllChecked;
+
+    setTimeout(() => {
+        const mi = document.getElementById('monthlyDataInner');
+        if (mi && mdtSavedState.scrollTop) mi.scrollTop = mdtSavedState.scrollTop;
+    }, 60);
+
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+        initDraggableModal('monthlyDataInner', '#0891b2', 1700);
+        const mi = document.getElementById('monthlyDataInner');
+        if (mdtSavedState.modalPos && mi) {
+            mi.style.left   = mdtSavedState.modalPos.left;
+            mi.style.top    = mdtSavedState.modalPos.top;
+            mi.style.width  = mdtSavedState.modalPos.width;
+            mi.style.height = mdtSavedState.modalPos.height;
+        } else if (mi) {
+            // Double height + center: use 90vh, centered in viewport
+            setTimeout(() => {
+                const vw = window.innerWidth, vh = window.innerHeight;
+                const w = Math.min(Math.round(vw * 0.97), 1700);
+                const h = Math.min(Math.round(vh * 0.90), vh - 20);
+                mi.style.width  = w + 'px';
+                mi.style.height = h + 'px';
+                mi.style.left   = Math.round((vw - w) / 2) + 'px';
+                mi.style.top    = Math.round((vh - h) / 2) + 'px';
+            }, 30);
+        }
+    } else {
+        const mi = document.getElementById('monthlyDataInner');
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
+        }
+    }
+}
+
+function mdtToggleYear(year) {
+    const monthRows = document.querySelectorAll(`.mdt-year-${year}`);
+    const collapsedRow = document.querySelector(`.mdt-year-collapsed-${year}`);
+    if (!monthRows.length || !collapsedRow) return;
+    const isExpanded = monthRows[0].style.display !== 'none';
+    monthRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    collapsedRow.style.display = isExpanded ? 'table-row' : 'none';
+    document.querySelectorAll(`#mdtbtn-${year}`).forEach(btn => {
+        btn.textContent = isExpanded ? '➕' : '➖';
+        btn.title = isExpanded ? `Expand ${year}` : `Collapse ${year}`;
+    });
+}
+
+function mdtToggleExpandAll(checked) {
+    const body = document.getElementById('mdtBreakdownBody');
+    if (!body) return;
+    const years = [...new Set([...body.querySelectorAll('tr[class*="mdt-year-"]')]
+        .map(r => [...r.classList].find(c => c.startsWith('mdt-year-') && !c.includes('collapsed')))
+        .filter(Boolean)
+        .map(c => c.replace('mdt-year-', '')))];
+    years.forEach(year => {
+        const monthRows = body.querySelectorAll(`.mdt-year-${year}`);
+        if (!monthRows.length) return;
+        const isCurrentlyExpanded = monthRows[0].style.display !== 'none';
+        if (checked && !isCurrentlyExpanded) mdtToggleYear(parseInt(year));
+        else if (!checked && isCurrentlyExpanded) {
+            const currentYear = new Date().getFullYear().toString();
+            const priorYear = String(new Date().getFullYear() - 1);
+            if (year !== currentYear && year !== priorYear) mdtToggleYear(parseInt(year));
+        }
+    });
+}
+
+function closeMonthlyDataTable() {
+    const body = document.getElementById('mdtBreakdownBody');
+    if (body) {
+        const years = [...new Set([...body.querySelectorAll('tr[class*="mdt-year-"]')]
+            .map(r => [...r.classList].find(c => c.startsWith('mdt-year-') && !c.includes('collapsed')))
+            .filter(Boolean)
+            .map(c => c.replace('mdt-year-', '')))];
+        const expanded = new Set();
+        years.forEach(year => {
+            const monthRows = body.querySelectorAll(`.mdt-year-${year}`);
+            if (monthRows.length && monthRows[0].style.display !== 'none') expanded.add(String(year));
+        });
+        mdtSavedState.expandedYears = expanded;
+    }
+    const cb = document.getElementById('mdtExpandAll');
+    mdtSavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('monthlyDataInner');
+    mdtSavedState.scrollTop = mi ? mi.scrollTop : 0;
+    if (mi) {
+        mdtSavedState.modalPos = { left: mi.style.left, top: mi.style.top, width: mi.style.width, height: mi.style.height };
+        mi._dragInit = false;
+    }
+    document.getElementById('monthlyDataModal').style.display = 'none';
+}
+
+
+function mdtDownload() {
+    if (!mdtTableCache) { alert('No data to download.'); return; }
+    const { allMonths, monthData, grandTotals } = mdtTableCache;
+
+    const fmtMonthLabel = (key) => {
+        const [y, m] = key.split('-');
+        return new Date(parseInt(y), parseInt(m), 1).toLocaleDateString('en-US', {month:'short', year:'numeric'});
+    };
+    const fmtVal = (n) => n === 0 ? '' : parseFloat(n.toFixed(2));
+
+    // Header row
+    const headers = ['Month / Year', ...MDT_ACTIONS.map(a => a.label)];
+
+    // Data rows — all months newest-first
+    const dataRows = allMonths.map(key => {
+        const md = monthData[key] || {};
+        return [fmtMonthLabel(key), ...MDT_ACTIONS.map(a => fmtVal(md[a.key] || 0))];
+    });
+
+    // Total row
+    const totalRow = ['TOTAL', ...MDT_ACTIONS.map(a => fmtVal(grandTotals[a.key] || 0))];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows, totalRow]);
+
+    // Column widths
+    ws['!cols'] = [{ wch: 14 }, ...MDT_ACTIONS.map(() => ({ wch: 18 }))];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Data Table');
+    XLSX.writeFile(wb, `monthly_data_table_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function tsDownload() {
+    if (!tsFiltered.length) { alert('No data to download.'); return; }
+    const exportRows = tsFiltered.map(r => ({
+        Date: r.parsedDate ? fmtDateMMDDYYYY(r.parsedDate) : (r.rawDateFormatted || ''),
+        Action: r.Action || '',
+        Symbol: r.Symbol || '',
+        Description: r.Description || '',
+        Quantity: r.Quantity || '',
+        Price: r.Price || '',
+        'Fees & Comm': r['Fees & Comm'] || '',
+        Amount: r.Amount || '',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Filtered Results');
+    XLSX.writeFile(wb, `transaction_sorter_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ============================================================
+// REALIZED GAIN / LOSS SORTER
+// ============================================================
+// ============================================================
+// REALIZED GAIN / LOSS SORTER
+// ============================================================
+let rglData = [];
+let rglFiltered = [];
+let rglSortKey = 'parsedDate';
+let rglSortDir = -1;
+let rglMdtSavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0 };
+let rglMdtTableCache = null;
+
+const rglState = { checkedTerms:[], datePreset:'all', dateFrom:'', dateTo:'', symbolSearch:'' };
+
+// Helper: parse a date string like MM/DD/YYYY
+function rglParseDate(str) {
+    if (!str) return null;
+    if (str instanceof Date) return isNaN(str) ? null : str;
+    const s = String(str).trim();
+    const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mdy) return new Date(parseInt(mdy[3]), parseInt(mdy[1])-1, parseInt(mdy[2]));
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+}
+
+// Helper: strip $ , % from a string and return a float
+function rglCleanNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    const s = String(v).replace(/[$,%\s]/g,'');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+}
+
+function showRealizedGainLoss() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const inner = document.getElementById('rglInner');
+    inner.style.background = isDark ? '#1e293b' : '#ffffff';
+    inner.style.border = '1px solid #a855f7';
+    // Force same height as Transaction Data Sorter so initDraggableModal reads the right size
+    inner.style.minHeight = Math.round(window.innerHeight * 0.90) + 'px';
+
+    const modal = document.getElementById('rglModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeRgl(); };
+
+    if (rglData.length > 0) {
+        document.getElementById('rglUploadPrompt').style.display = 'none';
+        document.getElementById('rglDataSection').style.display = 'block';
+        rglRestoreState();
+        rglApplyFilters();
+    } else {
+        document.getElementById('rglUploadPrompt').style.display = 'flex';
+        document.getElementById('rglDataSection').style.display = 'none';
+    }
+
+    initDraggableModal('rglInner', '#a855f7', 1400);
+}
+
+function closeRgl() {
+    const _di = document.getElementById('rglInner'); if (_di) _di._dragInit = false;
+    rglSaveState();
+    document.getElementById('rglModal').style.display = 'none';
+    document.getElementById('rglMonthlyDataModal').style.display = 'none';
+}
+
+function rglSaveState() {
+    if (!document.getElementById('rglTermCheckboxes')) return;
+    rglState.checkedTerms = Array.from(document.querySelectorAll('#rglTermCheckboxes input:checked')).map(cb => cb.value);
+    rglState.datePreset = document.getElementById('rglDatePreset').value;
+    rglState.dateFrom = document.getElementById('rglDateFrom').value;
+    rglState.dateTo = document.getElementById('rglDateTo').value;
+    rglState.symbolSearch = document.getElementById('rglSymbolSearch').value;
+}
+
+function rglRestoreState() {
+    document.getElementById('rglDatePreset').value = rglState.datePreset || 'all';
+    document.getElementById('rglDateFrom').value = rglState.dateFrom || '';
+    document.getElementById('rglDateTo').value = rglState.dateTo || '';
+    document.getElementById('rglSymbolSearch').value = rglState.symbolSearch || '';
+    document.querySelectorAll('#rglTermCheckboxes input').forEach(cb => {
+        cb.checked = rglState.checkedTerms.includes(cb.value);
+    });
+}
+
+function rglApplyDatePreset() {
+    const preset = document.getElementById('rglDatePreset').value;
+    if (preset === 'all') {
+        document.getElementById('rglDateFrom').value = '';
+        document.getElementById('rglDateTo').value = '';
+    } else {
+        const today = new Date(); today.setHours(0,0,0,0);
+        let from, to;
+        switch(preset) {
+            case 'today':        from=new Date(today); to=new Date(today); break;
+            case 'last7':        from=new Date(today); from.setDate(today.getDate()-6); to=new Date(today); break;
+            case 'currentMonth': from=new Date(today.getFullYear(),today.getMonth(),1); to=new Date(today); break;
+            case 'lastMonth':    from=new Date(today.getFullYear(),today.getMonth()-1,1); to=new Date(today.getFullYear(),today.getMonth(),0); break;
+            case 'last3Months':  from=new Date(today); from.setMonth(today.getMonth()-3); to=new Date(today); break;
+            case 'last6Months':  from=new Date(today); from.setMonth(today.getMonth()-6); to=new Date(today); break;
+            case 'last12Months': from=new Date(today); from.setMonth(today.getMonth()-12); to=new Date(today); break;
+            case 'lastYear':     from=new Date(today.getFullYear()-1,0,1); to=new Date(today.getFullYear()-1,11,31); break;
+            case 'currentYear':  from=new Date(today.getFullYear(),0,1); to=new Date(today); break;
+        }
+        const fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        document.getElementById('rglDateFrom').value = fmtD(from);
+        document.getElementById('rglDateTo').value = fmtD(to);
+    }
+    rglApplyFilters();
+}
+
+function rglApplyFilters() {
+    const checkedTerms = Array.from(document.querySelectorAll('#rglTermCheckboxes input:checked')).map(cb => cb.value);
+    const totalTerms = document.querySelectorAll('#rglTermCheckboxes input').length;
+    const fromVal = document.getElementById('rglDateFrom').value;
+    const toVal = document.getElementById('rglDateTo').value;
+    const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    const toDate   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+    const searchTerms = (document.getElementById('rglSymbolSearch').value || '').split(',').map(t=>t.trim().toLowerCase()).filter(t=>t);
+
+    rglFiltered = rglData.filter(r => {
+        if (checkedTerms.length > 0 && checkedTerms.length < totalTerms) {
+            if (!checkedTerms.includes(r.Term || '')) return false;
+        }
+        if (r.parsedDate) {
+            if (fromDate && r.parsedDate < fromDate) return false;
+            if (toDate   && r.parsedDate > toDate)   return false;
+        }
+        if (searchTerms.length > 0) {
+            const haystack = [
+                (r.Symbol||'').toLowerCase(),
+                (r.Name||'').toLowerCase(),
+                (r['Closed Date']||'').toLowerCase(),
+                (r['Opened Date']||'').toLowerCase(),
+                (r.Term||'').toLowerCase(),
+                String(r.Quantity||'').toLowerCase(),
+                String(r['Gain/Loss ($)']||'').toLowerCase(),
+                String(r['Gain/Loss (%)']||'').toLowerCase(),
+                String(r.Proceeds||'').toLowerCase(),
+                String(r['Cost Basis (CB)']||'').toLowerCase(),
+            ];
+            if (!searchTerms.some(t => haystack.some(h => h.includes(t)))) return false;
+        }
+        return true;
+    });
+    rglRenderSummary();
+    rglRenderTable();
+}
+
+function rglReset() {
+    document.querySelectorAll('#rglTermCheckboxes input').forEach(cb => cb.checked = false);
+    document.getElementById('rglDatePreset').value = 'all';
+    document.getElementById('rglDateFrom').value = '';
+    document.getElementById('rglDateTo').value = '';
+    document.getElementById('rglSymbolSearch').value = '';
+    Object.assign(rglState,{checkedTerms:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
+    rglFiltered = [...rglData];
+    rglSortKey = 'parsedDate'; rglSortDir = -1;
+    rglRenderSummary(); rglRenderTable();
+}
+
+function rglRenderSummary() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const cardBg = isDark ? '#0f172a' : '#f8fafc';
+    const fmt = n => (n<0?'-$':'$')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // Date range bar from full dataset
+    const dates = rglData.map(r=>r.parsedDate).filter(Boolean);
+    if (dates.length > 0) {
+        const min = new Date(Math.min(...dates.map(d=>d.getTime())));
+        const max = new Date(Math.max(...dates.map(d=>d.getTime())));
+        const fd = d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+        document.getElementById('rglDateRangeBar').innerHTML =
+            `<span style="display:inline-flex;align-items:center;gap:6px;">Available Transaction Date Range: <span style="color:var(--text-primary);font-weight:600;">${fd(min)}</span><span style="font-size:2em;line-height:1;position:relative;top:-0.05em;">→</span><span style="color:var(--text-primary);font-weight:600;">${fd(max)}</span></span>`;
+    } else {
+        document.getElementById('rglDateRangeBar').innerHTML = '';
+    }
+
+    const totalGL   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Gain/Loss ($)']),0);
+    const totalST   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Short Term Gain/Loss']),0);
+    const totalLT   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Long Term Gain/Loss']),0);
+    const totalProc = rglFiltered.reduce((s,r)=>s+rglCleanNum(r.Proceeds),0);
+    const totalCB   = rglFiltered.reduce((s,r)=>s+rglCleanNum(r['Cost Basis (CB)']),0);
+    const totalRows = rglFiltered.length;
+
+    const card = (label, val, color) =>
+        `<div style="background:${cardBg};border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border-color);min-width:130px;">
+            <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${label}</div>
+            <div style="font-size:1.2rem;font-weight:bold;color:${color};">${val}</div>
+         </div>`;
+
+    document.getElementById('rglSummaryGrid').innerHTML =
+        card('Total Gain / Loss', fmt(totalGL), totalGL>=0?'#a855f7':'#ef4444') +
+        card('Short Term G/L', fmt(totalST), totalST>=0?'#f59e0b':'#ef4444') +
+        card('Long Term G/L', fmt(totalLT), totalLT>=0?'#38bdf8':'#ef4444') +
+        card('Total Proceeds', fmt(totalProc), '#10b981') +
+        card('Total Cost Basis', fmt(totalCB), isDark?'#94a3b8':'#475569') +
+        card('Total Rows', totalRows.toLocaleString(), '#a855f7');
+}
+
+function rglSortBy(key) {
+    if (rglSortKey === key) rglSortDir *= -1;
+    else { rglSortKey = key; rglSortDir = 1; }
+    rglRenderTable();
+}
+
+function rglRenderTable() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const posColor = isDark ? '#c084fc' : '#9333ea';
+    const negColor = isDark ? '#f87171' : '#dc2626';
+
+    const cols = [
+        { lab:'Transaction Date', key:'parsedDate' },
+        { lab:'Closed Date',      key:'parsedClosedDate' },
+        { lab:'Opened Date',      key:'parsedOpenDate' },
+        { lab:'Symbol',           key:'Symbol' },
+        { lab:'Name',             key:'Name' },
+        { lab:'Qty',              key:'Quantity' },
+        { lab:'Proceeds/Share',   key:'Proceeds Per Share' },
+        { lab:'Cost/Share',       key:'Cost Per Share' },
+        { lab:'Proceeds',         key:'Proceeds' },
+        { lab:'Cost Basis',       key:'Cost Basis (CB)' },
+        { lab:'Gain/Loss ($)',    key:'Gain/Loss ($)' },
+        { lab:'Gain/Loss (%)',    key:'Gain/Loss (%)' },
+        { lab:'Term',             key:'Term' },
+        { lab:'Wash Sale?',       key:'Wash Sale?' },
+    ];
+
+    const arrow = key => rglSortKey===key ? (rglSortDir===1?' ▲':' ▼') : ' ↕';
+    const thStyle = `background:${thBg};color:#a855f7;padding:10px 8px;text-align:center;font-size:0.78rem;border-bottom:2px solid #a855f7;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10;`;
+
+    document.getElementById('rglSorterHead').innerHTML = cols.map(c =>
+        `<th onclick="rglSortBy('${c.key}')" style="${thStyle}">${c.lab}${arrow(c.key)}</th>`
+    ).join('');
+
+    const sorted = [...rglFiltered].sort((a,b) => {
+        let v1, v2;
+        if (['parsedDate','parsedClosedDate','parsedOpenDate'].includes(rglSortKey)) {
+            v1=a[rglSortKey]?.getTime()||0; v2=b[rglSortKey]?.getTime()||0;
+        } else if (['Quantity','Proceeds Per Share','Cost Per Share','Proceeds','Cost Basis (CB)','Gain/Loss ($)','Gain/Loss (%)'].includes(rglSortKey)) {
+            v1=rglCleanNum(a[rglSortKey]); v2=rglCleanNum(b[rglSortKey]);
+        } else { v1=(a[rglSortKey]||'').toString().toLowerCase(); v2=(b[rglSortKey]||'').toString().toLowerCase(); }
+        return v1<v2 ? -rglSortDir : v1>v2 ? rglSortDir : 0;
+    });
+
+    const fmtAmt = n => (n>=0?'$':'-$')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    const fmtDate = d => d ? `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}` : '';
+    const tdBase = `padding:8px;border-bottom:1px solid ${borderColor};font-size:0.8rem;text-align:center;`;
+
+    document.getElementById('rglSorterBody').innerHTML = sorted.map((r,i) => {
+        const bg = i%2===0 ? rowBg : rowAltBg;
+        const gl = rglCleanNum(r['Gain/Loss ($)']);
+        const glColor = gl>=0 ? posColor : negColor;
+        const glPct = String(r['Gain/Loss (%)']||'').replace(/%/g,'');
+        const glPctNum = parseFloat(glPct);
+        const glPctColor = glPctNum>=0 ? posColor : negColor;
+        const termColor = (r.Term||'').includes('Long') ? '#38bdf8' : '#f59e0b';
+        const pps = rglCleanNum(r['Proceeds Per Share']);
+        const cps = rglCleanNum(r['Cost Per Share']);
+        const proc = rglCleanNum(r.Proceeds);
+        const cb = rglCleanNum(r['Cost Basis (CB)']);
+        const washSale = (r['Wash Sale?']||'').trim();
+        return `<tr style="background:${bg};">
+            <td style="${tdBase}color:#c084fc;white-space:nowrap;font-weight:600;">${fmtDate(r.parsedDate)}</td>
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${fmtDate(r.parsedClosedDate)}</td>
+            <td style="${tdBase}color:${textColor};white-space:nowrap;">${fmtDate(r.parsedOpenDate)}</td>
+            <td style="${tdBase}color:${textColor};font-weight:600;">${r.Symbol||''}</td>
+            <td style="${tdBase}color:${textColor};max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.Name||'').replace(/"/g,'&quot;')}">${r.Name||''}</td>
+            <td style="${tdBase}color:${textColor};">${r.Quantity||''}</td>
+            <td style="${tdBase}color:${textColor};">${pps!==0?'$'+Math.abs(pps).toFixed(2):''}</td>
+            <td style="${tdBase}color:${textColor};">${cps!==0?'$'+Math.abs(cps).toFixed(2):''}</td>
+            <td style="${tdBase}color:${proc>=0?posColor:negColor};font-weight:600;">${proc!==0?fmtAmt(proc):''}</td>
+            <td style="${tdBase}color:${textColor};">${cb!==0?fmtAmt(cb):''}</td>
+            <td style="${tdBase}color:${glColor};font-weight:700;">${gl!==0?fmtAmt(gl):''}</td>
+            <td style="${tdBase}color:${glPctColor};font-weight:600;">${!isNaN(glPctNum)?(glPctNum*100).toFixed(2)+'%':''}</td>
+            <td style="${tdBase}"><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${termColor};color:#000;font-weight:600;">${r.Term||''}</span></td>
+            <td style="${tdBase}color:${washSale==='Yes'?'#ef4444':textColor};">${washSale}</td>
+        </tr>`;
+    }).join('');
+}
+
+function rglDownload() {
+    if (!rglFiltered.length) { alert('No data to download.'); return; }
+    const exportRows = rglFiltered.map(r => ({
+        'Symbol':              r.Symbol||'',
+        'Name':                r.Name||'',
+        'Closed Date':         r.parsedDate ? `${String(r.parsedDate.getMonth()+1).padStart(2,'0')}/${String(r.parsedDate.getDate()).padStart(2,'0')}/${r.parsedDate.getFullYear()}` : '',
+        'Opened Date':         r.parsedOpenDate ? `${String(r.parsedOpenDate.getMonth()+1).padStart(2,'0')}/${String(r.parsedOpenDate.getDate()).padStart(2,'0')}/${r.parsedOpenDate.getFullYear()}` : '',
+        'Quantity':            r.Quantity||'',
+        'Proceeds Per Share':  r['Proceeds Per Share']||'',
+        'Cost Per Share':      r['Cost Per Share']||'',
+        'Proceeds':            r.Proceeds||'',
+        'Cost Basis (CB)':     r['Cost Basis (CB)']||'',
+        'Gain/Loss ($)':       r['Gain/Loss ($)']||'',
+        'Gain/Loss (%)':       r['Gain/Loss (%)']||'',
+        'Long Term Gain/Loss': r['Long Term Gain/Loss']||'',
+        'Short Term Gain/Loss':r['Short Term Gain/Loss']||'',
+        'Term':                r.Term||'',
+        'Wash Sale?':          r['Wash Sale?']||'',
+        'Disallowed Loss':     r['Disallowed Loss']||'',
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Realized Gain Loss');
+    XLSX.writeFile(wb, `realized_gain_loss_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── RGL Monthly / Annual Data Table ──────────────────────────
+const RGL_MDT_COLS = [
+    { key:'gainLoss',  label:'Gain / Loss ($)',        color:'#c084fc' },
+    { key:'stGL',      label:'Short Term G/L ($)',      color:'#f59e0b' },
+    { key:'ltGL',      label:'Long Term G/L ($)',       color:'#38bdf8' },
+    { key:'proceeds',  label:'Proceeds ($)',            color:'#10b981' },
+    { key:'costBasis', label:'Cost Basis ($)',          color:'#94a3b8' },
+    { key:'trades',    label:'# of Trades',            color:'#a855f7' },
+];
+
+function showRglMonthlyDataTable() {
+    if (!rglData.length) { alert('No data loaded.'); return; }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg   = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg      = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg     = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg  = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg= isDark ? '#334155' : '#e2e8f0';
+    const borderColor= isDark ? '#334155' : '#cbd5e1';
+    const posColor  = isDark ? '#c084fc' : '#9333ea';
+    const negColor  = isDark ? '#f87171' : '#dc2626';
+
+    const inner = document.getElementById('rglMonthlyDataInner');
+    inner.style.background = modalBg;
+    inner.style.border = '1px solid #a855f7';
+
+    // Build month aggregates
+    const monthSet = new Set();
+    rglFiltered.forEach(r => {
+        if (r.parsedDate) {
+            const y=r.parsedDate.getFullYear(), m=r.parsedDate.getMonth();
+            monthSet.add(`${y}-${String(m).padStart(2,'0')}`);
+        }
+    });
+    const allMonths = [...monthSet].sort().reverse();
+    const uniqueYears = [...new Set(allMonths.map(k=>parseInt(k.split('-')[0])))].sort((a,b)=>b-a);
+    const currentYear = new Date().getFullYear();
+
+    const defaultExpandedYears = rglMdtSavedState.expandedYears
+        ? new Set(rglMdtSavedState.expandedYears)
+        : new Set([String(currentYear), String(currentYear-1)]);
+
+    const monthData = {};
+    rglFiltered.forEach(r => {
+        if (!r.parsedDate) return;
+        const y=r.parsedDate.getFullYear(), m=r.parsedDate.getMonth();
+        const key=`${y}-${String(m).padStart(2,'0')}`;
+        if (!monthData[key]) monthData[key]={gainLoss:0,stGL:0,ltGL:0,proceeds:0,costBasis:0,trades:0};
+        monthData[key].gainLoss   += rglCleanNum(r['Gain/Loss ($)']);
+        monthData[key].stGL       += rglCleanNum(r['Short Term Gain/Loss']);
+        monthData[key].ltGL       += rglCleanNum(r['Long Term Gain/Loss']);
+        monthData[key].proceeds   += rglCleanNum(r.Proceeds);
+        monthData[key].costBasis  += rglCleanNum(r['Cost Basis (CB)']);
+        monthData[key].trades     += 1;
+    });
+
+    const yearData = {};
+    uniqueYears.forEach(y => {
+        yearData[y]={gainLoss:0,stGL:0,ltGL:0,proceeds:0,costBasis:0,trades:0};
+        Object.keys(monthData).forEach(k => {
+            if (parseInt(k.split('-')[0])===y) {
+                RGL_MDT_COLS.forEach(c => { yearData[y][c.key]+=monthData[k][c.key]||0; });
+            }
+        });
+    });
+
+    const grandTotals={gainLoss:0,stGL:0,ltGL:0,proceeds:0,costBasis:0,trades:0};
+    Object.values(monthData).forEach(md => { RGL_MDT_COLS.forEach(c=>{grandTotals[c.key]+=md[c.key]||0;}); });
+
+    rglMdtTableCache = { allMonths, monthData, yearData, grandTotals, uniqueYears };
+
+    const fmtAmt = n => {
+        if (n===0) return '<span style="color:#64748b;">—</span>';
+        return `<span style="color:${n>0?posColor:negColor};font-weight:600;">${n>=0?'$':'-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
+    };
+    const fmtTotal = n => n===0 ? '—' : `${n>=0?'$':'-$'}${Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    const fmtCount = n => n===0?'<span style="color:#64748b;">—</span>':`<span style="color:#a855f7;font-weight:600;">${n}</span>`;
+    const fmtCountTotal = n => n===0?'—':String(n);
+
+    const fmtMonthLabel = key => {
+        const [y,m]=key.split('-');
+        return new Date(parseInt(y),parseInt(m),1).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+    };
+
+    const expandedYears = new Set(rglMdtSavedState.expandAllChecked ? uniqueYears.map(String) : [...defaultExpandedYears]);
+
+    const thStyle   = `background:${thBg};padding:10px 12px;text-align:center;font-size:0.78rem;border-bottom:2px solid #a855f7;white-space:nowrap;position:sticky;top:0;z-index:10;`;
+    const yearStyle = `padding:12px 14px;font-size:0.85rem;font-weight:700;text-align:center;cursor:pointer;user-select:none;border-bottom:1px solid ${borderColor};`;
+    const tdStyle   = `padding:10px 12px;border-bottom:1px solid ${borderColor};font-size:0.82rem;text-align:center;`;
+
+    const buildTable = (expandedSet) => {
+        let html='';
+        uniqueYears.forEach(y => {
+            const yd=yearData[y]||{};
+            const expanded=expandedSet.has(String(y));
+            const icon=expanded?'▼':'▶';
+            html+=`<tr data-year-row="${y}" onclick="rglMdtToggleYear(${y})" style="background:${isDark?'#1e293b':'#f1f5f9'};">
+                <td style="${yearStyle}color:#a855f7;">${icon} ${y}</td>
+                ${RGL_MDT_COLS.map(c=>c.key==='trades'
+                    ? `<td style="${yearStyle}color:#a855f7;">${yd[c.key]||0}</td>`
+                    : `<td style="${yearStyle}${c.key==='gainLoss'?'color:'+(yd[c.key]>=0?posColor:negColor)+';':''}">${fmtTotal(yd[c.key]||0)}</td>`
+                ).join('')}
+            </tr>`;
+            if (expanded) {
+                allMonths.filter(k=>parseInt(k.split('-')[0])===y).forEach((key,mi) => {
+                    const md=monthData[key]||{};
+                    const mbg = mi%2===0 ? rowBg : rowAltBg;
+                    html+=`<tr style="background:${mbg};">
+                        <td style="${tdStyle}color:${textColor};padding-left:28px;">${fmtMonthLabel(key)}</td>
+                        ${RGL_MDT_COLS.map(c=>c.key==='trades'?`<td style="${tdStyle}">${fmtCount(md[c.key]||0)}</td>`:`<td style="${tdStyle}">${fmtAmt(md[c.key]||0)}</td>`).join('')}
+                    </tr>`;
+                });
+            }
+        });
+        // Grand total row
+        html+=`<tr style="background:${totalRowBg};font-weight:700;">
+            <td style="padding:12px 14px;text-align:center;font-size:0.85rem;color:#a855f7;">TOTAL</td>
+            ${RGL_MDT_COLS.map(c=>c.key==='trades'
+                ? `<td style="padding:12px 14px;font-size:0.85rem;text-align:center;color:#a855f7;">${fmtCountTotal(grandTotals[c.key]||0)}</td>`
+                : `<td style="padding:12px 14px;font-size:0.85rem;text-align:center;color:${(grandTotals[c.key]||0)>=0?posColor:negColor};">${fmtTotal(grandTotals[c.key]||0)}</td>`
+            ).join('')}
+        </tr>`;
+        return html;
+    };
+
+    const colWidths = ['18%','14%','14%','14%','14%','13%','13%'];
+    const tblStyle  = `width:100%;border-collapse:collapse;font-size:0.83rem;table-layout:fixed;`;
+
+    document.getElementById('rglMonthlyDataTableContainer').innerHTML = `
+        <div style="overflow:auto;flex:1;border:1px solid ${borderColor};border-radius:8px;">
+        <table id="rglMdtTable" style="${tblStyle}">
+            <colgroup>${colWidths.map(w=>`<col style="width:${w}">`).join('')}</colgroup>
+            <thead><tr>
+                <th style="${thStyle}color:#a855f7;">Month / Year</th>
+                ${RGL_MDT_COLS.map(c=>`<th style="${thStyle}color:${c.color};">${c.label}</th>`).join('')}
+            </tr></thead>
+            <tbody id="rglMdtBody">${buildTable(expandedYears)}</tbody>
+        </table>
+        </div>`;
+
+    // Attach toggle function inline
+    window.rglMdtToggleYear = function(year) {
+        if (expandedYears.has(String(year))) expandedYears.delete(String(year));
+        else expandedYears.add(String(year));
+        rglMdtSavedState.expandedYears = [...expandedYears];
+        document.getElementById('rglMdtBody').innerHTML = buildTable(expandedYears);
+    };
+
+    const modal = document.getElementById('rglMonthlyDataModal');
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target===modal) closeRglMonthlyDataTable(); };
+
+    // Restore expand-all checkbox
+    const cb = document.getElementById('rglMdtExpandAll');
+    if (cb) cb.checked = rglMdtSavedState.expandAllChecked;
+
+    initDraggableModal('rglMonthlyDataInner','#a855f7',1500);
+}
+
+function closeRglMonthlyDataTable() {
+    const _di=document.getElementById('rglMonthlyDataInner'); if(_di) _di._dragInit=false;
+    document.getElementById('rglMonthlyDataModal').style.display='none';
+}
+
+function rglMdtToggleExpandAll(checked) {
+    rglMdtSavedState.expandAllChecked = checked;
+    if (!rglMdtTableCache) return;
+    const {allMonths, monthData, yearData, grandTotals, uniqueYears} = rglMdtTableCache;
+    const expandedYears = checked ? new Set(uniqueYears.map(String)) : new Set();
+    if (!checked) rglMdtSavedState.expandedYears = [];
+    // Re-open the modal to re-render
+    showRglMonthlyDataTable();
+}
+
+function rglMdtDownload() {
+    if (!rglMdtTableCache) { alert('No data to download.'); return; }
+    const {allMonths, monthData, yearData, grandTotals, uniqueYears} = rglMdtTableCache;
+    const fmtML = key => { const [y,m]=key.split('-'); return new Date(parseInt(y),parseInt(m),1).toLocaleDateString('en-US',{month:'short',year:'numeric'}); };
+    const fmtV  = n => n===0 ? '' : parseFloat(n.toFixed(2));
+    const headers = ['Month / Year', ...RGL_MDT_COLS.map(c=>c.label)];
+    const dataRows = allMonths.map(key => {
+        const md=monthData[key]||{};
+        return [fmtML(key), ...RGL_MDT_COLS.map(c=>fmtV(md[c.key]||0))];
+    });
+    const totalRow = ['TOTAL', ...RGL_MDT_COLS.map(c=>fmtV(grandTotals[c.key]||0))];
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([headers,...dataRows,totalRow]);
+    ws['!cols']=[{wch:14},...RGL_MDT_COLS.map(()=>({wch:20}))];
+    XLSX.utils.book_append_sheet(wb,ws,'Monthly Realized GL');
+    XLSX.writeFile(wb,`realized_gain_loss_monthly_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── File parsing for RGL ──────────────────────────────────────
+(function() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const picker = document.getElementById('rglFilePicker');
+        if (!picker) return;
+        picker.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            document.getElementById('rglUploadedFileName').textContent = '📄 ' + file.name;
+            document.getElementById('rglUploadedFileName').style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type:'array', cellDates:true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                    // sheet_to_json with header:1 gives us raw rows as arrays
+                    const rawRows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+
+                    // Find the header row — the one that contains "Symbol" and "Closed Date"
+                    let headerIdx = -1;
+                    for (let i=0; i<Math.min(rawRows.length,10); i++) {
+                        const row = rawRows[i].map(c=>String(c).trim());
+                        if (row.includes('Symbol') && (row.includes('Closed Date') || row.includes('Gain/Loss ($)'))) {
+                            headerIdx = i; break;
+                        }
+                    }
+                    if (headerIdx === -1) headerIdx = 1; // fallback: row 1 is header (row 0 is title)
+
+                    const headers = rawRows[headerIdx].map(c=>String(c).trim());
+                    const dataRows = rawRows.slice(headerIdx+1);
+
+                    rglData = dataRows
+                        .map(row => {
+                            if (!row || row.every(c=>c===''||c===null||c===undefined)) return null;
+                            const r = {};
+                            headers.forEach((h,i) => { r[h] = row[i] !== undefined ? String(row[i]).trim() : ''; });
+                            r.parsedDate     = rglParseDate(r['Transaction Closed Date'] || r['Closed Date']);
+                            r.parsedClosedDate = rglParseDate(r['Closed Date']);
+                            r.parsedOpenDate = rglParseDate(r['Opened Date']);
+                            // Strip currency symbols/commas for numeric fields
+                            ['Proceeds Per Share','Cost Per Share','Proceeds','Cost Basis (CB)',
+                             'Gain/Loss ($)','Long Term Gain/Loss','Short Term Gain/Loss',
+                             'Unadjusted Cost Basis','Disallowed Loss'].forEach(k => {
+                                if (r[k]) r[k] = r[k].replace(/[$,\s]/g,'');
+                            });
+                            return r;
+                        })
+                        .filter(r => r && r.Symbol && r.Symbol.trim() !== '');
+
+                    rglFiltered = [...rglData];
+                    rglSortKey = 'parsedDate'; rglSortDir = -1;
+                    Object.assign(rglState,{checkedTerms:[],datePreset:'all',dateFrom:'',dateTo:'',symbolSearch:''});
+                    rglMdtSavedState = { expandedYears:null, expandAllChecked:false, scrollTop:0 };
+
+                    document.getElementById('rglUploadPrompt').style.display = 'none';
+                    document.getElementById('rglDataSection').style.display = 'block';
+
+                    rglApplyFilters();
+
+                    const inner = document.getElementById('rglInner');
+                    if (inner) {
+                        inner._dragInit = false;
+                        inner.style.minHeight = Math.round(window.innerHeight * 0.90) + 'px';
+                    }
+                    initDraggableModal('rglInner','#a855f7',1400);
+                } catch(err) {
+                    alert('Error reading file: ' + err.message);
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            this.value = '';
+        });
+    });
+})();
+
+// ============================================================
+// SUMMARY CHART MODAL  (Monthly / Annual  &  Weekly / Monthly)
+// ============================================================
+(function() {
+    // ── inject modal HTML once ──────────────────────────────
+    const modalHtml = `
+    <div id="summaryChartModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:2000;justify-content:center;align-items:center;">
+      <div id="summaryChartInner" style="background:var(--bg-secondary);border:1px solid #6d28d9;border-radius:16px;padding:24px;width:92vw;max-width:1300px;height:88vh;display:flex;flex-direction:column;position:relative;box-sizing:border-box;overflow:hidden;">
+
+        <!-- Header -->
+        <div id="scDragHandle" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;cursor:move;user-select:none;">
+          <h2 id="scTitle" style="color:#a78bfa;font-size:1.1rem;flex:1 1 auto;margin:0;">📊 Chart</h2>
+
+          <!-- Chart type pills -->
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);white-space:nowrap;">Chart Type:</span>
+            <label id="scLabelLine" class="sc-type-pill sc-active" onclick="scSetType('line')">📈 Line</label>
+            <label id="scLabelBar"  class="sc-type-pill" onclick="scSetType('bar')">📊 Bar</label>
+            <label id="scLabelArea" class="sc-type-pill" onclick="scSetType('area')">🌊 Area</label>
+            <label id="scLabelMixed" class="sc-type-pill" onclick="scSetType('mixed')">🔀 Mixed</label>
+          </div>
+
+          <!-- Stacked toggle -->
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.78rem;color:var(--text-secondary);white-space:nowrap;cursor:pointer;">
+            <input type="checkbox" id="scStacked" onchange="scRender()" style="accent-color:#7c3aed;"> Stacked
+          </label>
+
+          <!-- Running total toggle -->
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.78rem;color:var(--text-secondary);white-space:nowrap;cursor:pointer;">
+            <input type="checkbox" id="scCumulative" onchange="scRender()" style="accent-color:#7c3aed;"> Cumulative
+          </label>
+
+          <!-- Download PNG -->
+          <button onclick="scDownloadPng()" style="background:#10b981;color:#fff;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:0.78rem;font-weight:700;white-space:nowrap;">⬇ PNG</button>
+
+          <button onclick="closeSummaryChart()" style="background:#ef4444;color:#fff;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;white-space:nowrap;">✕ Close</button>
+        </div>
+
+        <!-- Date filter row -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:10px;padding:10px 14px;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Quick Range</span>
+            <select id="scDatePreset" onchange="scApplyDatePreset()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;cursor:pointer;">
+              <option value="all">All Dates</option>
+              <option value="today">Today</option>
+              <option value="last7">Last 7 Days</option>
+              <option value="currentMonth">Current Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="currentYear">Current Year</option>
+              <option value="lastYear">Last Year</option>
+              <option value="last3Months">Last 3 Months</option>
+              <option value="last6Months">Last 6 Months</option>
+              <option value="last12Months">Last 12 Months</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">From Date</span>
+            <input type="date" id="scDateFrom" onchange="scApplyManualDate()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">To Date</span>
+            <input type="date" id="scDateTo" onchange="scApplyManualDate()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Symbol Filter</span>
+            <input type="text" id="scSymbolFilterInput" placeholder="e.g. AAPL, NVDA" oninput="scApplySymbolFilter()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;width:160px;">
+          </div>
+          <button onclick="scResetDateFilter()" style="background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;align-self:flex-end;">↺ Reset</button>
+          <div id="scDateRangeLabel" style="font-size:0.76rem;color:var(--text-secondary);align-self:flex-end;padding-bottom:2px;"></div>
+        </div>
+
+        <!-- Series checkboxes -->
+        <div id="scSeriesBar" style="display:flex;flex-wrap:wrap;gap:6px 14px;margin-bottom:12px;padding:10px 14px;background:var(--bg-tertiary);border-radius:8px;border:1px solid var(--border-color);">
+          <!-- populated by JS -->
+        </div>
+
+        <!-- Canvas wrapper -->
+        <div id="scCanvasWrap" style="flex:1;min-height:0;position:relative;overflow:hidden;">
+          <canvas id="scCanvas"></canvas>
+        </div>
+
+        <!-- Annotation / info bar -->
+        <div id="scInfoBar" style="margin-top:8px;font-size:0.75rem;color:var(--text-secondary);text-align:center;"></div>
+
+        <!-- Resize corner grips injected by JS -->
+      </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // inject pill styles
+    const style = document.createElement('style');
+    style.textContent = `
+    .sc-type-pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:0.76rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border-color);color:var(--text-secondary);background:var(--bg-tertiary);transition:all 0.15s;white-space:nowrap;user-select:none;}
+    .sc-type-pill:hover{border-color:#7c3aed;color:#a78bfa;}
+    .sc-type-pill.sc-active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+    .sc-series-cb{display:flex;align-items:center;gap:5px;font-size:0.78rem;cursor:pointer;color:var(--text-primary);white-space:nowrap;}
+    .sc-series-cb input{cursor:pointer;}
+    `;
+    document.head.appendChild(style);
+})();
+
+// ── State ────────────────────────────────────────────────────
+let _scChartInstance = null;
+let _scType     = 'line';       // line | bar | area | mixed
+let _scDataMode = 'monthly';    // monthly | weekly
+let _scLabels   = [];
+let _scRawData  = {};           // key -> array of numbers (same order as _scLabels)
+let _scDateFrom = null;         // Date | null
+let _scDateTo   = null;         // Date | null
+let _scSymbolFilter = [];       // array of uppercase root tickers (empty = show all)
+
+const SC_SERIES = [
+    { key: 'sellOpen',    label: 'Sell/Buy to Open',        color: '#4ade80' },
+    { key: 'buyClose',    label: 'Buy/Sell to Close',       color: '#f87171' },
+    { key: 'cashFlow',    label: 'Cash Flow',               color: '#60a5fa' },
+    { key: 'profit',      label: 'Profit (Closed Options)', color: '#a78bfa' },
+    { key: 'assignedPaid',label: 'Paid Premium Assigned',   color: '#fbbf24' },
+];
+
+// ── Helpers ──────────────────────────────────────────────────
+function scSetType(t) {
+    _scType = t;
+    ['line','bar','area','mixed'].forEach(id => {
+        const el = document.getElementById('scLabel' + id.charAt(0).toUpperCase() + id.slice(1));
+        if (el) el.classList.toggle('sc-active', id === t);
+    });
+    scRender();
+}
+
+function scToISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+}
+
+function scApplyDatePreset() {
+    const preset = document.getElementById('scDatePreset')?.value || 'all';
+    const today = new Date(); today.setHours(0,0,0,0);
+    let start = null, end = null;
+    const endOfToday = () => { const d = new Date(); d.setHours(23,59,59,999); return d; };
+    switch (preset) {
+        case 'today':        start = new Date(today); end = endOfToday(); break;
+        case 'last7':        start = new Date(today); start.setDate(today.getDate()-6); end = endOfToday(); break;
+        case 'currentMonth': start = new Date(today.getFullYear(), today.getMonth(), 1); end = endOfToday(); break;
+        case 'lastMonth':    start = new Date(today.getFullYear(), today.getMonth()-1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0, 23,59,59); break;
+        case 'currentYear':  start = new Date(today.getFullYear(), 0, 1); end = endOfToday(); break;
+        case 'lastYear':     start = new Date(today.getFullYear()-1, 0, 1); end = new Date(today.getFullYear()-1, 11, 31, 23,59,59); break;
+        case 'last3Months':  start = new Date(today.getFullYear(), today.getMonth()-3, 1); end = endOfToday(); break;
+        case 'last6Months':  start = new Date(today.getFullYear(), today.getMonth()-6, 1); end = endOfToday(); break;
+        case 'last12Months': start = new Date(today.getFullYear(), today.getMonth()-12, 1); end = endOfToday(); break;
+        default: start = null; end = null;
+    }
+    const fromEl = document.getElementById('scDateFrom');
+    const toEl   = document.getElementById('scDateTo');
+    if (fromEl) fromEl.value = start ? scToISODate(start) : '';
+    if (toEl)   toEl.value   = end   ? scToISODate(end)   : '';
+    _scDateFrom = start;
+    _scDateTo   = end;
+    scRebuildAndRender();
+}
+
+function scApplyManualDate() {
+    const fromVal = document.getElementById('scDateFrom')?.value;
+    const toVal   = document.getElementById('scDateTo')?.value;
+    _scDateFrom = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+    _scDateTo   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+    if (document.getElementById('scDatePreset')) document.getElementById('scDatePreset').value = 'all';
+    scRebuildAndRender();
+}
+
+function scApplySymbolFilter() {
+    const raw = document.getElementById('scSymbolFilterInput')?.value || '';
+    _scSymbolFilter = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    scRebuildAndRender();
+}
+
+function scResetDateFilter() {
+    _scDateFrom = null; _scDateTo = null;
+    _scSymbolFilter = [];
+    const p = document.getElementById('scDatePreset');         if (p) p.value = 'all';
+    const f = document.getElementById('scDateFrom');           if (f) f.value = '';
+    const t = document.getElementById('scDateTo');             if (t) t.value = '';
+    const s = document.getElementById('scSymbolFilterInput'); if (s) s.value = '';
+    scRebuildAndRender();
+}
+
+function scRebuildAndRender() {
+    if (_scDataMode === 'monthly') scBuildMonthlyData();
+    else scBuildWeeklyData();
+    scRender();
+}
+
+// ── Data builders ────────────────────────────────────────────
+function scBuildMonthlyData() {
+    if (!window.allTransactions || !finalTrades) return;
+    const closedWithDate = finalTrades.filter(t => t.closeDate);
+    const startYear = closedWithDate.length > 0
+        ? Math.min(...closedWithDate.map(t => t.closeDate.getFullYear()))
+        : new Date().getFullYear();
+    const now = new Date();
+    const months = [];
+    for (let y = startYear; y <= now.getFullYear(); y++) {
+        const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
+        for (let m = 0; m <= mEnd; m++) {
+            // Skip months entirely outside the date filter
+            const mStart = new Date(y, m, 1);
+            const mEndD  = new Date(y, m + 1, 0, 23, 59, 59);
+            if (_scDateFrom && mEndD  < _scDateFrom) continue;
+            if (_scDateTo   && mStart > _scDateTo)   continue;
+            months.push({ year: y, month: m });
+        }
+    }
+    const labels = [], sellOpenArr = [], buyCloseArr = [], cashFlowArr = [], profitArr = [], assignedArr = [];
+    months.forEach(({year, month}) => {
+        // Clamp period to filter bounds so partial months at edges are counted correctly
+        const rawStart = new Date(year, month, 1);
+        const rawEnd   = new Date(year, month + 1, 0, 23, 59, 59);
+        const mStart = (_scDateFrom && _scDateFrom > rawStart) ? _scDateFrom : rawStart;
+        const mEnd   = (_scDateTo   && _scDateTo   < rawEnd)   ? _scDateTo   : rawEnd;
+        labels.push(rawStart.toLocaleDateString('en-US', {month:'short', year:'numeric'}));
+        let sellOpen = 0, buyClose = 0;
+        window.allTransactions.forEach(t => {
+            if (t.date >= mStart && t.date <= mEnd) {
+                if (_scSymbolFilter.length > 0) {
+                    const ticker = extractTicker(t.symbol || '').toUpperCase();
+                    if (!_scSymbolFilter.includes(ticker)) return;
+                }
+                if (t.action.includes('to open'))  sellOpen += t.amount;
+                if (t.action.includes('to close')) buyClose += t.amount;
+            }
+        });
+        let profit = 0, assignedPaid = 0;
+        finalTrades.forEach(t => {
+            if (t.closeDate >= mStart && t.closeDate <= mEnd) {
+                if (_scSymbolFilter.length > 0) {
+                    const ticker = extractTicker(t.symbol || '').toUpperCase();
+                    if (!_scSymbolFilter.includes(ticker)) return;
+                }
+                const st = t.status.toLowerCase();
+                if (!st.includes('assigned') || st.includes('called')) profit += t.profit;
+                if (st.includes('assigned') && !st.includes('called')) assignedPaid += Math.abs(t.openingPremium);
+            }
+        });
+        sellOpenArr.push(+sellOpen.toFixed(2));
+        buyCloseArr.push(+buyClose.toFixed(2));
+        cashFlowArr.push(+(sellOpen + buyClose).toFixed(2));
+        profitArr.push(+profit.toFixed(2));
+        assignedArr.push(+assignedPaid.toFixed(2));
+    });
+    _scLabels  = labels;
+    _scRawData = { sellOpen: sellOpenArr, buyClose: buyCloseArr, cashFlow: cashFlowArr, profit: profitArr, assignedPaid: assignedArr };
+}
+
+function scBuildWeeklyData() {
+    if (!window.allTransactions || !finalTrades) return;
+    function getISOWeek(d) {
+        const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+        return { week: Math.ceil((((t - yearStart) / 86400000) + 1) / 7), year: t.getUTCFullYear() };
+    }
+    const weekMap = {};
+    window.allTransactions.forEach(t => {
+        if (!t.date) return;
+        if (_scDateFrom && t.date < _scDateFrom) return;
+        if (_scDateTo   && t.date > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = extractTicker(t.symbol || '').toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return;
+        }
+        const {week, year} = getISOWeek(t.date);
+        const key = `${year}-W${String(week).padStart(2,'0')}`;
+        if (!weekMap[key]) weekMap[key] = { key, year, week, sellOpen: 0, buyClose: 0, profit: 0, assignedPaid: 0 };
+        if (t.action.includes('to open'))  weekMap[key].sellOpen += t.amount;
+        if (t.action.includes('to close')) weekMap[key].buyClose += t.amount;
+    });
+    finalTrades.forEach(t => {
+        if (!t.closeDate) return;
+        if (_scDateFrom && t.closeDate < _scDateFrom) return;
+        if (_scDateTo   && t.closeDate > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = extractTicker(t.symbol || '').toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return;
+        }
+        const {week, year} = getISOWeek(t.closeDate);
+        const key = `${year}-W${String(week).padStart(2,'0')}`;
+        if (!weekMap[key]) weekMap[key] = { key, year, week, sellOpen: 0, buyClose: 0, profit: 0, assignedPaid: 0 };
+        const st = t.status.toLowerCase();
+        if (!st.includes('assigned') || st.includes('called')) weekMap[key].profit += t.profit;
+        if (st.includes('assigned') && !st.includes('called')) weekMap[key].assignedPaid += Math.abs(t.openingPremium);
+    });
+    const sortedKeys = Object.keys(weekMap).sort();
+    const labels = [], sellOpenArr = [], buyCloseArr = [], cashFlowArr = [], profitArr = [], assignedArr = [];
+    sortedKeys.forEach(k => {
+        const w = weekMap[k];
+        const weekStart = (function() {
+            const jan4 = new Date(Date.UTC(w.year, 0, 4));
+            const d = new Date(jan4);
+            d.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay() || 7) + 1 + (w.week - 1) * 7);
+            return d;
+        })();
+        labels.push(`W${w.week} ${weekStart.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}`);
+        sellOpenArr.push(+w.sellOpen.toFixed(2));
+        buyCloseArr.push(+w.buyClose.toFixed(2));
+        cashFlowArr.push(+(w.sellOpen + w.buyClose).toFixed(2));
+        profitArr.push(+w.profit.toFixed(2));
+        assignedArr.push(+w.assignedPaid.toFixed(2));
+    });
+    _scLabels  = labels;
+    _scRawData = { sellOpen: sellOpenArr, buyClose: buyCloseArr, cashFlow: cashFlowArr, profit: profitArr, assignedPaid: assignedArr };
+}
+
+// ── Series checkboxes ─────────────────────────────────────────
+function scBuildSeriesCheckboxes() {
+    const bar = document.getElementById('scSeriesBar');
+    if (!bar) return;
+    // Render with defaults first; _scRestoreSettings will overwrite checked states after
+    bar.innerHTML = SC_SERIES.map(s => {
+        const defaultChecked = s.key === 'profit' || s.key === 'cashFlow' || s.key === 'assignedPaid';
+        return `<label class="sc-series-cb" id="scCbWrap_${s.key}">
+            <input type="checkbox" id="scCb_${s.key}" ${defaultChecked ? 'checked' : ''} onchange="scRender()" style="accent-color:${s.color};width:14px;height:14px;">
+            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s.color};flex-shrink:0;"></span>
+            ${s.label}
+        </label>`;
+    }).join('');
+}
+
+function scApplyRestoredCheckboxes(checkedKeys) {
+    if (!checkedKeys) return;
+    checkedKeys.forEach(({ key, checked }) => {
+        const cb = document.getElementById('scCb_' + key);
+        if (cb) cb.checked = checked;
+    });
+}
+
+function scGetActiveKeys() {
+    return SC_SERIES.filter(s => {
+        const cb = document.getElementById('scCb_' + s.key);
+        return cb && cb.checked;
+    }).map(s => s.key);
+}
+
+function scApplyCumulative(arr) {
+    let running = 0;
+    return arr.map(v => { running += v; return +running.toFixed(2); });
+}
+
+// ── Render ───────────────────────────────────────────────────
+function scRender() {
+    const isCumulative = document.getElementById('scCumulative')?.checked;
+    const isStacked    = document.getElementById('scStacked')?.checked;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor   = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const labelColor  = isDark ? '#94a3b8' : '#475569';
+    const tooltipBg   = isDark ? '#1e293b' : '#ffffff';
+    const tooltipText = isDark ? '#f8fafc' : '#0f172a';
+    const activeKeys  = scGetActiveKeys();
+
+    const datasets = activeKeys.map((key, idx) => {
+        const s = SC_SERIES.find(x => x.key === key);
+        let data = [...(_scRawData[key] || [])];
+        if (isCumulative) data = scApplyCumulative(data);
+        const chartType = _scType === 'mixed'
+            ? (idx % 2 === 0 ? 'bar' : 'line')
+            : (_scType === 'area' || _scType === 'line' ? 'line' : 'bar');
+        const isArea = _scType === 'area' || (_scType === 'mixed' && chartType === 'line');
+        return {
+            type: chartType,
+            label: s.label,
+            data,
+            borderColor: s.color,
+            backgroundColor: chartType === 'bar'
+                ? s.color + 'cc'
+                : isArea ? s.color + '33' : s.color + '22',
+            fill: isArea,
+            tension: 0.4,
+            pointRadius: _scLabels.length > 60 ? 0 : 3,
+            pointHoverRadius: 5,
+            borderWidth: chartType === 'bar' ? 1 : 2,
+            yAxisID: 'y',
+        };
+    });
+
+    const canvas = document.getElementById('scCanvas');
+    if (!canvas) return;
+    const wrap = document.getElementById('scCanvasWrap');
+    if (wrap) {
+        canvas.style.width  = '100%';
+        canvas.style.height = '100%';
+        canvas.width  = wrap.clientWidth  || wrap.offsetWidth  || 800;
+        canvas.height = wrap.clientHeight || wrap.offsetHeight || 400;
+    }
+
+    if (_scChartInstance) { _scChartInstance.destroy(); _scChartInstance = null; }
+
+    const ctx = canvas.getContext('2d');
+    _scChartInstance = new Chart(ctx, {
+        type: _scType === 'bar' ? 'bar' : 'line',
+        data: { labels: _scLabels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: tooltipText,
+                    bodyColor: tooltipText,
+                    borderColor: '#6d28d9',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => {
+                            const v = ctx.parsed.y;
+                            const sign = v < 0 ? '-$' : '$';
+                            return ` ${ctx.dataset.label}: ${sign}${Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: isStacked,
+                    ticks: { color: labelColor, maxRotation: 45, font: { size: 11 } },
+                    grid:  { color: gridColor }
+                },
+                y: {
+                    stacked: isStacked,
+                    ticks: {
+                        color: labelColor, font: { size: 11 },
+                        callback: v => {
+                            const sign = v < 0 ? '-$' : '$';
+                            return sign + Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:0});
+                        }
+                    },
+                    grid: { color: gridColor }
+                }
+            },
+            animation: { duration: 250 }
+        }
+    });
+
+    const infoBar = document.getElementById('scInfoBar');
+    if (infoBar) {
+        const pts = _scLabels.length;
+        const modeLabel = _scDataMode === 'monthly' ? 'Monthly' : 'Weekly';
+        const filterNote = (_scDateFrom || _scDateTo) ? ' (filtered)' : '';
+        infoBar.textContent = `${modeLabel} data — ${pts} period${pts!==1?'s':''}${filterNote} — X-axis: earliest → latest`;
+    }
+}
+
+// ── Per-mode saved settings ───────────────────────────────────
+const _scSaved = {
+    monthly: null,
+    weekly:  null,
+};
+
+function _scSaveSettings(mode) {
+    _scSaved[mode] = {
+        chartType:   _scType,
+        cumulative:  document.getElementById('scCumulative')?.checked ?? true,
+        stacked:     document.getElementById('scStacked')?.checked    ?? false,
+        checkedKeys: SC_SERIES.map(s => ({ key: s.key, checked: !!document.getElementById('scCb_' + s.key)?.checked })),
+        datePreset:  document.getElementById('scDatePreset')?.value ?? 'all',
+        dateFrom:    document.getElementById('scDateFrom')?.value    ?? '',
+        dateTo:      document.getElementById('scDateTo')?.value      ?? '',
+        dateFromObj: _scDateFrom,
+        dateToObj:   _scDateTo,
+    };
+}
+
+function _scRestoreSettings(mode) {
+    const s = _scSaved[mode];
+    if (!s) return false;   // no saved state — use defaults
+
+    _scType     = s.chartType;
+    _scDateFrom = s.dateFromObj;
+    _scDateTo   = s.dateToObj;
+
+    // type pills
+    ['line','bar','area','mixed'].forEach(id => {
+        const el = document.getElementById('scLabel' + id.charAt(0).toUpperCase() + id.slice(1));
+        if (el) el.classList.toggle('sc-active', id === _scType);
+    });
+
+    const cum = document.getElementById('scCumulative'); if (cum) cum.checked = s.cumulative;
+    const stk = document.getElementById('scStacked');    if (stk) stk.checked = s.stacked;
+
+    const p = document.getElementById('scDatePreset'); if (p) p.value = s.datePreset;
+    const f = document.getElementById('scDateFrom');   if (f) f.value = s.dateFrom;
+    const t = document.getElementById('scDateTo');     if (t) t.value = s.dateTo;
+
+    scApplyRestoredCheckboxes(s.checkedKeys);
+    return true;    // settings were restored
+}
+
+// ── Open chart modals ────────────────────────────────────────
+function _scOpenChart(mode, title, accentColor) {
+    if (!window.allTransactions || window.allTransactions.length === 0) { alert('No data to chart.'); return; }
+    _scDataMode = mode;
+
+    document.getElementById('scTitle').textContent = title;
+
+    // Build data first (needed before checkboxes so we can restore state)
+    if (mode === 'monthly') scBuildMonthlyData();
+    else scBuildWeeklyData();
+
+    // Build checkboxes with defaults, then try to restore saved state
+    scBuildSeriesCheckboxes();
+    const hadSaved = _scRestoreSettings(mode);
+
+    if (!hadSaved) {
+        // First open — apply defaults
+        _scType = 'line';
+        _scDateFrom = null;
+        _scDateTo   = null;
+        ['line','bar','area','mixed'].forEach(id => {
+            const el = document.getElementById('scLabel' + id.charAt(0).toUpperCase() + id.slice(1));
+            if (el) el.classList.toggle('sc-active', id === 'line');
+        });
+        const cum = document.getElementById('scCumulative'); if (cum) cum.checked = true;
+        const stk = document.getElementById('scStacked');    if (stk) stk.checked = false;
+        const p = document.getElementById('scDatePreset');   if (p) p.value = 'all';
+        const f = document.getElementById('scDateFrom');     if (f) f.value = '';
+        const t = document.getElementById('scDateTo');       if (t) t.value = '';
+    }
+
+    const modal = document.getElementById('summaryChartModal');
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) closeSummaryChart(); };
+    setTimeout(scRender, 150);
+    initDraggableModal('summaryChartInner', accentColor, 1300);
+}
+
+function showMonthlySummaryChart() {
+    _scOpenChart('monthly', '📊 Monthly / Annual Cash Flow & Profit — Chart View', '#7c3aed');
+}
+function showWeeklySummaryChart() {
+    _scOpenChart('weekly', '📊 Weekly / Monthly Cash Flow & Profit — Chart View', '#0891b2');
+}
+
+function closeSummaryChart() {
+    // Save current settings before closing so they survive reopens
+    _scSaveSettings(_scDataMode);
+    if (_scChartInstance) { _scChartInstance.destroy(); _scChartInstance = null; }
+    const inner = document.getElementById('summaryChartInner');
+    if (inner) inner._dragInit = false;
+    document.getElementById('summaryChartModal').style.display = 'none';
+}
+
+function scDownloadPng() {
+    const canvas = document.getElementById('scCanvas');
+    if (!canvas || !_scChartInstance) return;
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const bgColor   = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const subColor  = isDark ? '#94a3b8' : '#475569';
+
+    // Build header lines
+    const titleEl = document.getElementById('scTitle');
+    const titleText = titleEl ? titleEl.textContent.replace('📊 ', '') : 'Chart';
+
+    const fromVal = document.getElementById('scDateFrom')?.value;
+    const toVal   = document.getElementById('scDateTo')?.value;
+    const preset  = document.getElementById('scDatePreset')?.value || 'all';
+    let filterText = 'Date Range: All Dates';
+    if (fromVal || toVal) {
+        const fmtD = iso => {
+            const [y,m,d] = iso.split('-');
+            return `${m}/${d}/${y}`;
+        };
+        filterText = 'Date Range: ' + (fromVal ? fmtD(fromVal) : '—') + ' → ' + (toVal ? fmtD(toVal) : '—');
+    } else if (preset !== 'all') {
+        const presetEl = document.getElementById('scDatePreset');
+        filterText = 'Date Range: ' + (presetEl?.options[presetEl.selectedIndex]?.text || preset);
+    }
+    if (_scSymbolFilter.length > 0) {
+        filterText += '   |   Symbols: ' + _scSymbolFilter.join(', ');
+    }
+
+    // Active series
+    const activeLabels = scGetActiveKeys().map(k => SC_SERIES.find(s => s.key === k)?.label).filter(Boolean);
+    const seriesText = 'Series: ' + (activeLabels.length ? activeLabels.join(' · ') : 'None');
+
+    const chartTypeMap = { line:'Line', bar:'Bar', area:'Area', mixed:'Mixed' };
+    const typeText = 'Type: ' + (chartTypeMap[_scType] || _scType);
+
+    // Header height
+    const HEADER_H = 72;
+    const tmp = document.createElement('canvas');
+    tmp.width  = canvas.width;
+    tmp.height = canvas.height + HEADER_H;
+
+    const ctx2 = tmp.getContext('2d');
+
+    // Background
+    ctx2.fillStyle = bgColor;
+    ctx2.fillRect(0, 0, tmp.width, tmp.height);
+
+    // Accent bar at top
+    ctx2.fillStyle = '#6d28d9';
+    ctx2.fillRect(0, 0, tmp.width, 4);
+
+    // Title
+    ctx2.fillStyle = '#a78bfa';
+    ctx2.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx2.fillText(titleText, 16, 26);
+
+    // Sub-line 1: filter + type
+    ctx2.fillStyle = subColor;
+    ctx2.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx2.fillText(filterText + '   |   ' + typeText, 16, 46);
+
+    // Sub-line 2: series
+    ctx2.fillText(seriesText, 16, 63);
+
+    // Chart image below header
+    ctx2.drawImage(canvas, 0, HEADER_H);
+
+    const link = document.createElement('a');
+    link.download = `summary_chart_${_scDataMode}_${new Date().toISOString().slice(0,10)}.png`;
+    link.href = tmp.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ============================================================
+// DRAG + RESIZE UTILITY FOR MODAL WINDOWS
+// ============================================================
+function initDraggableModal(innerId, accentColor, maxWidthPx) {
+    const inner = document.getElementById(innerId);
+    if (!inner) return;
+
+    // Avoid re-initialising if already done
+    if (inner._dragInit) return;
+    inner._dragInit = true;
+
+    // ── Position inner div as fixed, centered in viewport ──
+    // Read natural dimensions BEFORE changing position (avoids max-width being cleared first)
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const rawW = inner.getBoundingClientRect().width || inner.offsetWidth;
+    const rawH = inner.getBoundingClientRect().height || inner.offsetHeight;
+
+    inner.style.position  = 'fixed';
+    inner.style.margin    = '0';
+    inner.style.maxWidth  = 'none';
+    inner.style.maxHeight = 'none';
+
+    const w = Math.min(rawW || maxWidthPx || Math.round(vw * 0.70), vw - 20);
+    const h = Math.min(rawH || Math.round(vh * 0.90), vh - 20);
+    inner.style.width    = w + 'px';
+    inner.style.height   = h + 'px';
+    inner.style.left     = Math.round((vw - w) / 2) + 'px';
+    inner.style.top      = Math.round((vh - h) / 2) + 'px';
+    inner.style.overflow = 'auto';
+    inner.style.boxSizing = 'border-box';
+
+    // ── Drag handle: the first child div (header row) ──
+    const header = inner.querySelector('div');
+    if (header) {
+        header.style.cursor     = 'move';
+        header.style.userSelect = 'none';
+    }
+
+    let dragging = false, dx0, dy0, l0, t0;
+
+    const onHeaderDown = (e) => {
+        if (e.button !== 0) return;
+        const tgt = e.target;
+        if (tgt.tagName === 'BUTTON' || tgt.tagName === 'INPUT' ||
+            tgt.tagName === 'SELECT' || tgt.closest('button') ||
+            tgt.closest('select')) return;
+        dragging = true;
+        dx0 = e.clientX; dy0 = e.clientY;
+        l0  = parseInt(inner.style.left) || 0;
+        t0  = parseInt(inner.style.top)  || 0;
+        e.preventDefault();
+    };
+    if (header) header.addEventListener('mousedown', onHeaderDown);
+
+    const onMouseMove = (e) => {
+        if (!dragging) return;
+        inner.style.left = (l0 + e.clientX - dx0) + 'px';
+        inner.style.top  = (t0 + e.clientY - dy0) + 'px';
+    };
+    const onMouseUp = () => { dragging = false; };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup',   onMouseUp);
+
+    // ── Resize handles at all 4 corners ──
+    const corners = [
+        { id: 'nw', cursor: 'nw-resize', top: 0,    left: 0,    right: null, bottom: null },
+        { id: 'ne', cursor: 'ne-resize', top: 0,    left: null,  right: 0,   bottom: null },
+        { id: 'sw', cursor: 'sw-resize', top: null,  left: 0,    right: null, bottom: 0   },
+        { id: 'se', cursor: 'se-resize', top: null,  left: null,  right: 0,   bottom: 0   },
+    ];
+
+    corners.forEach(({ id, cursor, top, left, right, bottom }) => {
+        const h = document.createElement('div');
+        Object.assign(h.style, {
+            position:  'absolute',
+            width:     '18px',
+            height:    '18px',
+            cursor,
+            zIndex:    '9999',
+            boxSizing: 'border-box',
+        });
+        if (top    !== null) h.style.top    = top    + 'px';
+        if (bottom !== null) h.style.bottom = bottom + 'px';
+        if (left   !== null) h.style.left   = left   + 'px';
+        if (right  !== null) h.style.right  = right  + 'px';
+
+        // Visual grip dots
+        const isS = id.includes('s'), isE = id.includes('e');
+        h.innerHTML = `<svg width="10" height="10" style="position:absolute;${isS?'bottom':'top'}:3px;${isE?'right':'left'}:3px;opacity:0.5;" viewBox="0 0 10 10"><circle cx="2" cy="2" r="1.5" fill="${accentColor||'#6d28d9'}"/><circle cx="6" cy="2" r="1.5" fill="${accentColor||'#6d28d9'}"/><circle cx="2" cy="6" r="1.5" fill="${accentColor||'#6d28d9'}"/><circle cx="6" cy="6" r="1.5" fill="${accentColor||'#6d28d9'}"/></svg>`;
+
+        h.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); e.preventDefault();
+            const sx = e.clientX, sy = e.clientY;
+            const sw = inner.offsetWidth,  sh = inner.offsetHeight;
+            const sl = parseInt(inner.style.left) || 0;
+            const st = parseInt(inner.style.top)  || 0;
+            const minW = 360, minH = 220;
+
+            const onMove = (e) => {
+                const ddx = e.clientX - sx, ddy = e.clientY - sy;
+                // LEFT edge: drag right shrinks from left, moves left position
+                if (left   !== null) { const nw = Math.max(minW, sw - ddx); inner.style.width  = nw + 'px'; inner.style.left = (sl + sw - nw) + 'px'; }
+                // RIGHT edge: drag right grows from right, left position stays
+                if (right  !== null) { inner.style.width  = Math.max(minW, sw + ddx) + 'px'; }
+                // TOP edge: drag down shrinks from top, moves top position
+                if (top    !== null) { const nh = Math.max(minH, sh - ddy); inner.style.height = nh + 'px'; inner.style.top  = (st + sh - nh) + 'px'; }
+                // BOTTOM edge: drag down grows from bottom, top position stays
+                if (bottom !== null) { inner.style.height = Math.max(minH, sh + ddy) + 'px'; }
+            };
+            const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+        inner.appendChild(h);
+    });
+
+    // Store cleanup fn so it can be called on close
+    inner._dragCleanup = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup',   onMouseUp);
+        inner._dragInit = false;
+        // Remove corner handles
+        inner.querySelectorAll('div[style*="cursor: nw-resize"], div[style*="cursor: ne-resize"], div[style*="cursor: sw-resize"], div[style*="cursor: se-resize"]').forEach(el => el.remove());
+    };
+}
+</script>
+</body>
+</html>
+
