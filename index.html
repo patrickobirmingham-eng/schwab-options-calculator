@@ -499,6 +499,7 @@ th.oc-drop-target {
                             <th onclick="sortTickerTable('trades')"  style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Trades ↕</th>
                             <th onclick="sortTickerTable('winRate')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Win % ↕</th>
                             <th onclick="sortTickerTable('totalPL')" style="padding:12px 14px; text-align:right;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Total P&amp;L ↕</th>
+                            <th onclick="sortTickerTable('premCaptured')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">% Premium<br>Captured ↕</th>
                             <th onclick="sortTickerTable('avgPrem')" style="padding:12px 14px; text-align:right;  cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Avg Premium ↕</th>
                             <th onclick="sortTickerTable('avgDays')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Avg Days Held ↕</th>
                             <th onclick="sortTickerTable('contracts')" style="padding:12px 14px; text-align:center; cursor:pointer; border-bottom:2px solid #e11d48; white-space:nowrap;">Contracts ↕</th>
@@ -1604,6 +1605,9 @@ function render(newSortKey, dataToRender) {
     const avgPremium = closedNonAssigned.length > 0
         ? (closedNonAssigned.reduce((s, x) => s + Math.abs(x.openingPremium || 0), 0) / closedNonAssigned.length)
         : null;
+    const netCreditSum = closedNonAssigned.reduce((s, x) => s + (x.openingPremium || 0), 0);
+    const totalClosedPL = closedNonAssigned.reduce((s, x) => s + (x.profit || 0), 0);
+    const premCaptured = netCreditSum > 0 ? (totalClosedPL / netCreditSum * 100) : null;
     const daysHeldArr = closedNonAssigned
         .filter(x => x.openDate && x.closeDate)
         .map(x => Math.round((x.closeDate - x.openDate) / 86400000));
@@ -1621,8 +1625,8 @@ function render(newSortKey, dataToRender) {
         <div class="stat-card"><div class="stat-label">Assigned<br>Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Closed<br>Trades</div><div class="stat-value">${closedTrades}</div></div>
         <div class="stat-card"><div class="stat-label">Open<br>Positions</div><div class="stat-value waiting">${openTrades}</div></div>
-        <div class="stat-card"><div class="stat-label">Win<br>Rate</div><div class="stat-value" style="color:${winRate !== null ? (parseFloat(winRate) >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${winRate !== null ? winRate + '%' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">Avg Premium<br>/ Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
+        <div class="stat-card"><div class="stat-label">Average Premium<br>Per Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
+        <div class="stat-card"><div class="stat-label">% Premium<br>Captured</div><div class="stat-value" style="color:${premCaptured !== null ? (premCaptured >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${premCaptured !== null ? premCaptured.toFixed(1) + '%' : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">Avg Days<br>Held</div><div class="stat-value">${avgDaysHeld !== null ? avgDaysHeld + 'd' : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">Total<br>Contracts</div><div class="stat-value">${totalContracts || '—'}</div></div>
     `;
@@ -6844,12 +6848,17 @@ function buildTickerData() {
             if (toMs   !== null && cd > toMs)   return;
         }
         const ticker = extractTicker(x.symbol);
-        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, totalPL:0, premiumSum:0, daysSum:0, daysCount:0, contracts:0 };
+        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, totalPL:0, premiumSum:0, netCreditSum:0, daysSum:0, daysCount:0, contracts:0 };
         const m = map[ticker];
-        m.trades++;
-        if ((x.profit || 0) > 0) m.wins++;
+        const isBuyLeg = (x.openingPremium || 0) < 0;   // buy side of a spread
+        if (!isBuyLeg) {
+            // only count sell-side (credit) legs toward trade count and win rate
+            m.trades++;
+            if ((x.profit || 0) > 0) m.wins++;
+        }
         m.totalPL += x.profit || 0;
         m.premiumSum += Math.abs(x.openingPremium || 0);
+        m.netCreditSum += (x.openingPremium || 0);   // signed: sell legs +, buy legs −
         m.contracts += Math.abs(Number(x.contracts) || 0);
         if (x.openDate && x.closeDate) {
             m.daysSum += Math.round((x.closeDate - x.openDate) / 86400000);
@@ -6861,6 +6870,7 @@ function buildTickerData() {
         winRate: m.trades > 0 ? (m.wins / m.trades * 100) : 0,
         avgPrem: m.trades > 0 ? m.premiumSum / m.trades : 0,
         avgDays: m.daysCount > 0 ? +(m.daysSum / m.daysCount).toFixed(1) : 0,
+        premCaptured: m.netCreditSum > 0 ? (m.totalPL / m.netCreditSum * 100) : null,
     }));
 }
 
@@ -6952,6 +6962,7 @@ function renderTickerTable(rows) {
             <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.trades}</td>
             <td style="padding:11px 14px; text-align:center; font-weight:600; color:${winColor(r.winRate)};">${fmtPct(r.winRate)}</td>
             <td style="padding:11px 14px; text-align:right; font-weight:700; color:${plColor(r.totalPL)};">${fmt$(r.totalPL)}</td>
+            <td style="padding:11px 14px; text-align:center; font-weight:600; color:${r.premCaptured !== null ? plColor(r.premCaptured) : 'var(--text-muted)'};">${r.premCaptured !== null ? r.premCaptured.toFixed(1)+'%' : '—'}</td>
             <td style="padding:11px 14px; text-align:right; color:var(--text-muted);">$${r.avgPrem.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
             <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.avgDays > 0 ? r.avgDays + 'd' : '—'}</td>
             <td style="padding:11px 14px; text-align:center; color:var(--text-muted);">${r.contracts}</td>
@@ -6990,9 +7001,14 @@ function renderTickerChart(rows) {
 
 function renderTickerSummaryPills(rows) {
     const totalPL = rows.reduce((s,r) => s+r.totalPL, 0);
+    const totalNetCredit = rows.reduce((s,r) => s+r.netCreditSum, 0);
+    const overallPremCaptured = totalNetCredit > 0 ? (totalPL / totalNetCredit * 100) : null;
     const bestTicker = rows.length ? rows.reduce((a,b) => a.totalPL > b.totalPL ? a : b) : null;
     const worstTicker = rows.length ? rows.reduce((a,b) => a.totalPL < b.totalPL ? a : b) : null;
     const overallWinRate = rows.reduce((s,r)=>s+r.wins,0) / Math.max(1, rows.reduce((s,r)=>s+r.trades,0)) * 100;
+    const totalPremiumSum = rows.reduce((s,r) => s+r.premiumSum, 0);
+    const totalTrades = rows.reduce((s,r) => s+r.trades, 0);
+    const overallAvgPremium = totalTrades > 0 ? (totalPremiumSum / totalTrades) : null;
 
     const pill = (label, val, color) =>
         `<div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center;">
@@ -7003,6 +7019,8 @@ function renderTickerSummaryPills(rows) {
     document.getElementById('tickerSummaryPills').innerHTML =
         pill('Overall P&L', (totalPL>=0?'+$':'-$')+Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), totalPL>=0?'#4ade80':'#f87171') +
         pill('Overall Win Rate', overallWinRate.toFixed(1)+'%', overallWinRate>=50?'#4ade80':'#f87171') +
+        pill('Avg Premium / Trade', overallAvgPremium !== null ? '$'+overallAvgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—', '#4ade80') +
+        pill('% Premium Captured', overallPremCaptured !== null ? overallPremCaptured.toFixed(1)+'%' : '—', overallPremCaptured !== null ? (overallPremCaptured>=50?'#4ade80':'#f87171') : 'var(--text-secondary)') +
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
         (bestTicker  ? pill('Best Ticker',  bestTicker.ticker  + ' (+$'+Math.abs(bestTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#4ade80') : '') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
@@ -7013,13 +7031,6 @@ function showTickerBreakdown() {
         alert('No trade data loaded. Please upload a file first.');
         return;
     }
-    // Reset filters to "All Time" each time the modal opens
-    tickerSortKey = 'totalPL';
-    tickerSortDir = -1;
-    document.getElementById('tickerDatePreset').value = 'all';
-    document.getElementById('tickerDateFrom').value   = '';
-    document.getElementById('tickerDateTo').value     = '';
-    document.getElementById('tickerDateRangeBar').textContent = '';
     const rows = buildTickerData();
     if (!rows.length) {
         alert('No closed trades found to analyse.');
