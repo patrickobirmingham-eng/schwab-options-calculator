@@ -90,8 +90,8 @@ details[open] .howto-guide summary::before { transform:rotate(90deg); }
 .sample-btn:hover { background:#6d28d9; color:#fff; }
 
 /* Feature pills */
-.feature-pills { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 22px; }
-.feature-pill { background:var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-secondary); font-size:0.75rem; padding:4px 12px; border-radius:50px; }
+.feature-pills { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:0 0 22px; }
+.feature-pill { background:var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-secondary); font-size:0.95rem; padding:7px 18px; border-radius:50px; font-weight:500; }
 
 /* Theme Toggle Button */
 #themeToggle {
@@ -454,7 +454,11 @@ th.oc-drop-target {
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg>
                     P&amp;L Breakdown by Ticker
                 </h2>
-                <button onclick="closeTickerBreakdown()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                <div style="display:inline-flex; gap:8px; align-items:center;">
+                    <button onclick="tickerDownloadData()" style="background:#10b981;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.9rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Data</button>
+                    <button onclick="tickerDownloadPng()" style="background:#10b981;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.9rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download PNG</button>
+                    <button onclick="closeTickerBreakdown()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
             </div>
             <!-- Date Filters -->
             <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; justify-content:center;">
@@ -7048,6 +7052,126 @@ function closeTickerBreakdown() {
     if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
     const inner = document.getElementById('tickerInner');
     if (inner && inner._dragCleanup) inner._dragCleanup();
+}
+
+function tickerDownloadData() {
+    const rows = buildTickerData();
+    if (!rows.length) { alert('No data to download.'); return; }
+
+    // Sort by current sort key so export reflects what user sees
+    rows.sort((a, b) => {
+        const v1 = a[tickerSortKey], v2 = b[tickerSortKey];
+        if (typeof v1 === 'string') return v1.localeCompare(v2) * tickerSortDir;
+        return (v1 - v2) * tickerSortDir;
+    });
+
+    const exportRows = rows.map(r => ({
+        Ticker: r.ticker,
+        Trades: r.trades,
+        'Win Rate (%)': +r.winRate.toFixed(1),
+        'Total P&L ($)': +r.totalPL.toFixed(2),
+        '% Premium Captured': r.premCaptured !== null ? +r.premCaptured.toFixed(1) : '',
+        'Avg Premium / Trade ($)': +r.avgPrem.toFixed(2),
+        'Avg Days Held': r.avgDays > 0 ? r.avgDays : '',
+        Contracts: r.contracts,
+    }));
+
+    // Summary totals row
+    const totalPL = rows.reduce((s,r) => s+r.totalPL, 0);
+    const totalNetCredit = rows.reduce((s,r) => s+r.netCreditSum, 0);
+    const overallPremCaptured = totalNetCredit > 0 ? (totalPL / totalNetCredit * 100) : null;
+    const totalPremiumSum = rows.reduce((s,r) => s+r.premiumSum, 0);
+    const totalTrades = rows.reduce((s,r) => s+r.trades, 0);
+    const totalWins = rows.reduce((s,r) => s+r.wins, 0);
+    const overallWinRate = totalTrades > 0 ? (totalWins / totalTrades * 100) : 0;
+    const overallAvgPrem = totalTrades > 0 ? (totalPremiumSum / totalTrades) : 0;
+    const totalContracts = rows.reduce((s,r) => s+r.contracts, 0);
+
+    exportRows.push({
+        Ticker: 'TOTAL',
+        Trades: totalTrades,
+        'Win Rate (%)': +overallWinRate.toFixed(1),
+        'Total P&L ($)': +totalPL.toFixed(2),
+        '% Premium Captured': overallPremCaptured !== null ? +overallPremCaptured.toFixed(1) : '',
+        'Avg Premium / Trade ($)': +overallAvgPrem.toFixed(2),
+        'Avg Days Held': '',
+        Contracts: totalContracts,
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    XLSX.utils.book_append_sheet(wb, ws, 'P&L by Ticker');
+
+    const fromVal = document.getElementById('tickerDateFrom')?.value || '';
+    const toVal   = document.getElementById('tickerDateTo')?.value   || '';
+    const rangeSuffix = (fromVal || toVal) ? `_${fromVal || 'start'}_to_${toVal || 'end'}` : '';
+    XLSX.writeFile(wb, `pl_by_ticker${rangeSuffix}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function tickerDownloadPng() {
+    const canvas = document.getElementById('tickerChart');
+    if (!canvas || !tickerChartInstance) { alert('No chart to download.'); return; }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const bgColor  = isDark ? '#1e293b' : '#ffffff';
+    const subColor = isDark ? '#94a3b8' : '#475569';
+
+    // Header lines
+    const titleText = 'P&L Breakdown by Ticker';
+    const fromVal = document.getElementById('tickerDateFrom')?.value;
+    const toVal   = document.getElementById('tickerDateTo')?.value;
+    const preset  = document.getElementById('tickerDatePreset')?.value || 'all';
+    let filterText = 'Date Range: All Dates';
+    if (fromVal || toVal) {
+        const fmtD = iso => {
+            const [y,m,d] = iso.split('-');
+            return `${m}/${d}/${y}`;
+        };
+        filterText = 'Date Range: ' + (fromVal ? fmtD(fromVal) : '—') + ' → ' + (toVal ? fmtD(toVal) : '—');
+    } else if (preset !== 'all') {
+        const presetEl = document.getElementById('tickerDatePreset');
+        filterText = 'Date Range: ' + (presetEl?.options[presetEl.selectedIndex]?.text || preset);
+    }
+
+    const rows = buildTickerData();
+    const totalPL = rows.reduce((s,r) => s+r.totalPL, 0);
+    const totalTrades = rows.reduce((s,r) => s+r.trades, 0);
+    const statsText = `Tickers: ${rows.length}   |   Trades: ${totalTrades}   |   Total P&L: ${(totalPL>=0?'+$':'-$')}${Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+
+    const HEADER_H = 72;
+    const tmp = document.createElement('canvas');
+    tmp.width  = canvas.width;
+    tmp.height = canvas.height + HEADER_H;
+    const ctx2 = tmp.getContext('2d');
+
+    // Background
+    ctx2.fillStyle = bgColor;
+    ctx2.fillRect(0, 0, tmp.width, tmp.height);
+
+    // Accent bar
+    ctx2.fillStyle = '#e11d48';
+    ctx2.fillRect(0, 0, tmp.width, 4);
+
+    // Title
+    ctx2.fillStyle = '#e11d48';
+    ctx2.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx2.fillText(titleText, 16, 26);
+
+    // Sub-lines
+    ctx2.fillStyle = subColor;
+    ctx2.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx2.fillText(filterText, 16, 46);
+    ctx2.fillText(statsText, 16, 63);
+
+    // Chart
+    ctx2.drawImage(canvas, 0, HEADER_H);
+
+    const link = document.createElement('a');
+    link.download = `pl_by_ticker_${new Date().toISOString().slice(0,10)}.png`;
+    link.href = tmp.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 </script>
 </body>
