@@ -1621,15 +1621,15 @@ function render(newSortKey, dataToRender) {
     const totalContracts = closedNonAssigned.reduce((s, x) => s + Math.abs(Number(x.contracts) || 0), 0);
 
     document.getElementById('summary').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Sell/Buy<br>to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Buy/Sell<br>to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Sell / Buy<br>to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+        <div class="stat-card"><div class="stat-label">Buy / Sell<br>to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Cash<br>Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Realized<br>Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Open<br>Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Assigned<br>Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
         <div class="stat-card"><div class="stat-label">Closed<br>Trades</div><div class="stat-value">${closedTrades}</div></div>
         <div class="stat-card"><div class="stat-label">Open<br>Positions</div><div class="stat-value waiting">${openTrades}</div></div>
-        <div class="stat-card"><div class="stat-label">Average Premium<br>Per Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Premium<br>Per Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">% Premium<br>Captured</div><div class="stat-value" style="color:${premCaptured !== null ? (premCaptured >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${premCaptured !== null ? premCaptured.toFixed(1) + '%' : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">Avg Days<br>Held</div><div class="stat-value">${avgDaysHeld !== null ? avgDaysHeld + 'd' : '—'}</div></div>
         <div class="stat-card"><div class="stat-label">Total<br>Contracts</div><div class="stat-value">${totalContracts || '—'}</div></div>
