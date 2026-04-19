@@ -427,6 +427,7 @@ th.oc-drop-target {
                         <button onclick="tsReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
                         <button onclick="showMonthlyDataTable()" style="background:#0891b2;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">📅 Monthly / Annual Data Table</button>
                         <button onclick="tsDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
+                        <button onclick="showTsChart()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:5px;">📊 View Chart</button>
                     </div>
                 </div>
             </div>
@@ -532,6 +533,7 @@ th.oc-drop-target {
                             <button onclick="rglReset()" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">Reset Filters</button>
                             <button onclick="showRglMonthlyDataTable()" style="background:#0891b2;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">📅 Monthly / Annual Data Table</button>
                             <button onclick="rglDownload()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">⬇ Download</button>
+                            <button onclick="showRglChart()" style="background:#a855f7;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;">📊 View Chart</button>
                         </div>
                     </div>
                 </div>
@@ -5141,22 +5143,22 @@ function rglRenderTable() {
 function rglDownload() {
     if (!rglFiltered.length) { alert('No data to download.'); return; }
     const exportRows = rglFiltered.map(r => ({
-        'Symbol':              r.Symbol||'',
-        'Name':                r.Name||'',
+        'Symbol':              (r.Symbol||'').trim(),
+        'Name':                (r.Name||'').trim(),
         'Closed Date':         r.parsedDate ? `${String(r.parsedDate.getMonth()+1).padStart(2,'0')}/${String(r.parsedDate.getDate()).padStart(2,'0')}/${r.parsedDate.getFullYear()}` : '',
         'Opened Date':         r.parsedOpenDate ? `${String(r.parsedOpenDate.getMonth()+1).padStart(2,'0')}/${String(r.parsedOpenDate.getDate()).padStart(2,'0')}/${r.parsedOpenDate.getFullYear()}` : '',
-        'Quantity':            r.Quantity||'',
-        'Proceeds Per Share':  r['Proceeds Per Share']||'',
-        'Cost Per Share':      r['Cost Per Share']||'',
-        'Proceeds':            r.Proceeds||'',
-        'Cost Basis (CB)':     r['Cost Basis (CB)']||'',
-        'Gain/Loss ($)':       r['Gain/Loss ($)']||'',
-        'Gain/Loss (%)':       r['Gain/Loss (%)']||'',
-        'Long Term Gain/Loss': r['Long Term Gain/Loss']||'',
-        'Short Term Gain/Loss':r['Short Term Gain/Loss']||'',
-        'Term':                r.Term||'',
-        'Wash Sale?':          r['Wash Sale?']||'',
-        'Disallowed Loss':     r['Disallowed Loss']||'',
+        'Quantity':            rglCleanNum(r.Quantity) || '',
+        'Proceeds Per Share':  rglCleanNum(r['Proceeds Per Share']) || '',
+        'Cost Per Share':      rglCleanNum(r['Cost Per Share']) || '',
+        'Proceeds':            rglCleanNum(r.Proceeds) || '',
+        'Cost Basis (CB)':     rglCleanNum(r['Cost Basis (CB)']) || '',
+        'Gain/Loss ($)':       rglCleanNum(r['Gain/Loss ($)']) || '',
+        'Gain/Loss (%)':       rglCleanNum(r['Gain/Loss (%)']) || '',
+        'Long Term Gain/Loss': rglCleanNum(r['Long Term Gain/Loss']) || '',
+        'Short Term Gain/Loss':rglCleanNum(r['Short Term Gain/Loss']) || '',
+        'Term':                (r.Term||'').trim(),
+        'Wash Sale?':          (r['Wash Sale?']||'').trim(),
+        'Disallowed Loss':     rglCleanNum(r['Disallowed Loss']) || '',
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(exportRows);
@@ -5443,11 +5445,11 @@ function rglMdtDownload() {
     // ── inject modal HTML once ──────────────────────────────
     const modalHtml = `
     <div id="summaryChartModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:2000;justify-content:center;align-items:center;">
-      <div id="summaryChartInner" style="background:var(--bg-secondary);border:1px solid #6d28d9;border-radius:16px;padding:24px;width:92vw;max-width:1300px;height:88vh;display:flex;flex-direction:column;position:relative;box-sizing:border-box;overflow:hidden;">
+      <div id="summaryChartInner" style="background:var(--bg-secondary);border:1px solid #6d28d9;border-radius:16px;padding:24px;width:92vw;max-width:1300px;height:88vh;display:flex;flex-direction:column;position:relative;box-sizing:border-box;overflow:hidden;transition:border-color 0.2s;">
 
         <!-- Header -->
         <div id="scDragHandle" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;cursor:move;user-select:none;">
-          <h2 id="scTitle" style="color:#a78bfa;font-size:1.1rem;flex:1 1 auto;margin:0;">📊 Chart</h2>
+          <h2 id="scTitle" style="color:#a78bfa;font-size:1.1rem;flex:1 1 auto;margin:0;transition:color 0.2s;">📊 Chart</h2>
 
           <!-- Chart type pills -->
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -5504,6 +5506,7 @@ function rglMdtDownload() {
             <input type="text" id="scSymbolFilterInput" placeholder="e.g. AAPL, NVDA" oninput="scApplySymbolFilter()" style="padding:6px 10px;border-radius:7px;border:1.5px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.82rem;width:160px;">
           </div>
           <button onclick="scResetDateFilter()" style="background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;align-self:flex-end;">↺ Reset</button>
+          <button onclick="scUncheckAllFilters()" style="background:#475569;color:#fff;border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;align-self:flex-end;">☐ Uncheck all filters</button>
           <div id="scDateRangeLabel" style="font-size:0.76rem;color:var(--text-secondary);align-self:flex-end;padding-bottom:2px;"></div>
         </div>
 
@@ -5548,11 +5551,11 @@ let _scDateTo   = null;         // Date | null
 let _scSymbolFilter = [];       // array of uppercase root tickers (empty = show all)
 
 const SC_SERIES = [
-    { key: 'sellOpen',    label: 'Sell/Buy to Open',        color: '#4ade80' },
-    { key: 'buyClose',    label: 'Buy/Sell to Close',       color: '#f87171' },
-    { key: 'cashFlow',    label: 'Cash Flow',               color: '#60a5fa' },
-    { key: 'profit',      label: 'Profit (Closed Options)', color: '#a78bfa' },
-    { key: 'assignedPaid',label: 'Paid Premium Assigned',   color: '#fbbf24' },
+    { key: 'sellOpen',    label: 'Sell/Buy to Open',        color: '#4ade80', defaultChecked: false },
+    { key: 'buyClose',    label: 'Buy/Sell to Close',       color: '#f87171', defaultChecked: false },
+    { key: 'cashFlow',    label: 'Cash Flow',               color: '#60a5fa', defaultChecked: true  },
+    { key: 'profit',      label: 'Profit (Closed Options)', color: '#a78bfa', defaultChecked: true  },
+    { key: 'assignedPaid',label: 'Paid Premium Assigned',   color: '#fbbf24', defaultChecked: true  },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -5620,12 +5623,26 @@ function scResetDateFilter() {
     const f = document.getElementById('scDateFrom');           if (f) f.value = '';
     const t = document.getElementById('scDateTo');             if (t) t.value = '';
     const s = document.getElementById('scSymbolFilterInput'); if (s) s.value = '';
+    _scGetActiveSeries().forEach(series => {
+        const cb = document.getElementById('scCb_' + series.key);
+        if (cb) cb.checked = (series.defaultChecked !== false);
+    });
     scRebuildAndRender();
 }
 
+function scUncheckAllFilters() {
+    _scGetActiveSeries().forEach(s => {
+        const cb = document.getElementById('scCb_' + s.key);
+        if (cb) cb.checked = false;
+    });
+    scRender();
+}
+
 function scRebuildAndRender() {
-    if (_scDataMode === 'monthly') scBuildMonthlyData();
-    else scBuildWeeklyData();
+    if      (_scDataMode === 'monthly')  scBuildMonthlyData();
+    else if (_scDataMode === 'weekly')   scBuildWeeklyData();
+    else if (_scDataMode === 'txSorter') scBuildTsData();
+    else if (_scDataMode === 'rgl')      scBuildRglData();
     scRender();
 }
 
@@ -5753,11 +5770,11 @@ function scBuildWeeklyData() {
 function scBuildSeriesCheckboxes() {
     const bar = document.getElementById('scSeriesBar');
     if (!bar) return;
-    // Render with defaults first; _scRestoreSettings will overwrite checked states after
-    bar.innerHTML = SC_SERIES.map(s => {
-        const defaultChecked = s.key === 'profit' || s.key === 'cashFlow' || s.key === 'assignedPaid';
+    const activeSeries = _scGetActiveSeries();
+    bar.innerHTML = activeSeries.map(s => {
+        const isChecked = s.defaultChecked !== false;
         return `<label class="sc-series-cb" id="scCbWrap_${s.key}">
-            <input type="checkbox" id="scCb_${s.key}" ${defaultChecked ? 'checked' : ''} onchange="scRender()" style="accent-color:${s.color};width:14px;height:14px;">
+            <input type="checkbox" id="scCb_${s.key}" ${isChecked ? 'checked' : ''} onchange="scRender()" style="accent-color:${s.color};width:14px;height:14px;">
             <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s.color};flex-shrink:0;"></span>
             ${s.label}
         </label>`;
@@ -5773,7 +5790,7 @@ function scApplyRestoredCheckboxes(checkedKeys) {
 }
 
 function scGetActiveKeys() {
-    return SC_SERIES.filter(s => {
+    return _scGetActiveSeries().filter(s => {
         const cb = document.getElementById('scCb_' + s.key);
         return cb && cb.checked;
     }).map(s => s.key);
@@ -5796,7 +5813,7 @@ function scRender() {
     const activeKeys  = scGetActiveKeys();
 
     const datasets = activeKeys.map((key, idx) => {
-        const s = SC_SERIES.find(x => x.key === key);
+        const s = _scGetActiveSeries().find(x => x.key === key);
         let data = [...(_scRawData[key] || [])];
         if (isCumulative) data = scApplyCumulative(data);
         const chartType = _scType === 'mixed'
@@ -5882,7 +5899,8 @@ function scRender() {
     const infoBar = document.getElementById('scInfoBar');
     if (infoBar) {
         const pts = _scLabels.length;
-        const modeLabel = _scDataMode === 'monthly' ? 'Monthly' : 'Weekly';
+        const modeLabels = { monthly:'Monthly', weekly:'Weekly', txSorter:'Transaction Sorter (Monthly)', rgl:'Realized G/L (Monthly)' };
+        const modeLabel = modeLabels[_scDataMode] || 'Monthly';
         const filterNote = (_scDateFrom || _scDateTo) ? ' (filtered)' : '';
         infoBar.textContent = `${modeLabel} data — ${pts} period${pts!==1?'s':''}${filterNote} — X-axis: earliest → latest`;
     }
@@ -5890,8 +5908,10 @@ function scRender() {
 
 // ── Per-mode saved settings ───────────────────────────────────
 const _scSaved = {
-    monthly: null,
-    weekly:  null,
+    monthly:  null,
+    weekly:   null,
+    txSorter: null,
+    rgl:      null,
 };
 
 function _scSaveSettings(mode) {
@@ -5899,7 +5919,7 @@ function _scSaveSettings(mode) {
         chartType:   _scType,
         cumulative:  document.getElementById('scCumulative')?.checked ?? true,
         stacked:     document.getElementById('scStacked')?.checked    ?? false,
-        checkedKeys: SC_SERIES.map(s => ({ key: s.key, checked: !!document.getElementById('scCb_' + s.key)?.checked })),
+        checkedKeys: _scGetActiveSeries().map(s => ({ key: s.key, checked: !!document.getElementById('scCb_' + s.key)?.checked })),
         datePreset:  document.getElementById('scDatePreset')?.value ?? 'all',
         dateFrom:    document.getElementById('scDateFrom')?.value    ?? '',
         dateTo:      document.getElementById('scDateTo')?.value      ?? '',
@@ -5929,20 +5949,31 @@ function _scRestoreSettings(mode) {
     const f = document.getElementById('scDateFrom');   if (f) f.value = s.dateFrom;
     const t = document.getElementById('scDateTo');     if (t) t.value = s.dateTo;
 
-    scApplyRestoredCheckboxes(s.checkedKeys);
+    // Only restore checkbox state for keys belonging to the current mode's series
+    const currentKeys = _scGetActiveSeries().map(x => x.key);
+    const filteredKeys = (s.checkedKeys || []).filter(ck => currentKeys.includes(ck.key));
+    scApplyRestoredCheckboxes(filteredKeys);
     return true;    // settings were restored
 }
 
 // ── Open chart modals ────────────────────────────────────────
 function _scOpenChart(mode, title, accentColor) {
-    if (!window.allTransactions || window.allTransactions.length === 0) { alert('No data to chart.'); return; }
+    if (mode === 'monthly' || mode === 'weekly') {
+        if (!window.allTransactions || window.allTransactions.length === 0) { alert('No data to chart.'); return; }
+    }
     _scDataMode = mode;
 
     document.getElementById('scTitle').textContent = title;
 
+    // Show/hide symbol filter — shown for all modes
+    const symWrap = document.getElementById('scSymbolFilterInput');
+    if (symWrap) symWrap.closest('div').style.display = '';
+
     // Build data first (needed before checkboxes so we can restore state)
-    if (mode === 'monthly') scBuildMonthlyData();
-    else scBuildWeeklyData();
+    if      (mode === 'monthly')  scBuildMonthlyData();
+    else if (mode === 'weekly')   scBuildWeeklyData();
+    else if (mode === 'txSorter') scBuildTsData();
+    else if (mode === 'rgl')      scBuildRglData();
 
     // Build checkboxes with defaults, then try to restore saved state
     scBuildSeriesCheckboxes();
@@ -5957,12 +5988,20 @@ function _scOpenChart(mode, title, accentColor) {
             const el = document.getElementById('scLabel' + id.charAt(0).toUpperCase() + id.slice(1));
             if (el) el.classList.toggle('sc-active', id === 'line');
         });
-        const cum = document.getElementById('scCumulative'); if (cum) cum.checked = true;
+        const cum = document.getElementById('scCumulative'); if (cum) cum.checked = (mode === 'monthly' || mode === 'weekly');
         const stk = document.getElementById('scStacked');    if (stk) stk.checked = false;
         const p = document.getElementById('scDatePreset');   if (p) p.value = 'all';
         const f = document.getElementById('scDateFrom');     if (f) f.value = '';
         const t = document.getElementById('scDateTo');       if (t) t.value = '';
+        if (symWrap) symWrap.value = '';
+        _scSymbolFilter = [];
     }
+
+    // Update border accent color
+    const inner = document.getElementById('summaryChartInner');
+    if (inner) inner.style.borderColor = accentColor;
+    const titleEl = document.getElementById('scTitle');
+    if (titleEl) titleEl.style.color = accentColor;
 
     const modal = document.getElementById('summaryChartModal');
     modal.style.display = 'flex';
@@ -6019,7 +6058,7 @@ function scDownloadPng() {
     }
 
     // Active series
-    const activeLabels = scGetActiveKeys().map(k => SC_SERIES.find(s => s.key === k)?.label).filter(Boolean);
+    const activeLabels = scGetActiveKeys().map(k => _scGetActiveSeries().find(s => s.key === k)?.label).filter(Boolean);
     const seriesText = 'Series: ' + (activeLabels.length ? activeLabels.join(' · ') : 'None');
 
     const chartTypeMap = { line:'Line', bar:'Bar', area:'Area', mixed:'Mixed' };
@@ -6058,11 +6097,212 @@ function scDownloadPng() {
     ctx2.drawImage(canvas, 0, HEADER_H);
 
     const link = document.createElement('a');
-    link.download = `summary_chart_${_scDataMode}_${new Date().toISOString().slice(0,10)}.png`;
+    link.download = `chart_${_scDataMode}_${new Date().toISOString().slice(0,10)}.png`;
     link.href = tmp.toDataURL('image/png');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// ============================================================
+// CHART: ACTIVE SERIES RESOLVER
+// ============================================================
+function _scGetActiveSeries() {
+    if (_scDataMode === 'txSorter') return _scTsDynamicSeries;
+    if (_scDataMode === 'rgl')      return RGL_CHART_SERIES;
+    return SC_SERIES;
+}
+
+// ============================================================
+// CHART: TRANSACTION DATA SORTER  — Dynamic Series & Data Builder
+// ============================================================
+
+// Color map keyed by exact Schwab action name
+const TS_ACTION_COLOR_MAP = {
+    'Sell to Open':        '#4ade80',
+    'Buy to Open':         '#fb7185',
+    'Buy to Close':        '#f87171',
+    'Sell to Close':       '#86efac',
+    'Expired':             '#a78bfa',
+    'Assigned':            '#fbbf24',
+    'Called Away':         '#fcd34d',
+    'Buy':                 '#60a5fa',
+    'Sell':                '#34d399',
+    'Cash Dividend':       '#6ee7b7',
+    'Qualified Dividend':  '#a7f3d0',
+    'Reinvest Dividend':   '#5eead4',
+    'Margin Interest':     '#f97316',
+    'Bank Interest':       '#10b981',
+    'MoneyLink Transfer':  '#c084fc',
+    'Moneylink Adj':       '#e879f9',
+    'ADR Mgmt Fee':        '#ef4444',
+    'Journaled Shares':    '#94a3b8',
+    'Internal Transfer':   '#64748b',
+    'Bond Interest':       '#38bdf8',
+    'Wire Funds':          '#0ea5e9',
+    'Stock Split':         '#d97706',
+};
+const TS_FALLBACK_COLORS = ['#06b6d4','#8b5cf6','#ec4899','#84cc16','#f59e0b','#3b82f6','#14b8a6','#d946ef','#fb923c','#a3e635'];
+
+// Holds the current dynamic series list (rebuilt each time the chart opens)
+let _scTsDynamicSeries = [];
+
+function _scBuildTsDynamicSeries() {
+    if (!tsData || !tsData.length) { _scTsDynamicSeries = []; return; }
+    const uniqueActions = [...new Set(tsData.map(r => r.Action || '').filter(Boolean))].sort();
+    let fallbackIdx = 0;
+    _scTsDynamicSeries = uniqueActions.map(action => ({
+        key:            action,
+        label:          action,
+        color:          TS_ACTION_COLOR_MAP[action] || TS_FALLBACK_COLORS[fallbackIdx++ % TS_FALLBACK_COLORS.length],
+        defaultChecked: true,
+    }));
+}
+
+function scBuildTsData() {
+    _scLabels = []; _scRawData = {};
+    _scBuildTsDynamicSeries();                              // must run before we use the series
+    if (!_scTsDynamicSeries.length || !tsData || !tsData.length) return;
+
+    const actionKeys = _scTsDynamicSeries.map(s => s.key);
+
+    // Filter tsData with chart's own date + symbol filters (independent of the TX Sorter table filters)
+    const rows = tsData.filter(r => {
+        if (!r.parsedDate) return false;
+        if (_scDateFrom && r.parsedDate < _scDateFrom) return false;
+        if (_scDateTo   && r.parsedDate > _scDateTo)   return false;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = (typeof extractTicker === 'function' ? extractTicker(r.Symbol || '') : (r.Symbol || '')).toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return false;
+        }
+        return true;
+    });
+    if (!rows.length) return;
+
+    const dates = rows.map(r => r.parsedDate);
+    const minY  = Math.min(...dates.map(d => d.getFullYear()));
+    const now   = new Date();
+    const months = [];
+    for (let y = minY; y <= now.getFullYear(); y++) {
+        const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
+        for (let m = 0; m <= mEnd; m++) {
+            const mS = new Date(y, m, 1), mE = new Date(y, m + 1, 0, 23, 59, 59);
+            if (_scDateFrom && mE < _scDateFrom) continue;
+            if (_scDateTo   && mS > _scDateTo)   continue;
+            months.push({ year: y, month: m });
+        }
+    }
+    if (!months.length) return;
+
+    // Build per-month aggregates, one bucket per action
+    const agg = {};
+    months.forEach(({year,month}) => {
+        const k = `${year}-${month}`;
+        agg[k] = {};
+        actionKeys.forEach(ak => { agg[k][ak] = 0; });
+    });
+
+    rows.forEach(r => {
+        const k  = `${r.parsedDate.getFullYear()}-${r.parsedDate.getMonth()}`;
+        if (!agg[k]) return;
+        const ak = r.Action || '';
+        if (actionKeys.includes(ak)) agg[k][ak] += rglCleanNum(r.Amount);
+    });
+
+    const labels = [];
+    const data   = {};
+    actionKeys.forEach(ak => { data[ak] = []; });
+
+    months.forEach(({year,month}) => {
+        const k = `${year}-${month}`;
+        labels.push(new Date(year, month, 1).toLocaleDateString('en-US', { month:'short', year:'numeric' }));
+        actionKeys.forEach(ak => data[ak].push(+((agg[k][ak] || 0).toFixed(2))));
+    });
+
+    _scLabels  = labels;
+    _scRawData = data;
+}
+
+function showTsChart() {
+    if (!tsData || !tsData.length) {
+        alert('No transaction data to chart. Please load a file first.');
+        return;
+    }
+    _scOpenChart('txSorter', '📊 Transaction Data Sorter — Monthly Cash Flow', '#10b981');
+}
+
+// ============================================================
+// CHART: REALIZED GAIN / LOSS  — Series & Data Builder
+// ============================================================
+const RGL_CHART_SERIES = [
+    { key: 'gainLoss',  label: 'Gain / Loss ($)',  color: '#c084fc', defaultChecked: true  },
+    { key: 'stGL',      label: 'Short Term G/L',   color: '#f59e0b', defaultChecked: true  },
+    { key: 'ltGL',      label: 'Long Term G/L',    color: '#38bdf8', defaultChecked: true  },
+    { key: 'proceeds',  label: 'Proceeds',         color: '#10b981', defaultChecked: false },
+    { key: 'costBasis', label: 'Cost Basis',       color: '#94a3b8', defaultChecked: false },
+];
+
+function scBuildRglData() {
+    _scLabels = []; _scRawData = {};
+    if (!rglFiltered || !rglFiltered.length) return;
+    const dates = rglFiltered.map(r => r.parsedDate).filter(Boolean);
+    if (!dates.length) return;
+
+    const minY = Math.min(...dates.map(d => d.getFullYear()));
+    const now  = new Date();
+    const months = [];
+    for (let y = minY; y <= now.getFullYear(); y++) {
+        const mEnd = (y === now.getFullYear()) ? now.getMonth() : 11;
+        for (let m = 0; m <= mEnd; m++) {
+            const mS = new Date(y, m, 1), mE = new Date(y, m + 1, 0, 23, 59, 59);
+            if (_scDateFrom && mE  < _scDateFrom) continue;
+            if (_scDateTo   && mS  > _scDateTo)   continue;
+            months.push({ year: y, month: m });
+        }
+    }
+    if (!months.length) return;
+
+    const keys = ['gainLoss','stGL','ltGL','proceeds','costBasis'];
+    const agg = {};
+    months.forEach(({year,month}) => {
+        const k = `${year}-${month}`;
+        agg[k] = { gainLoss:0, stGL:0, ltGL:0, proceeds:0, costBasis:0 };
+    });
+
+    rglFiltered.forEach(r => {
+        if (!r.parsedDate) return;
+        if (_scDateFrom && r.parsedDate < _scDateFrom) return;
+        if (_scDateTo   && r.parsedDate > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const sym = (r.Symbol || '').toUpperCase().trim();
+            if (!_scSymbolFilter.includes(sym)) return;
+        }
+        const k = `${r.parsedDate.getFullYear()}-${r.parsedDate.getMonth()}`;
+        if (!agg[k]) return;
+        agg[k].gainLoss  += rglCleanNum(r['Gain/Loss ($)']);
+        agg[k].stGL      += rglCleanNum(r['Short Term Gain/Loss']);
+        agg[k].ltGL      += rglCleanNum(r['Long Term Gain/Loss']);
+        agg[k].proceeds  += rglCleanNum(r.Proceeds);
+        agg[k].costBasis += rglCleanNum(r['Cost Basis (CB)']);
+    });
+
+    const labels = [];
+    const data   = { gainLoss:[], stGL:[], ltGL:[], proceeds:[], costBasis:[] };
+    months.forEach(({year,month}) => {
+        const k = `${year}-${month}`;
+        labels.push(new Date(year, month, 1).toLocaleDateString('en-US', { month:'short', year:'numeric' }));
+        keys.forEach(key => data[key].push(+((agg[k][key] || 0).toFixed(2))));
+    });
+    _scLabels  = labels;
+    _scRawData = data;
+}
+
+function showRglChart() {
+    if (!rglFiltered || !rglFiltered.length) {
+        alert('No Realized Gain/Loss data loaded. Please upload a file first.');
+        return;
+    }
+    _scOpenChart('rgl', '📊 Realized Gain / Loss — Monthly Chart View', '#a855f7');
 }
 
 // ============================================================
