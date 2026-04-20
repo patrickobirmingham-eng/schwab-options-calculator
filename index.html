@@ -200,6 +200,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-f
 [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0); }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 30px; }
+.stats-sections { display: flex; flex-direction: column; gap: 18px; margin-bottom: 30px; }
+.stats-section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 8px; padding-left: 4px; display: flex; align-items: center; gap: 8px; }
+.stats-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-color); opacity: 0.6; }
+.stats-section-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
 .stat-card { background: var(--bg-secondary); padding: 10px 6px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; transition: background 0.3s, border-color 0.3s; }
 .stat-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; line-height: 1.4; }
 .stat-value { font-size: 1.05rem; font-weight: bold; }
@@ -366,9 +370,9 @@ th.oc-drop-target {
         </div>
 
         <p style="font-size: 0.9rem; margin-top: 4px; color:var(--text-secondary);">Required columns: <strong style="color:var(--text-primary);">Date | Action | Symbol | Description | Quantity | Price | Fees &amp; Comm | Amount</strong></p>
-        <p class="upload-supported">Supports .xlsx, .xls, .csv</p>
+        <p class="upload-supported">Supports .xlsx, .xls, .csv — select or drop multiple files to merge &amp; de-duplicate automatically</p>
         <p id="uploadedFileName" style="font-size: 0.9rem; color: #a78bfa; margin-top: 10px; display:none;"></p>
-        <input type="file" id="filePicker" accept=".csv,.xlsx" style="display:none">
+        <input type="file" id="filePicker" accept=".csv,.xlsx" multiple style="display:none">
 
         <!-- How-to guide — open by default, no toggle needed -->
         <div onclick="event.stopPropagation()" style="margin:16px auto 0; max-width:580px; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:10px; padding:16px 20px; text-align:left;">
@@ -443,7 +447,7 @@ th.oc-drop-target {
         <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
         <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
         <button onclick="showRealizedGainLoss()" style="background:#a855f7;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
-        <button onclick="showTickerBreakdown()" style="background:#e11d48;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> By Ticker</button>
+        <button onclick="showTickerBreakdown()" style="background:#e11d48;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> P&amp;L By Ticker</button>
     </div>
 
     <!-- By Ticker Breakdown Modal -->
@@ -946,6 +950,106 @@ let sortDir = 1;
 let columnWidths = {};
 let uploadedDateRange = { min: null, max: null };
 
+// ============================================================
+// TRADE NOTES — stored in localStorage under a single JSON blob.
+// Key format: `${symbol}|${openDate?.toISOString()}|${closeDate?.toISOString()}`
+// so notes persist across reloads but stay per-trade.
+// ============================================================
+const NOTES_STORAGE_KEY = 'schwab_tool_trade_notes_v1';
+function _getAllNotes() {
+    try { return JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY) || '{}'); }
+    catch(e) { return {}; }
+}
+function _saveAllNotes(obj) {
+    try { localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(obj)); } catch(e) {}
+}
+function _noteKey(trade) {
+    const od = trade.openDate  ? new Date(trade.openDate).toISOString()  : '';
+    const cd = trade.closeDate ? new Date(trade.closeDate).toISOString() : '';
+    return `${trade.symbol || ''}|${od}|${cd}`;
+}
+function getTradeNote(trade) {
+    return _getAllNotes()[_noteKey(trade)] || '';
+}
+function setTradeNote(trade, text) {
+    const all = _getAllNotes();
+    const k = _noteKey(trade);
+    if (text && text.trim()) all[k] = text.trim();
+    else delete all[k];
+    _saveAllNotes(all);
+}
+
+// Open the inline note editor, anchored near the clicked icon.
+// Uses a single reusable popover kept in the DOM.
+function openNoteEditor(tradeKey, anchorEl) {
+    // Parse the tradeKey back into symbol/openDate/closeDate for display
+    const [symbol, od, cd] = tradeKey.split('|');
+    const existing = _getAllNotes()[tradeKey] || '';
+
+    // Remove any prior popover
+    const prior = document.getElementById('__notePopover__');
+    if (prior) prior.remove();
+
+    const pop = document.createElement('div');
+    pop.id = '__notePopover__';
+    pop.style.cssText = `
+        position:absolute; z-index:9999; background:var(--bg-secondary);
+        border:1px solid var(--border-accent); border-radius:10px;
+        box-shadow:0 10px 30px var(--shadow); padding:14px;
+        width:320px; max-width:90vw;
+    `;
+    pop.innerHTML = `
+        <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:6px; word-break:break-all;">📝 <strong style="color:var(--text-primary);">${symbol}</strong></div>
+        <textarea id="__noteTextarea__" placeholder="e.g. Earnings play, sold too close to the money…" style="width:100%; min-height:80px; padding:8px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem; font-family:inherit; resize:vertical; box-sizing:border-box;">${existing.replace(/</g,'&lt;')}</textarea>
+        <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
+            <button onclick="closeNoteEditor()" style="background:transparent; color:var(--text-secondary); border:1px solid var(--border-color); padding:5px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Cancel</button>
+            <button onclick="saveNoteFromEditor(${JSON.stringify(tradeKey).replace(/"/g,'&quot;')})" style="background:#6d28d9; color:white; border:none; padding:5px 14px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Save</button>
+        </div>
+    `;
+    document.body.appendChild(pop);
+
+    // Position below the anchor
+    const rect = anchorEl.getBoundingClientRect();
+    const top = window.scrollY + rect.bottom + 6;
+    let left = window.scrollX + rect.left;
+    // Clamp into viewport
+    const popW = 320;
+    const vw = window.innerWidth;
+    if (left + popW > vw - 10) left = vw - popW - 10;
+    if (left < 10) left = 10;
+    pop.style.top  = top + 'px';
+    pop.style.left = left + 'px';
+
+    setTimeout(() => document.getElementById('__noteTextarea__').focus(), 30);
+
+    // Dismiss on outside click
+    setTimeout(() => document.addEventListener('mousedown', _noteOutsideClick), 50);
+}
+function _noteOutsideClick(ev) {
+    const pop = document.getElementById('__notePopover__');
+    if (!pop) return;
+    if (!pop.contains(ev.target)) closeNoteEditor();
+}
+function closeNoteEditor() {
+    const pop = document.getElementById('__notePopover__');
+    if (pop) pop.remove();
+    document.removeEventListener('mousedown', _noteOutsideClick);
+}
+function saveNoteFromEditor(tradeKey) {
+    const ta = document.getElementById('__noteTextarea__');
+    if (!ta) return;
+    const text = ta.value;
+    const all = _getAllNotes();
+    if (text && text.trim()) all[tradeKey] = text.trim();
+    else delete all[tradeKey];
+    _saveAllNotes(all);
+    closeNoteEditor();
+    // Re-render main table in place if it's visible (refreshes icon state)
+    if (typeof render === 'function' && document.getElementById('tableContainer').style.display !== 'none') {
+        render(sortKey);
+    }
+}
+
 // Theme toggle
 function toggleTheme() {
     const html = document.documentElement;
@@ -982,7 +1086,12 @@ function toggleTheme() {
 const dropZone = document.getElementById('dropZone');
 const filePicker = document.getElementById('filePicker');
 dropZone.onclick = () => { filePicker.value = ''; filePicker.click(); };
-filePicker.onchange = (e) => { handleFile(e.target.files[0]); filePicker.value = ''; };
+filePicker.onchange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 1) handleFile(files[0]);
+    else if (files.length > 1) handleFiles(files);
+    filePicker.value = '';
+};
 
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -1001,8 +1110,9 @@ dropZone.addEventListener('drop', (e) => {
     e.stopPropagation();
     dropZone.style.background = '';
     dropZone.style.borderColor = '';
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 1) handleFile(files[0]);
+    else if (files.length > 1) handleFiles(files);
 });
 
 function loadSampleData() {
@@ -1111,6 +1221,72 @@ function loadSampleData() {
     const blob = new Blob([csvText], { type: 'text/csv' });
     const file = new File([blob], '✨ sample_demo_data.csv', { type: 'text/csv' });
     handleFile(file);
+}
+
+// Multi-file handler: parses N files, merges their rows, de-duplicates by
+// (Date + Action + Symbol + Quantity + Amount) signature, and passes the
+// combined set through the normal process() pipeline exactly once.
+async function handleFiles(files) {
+    if (!files || !files.length) return;
+    if (files.length === 1) return handleFile(files[0]);
+
+    window._pricesRefreshedOC = false;
+    window._pricesRefreshedAssign = false;
+
+    const fnEl = document.getElementById('uploadedFileName');
+    const mainFn = document.getElementById('mainFilename');
+    const names = files.map(f => f.name);
+    const displayName = names.length <= 3
+        ? names.join(', ')
+        : `${names.slice(0,2).join(', ')} +${names.length - 2} more`;
+    fnEl.textContent = `Filenames (${files.length} merged): ${displayName}`;
+    fnEl.style.display = 'block';
+    mainFn.innerHTML = `<span style="color:var(--text-secondary);">Filenames (${files.length} merged): </span><span style="color:#a78bfa;">${displayName}</span>`;
+    mainFn.style.display = 'block';
+
+    document.getElementById('filterBar').style.display = 'flex';
+    document.getElementById('actionButtons').style.display = 'flex';
+    document.getElementById('summary').style.display = 'grid';
+    document.getElementById('tableContainer').style.display = 'block';
+    document.getElementById('tableTopBar').style.display = 'flex';
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('uploadBtn').style.display = 'inline-flex';
+    document.getElementById('featurePills').style.display = 'none';
+
+    sortKey = 'dte'; sortDir = 1;
+    ocSortKey = 'dte'; ocSortDir = 1;
+
+    // Parse each file sequentially and collect rows
+    let allRows = [];
+    for (const file of files) {
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            allRows = allRows.concat(json);
+        } catch (err) {
+            console.error('Failed to parse file', file.name, err);
+        }
+    }
+
+    // De-duplicate: Schwab exports overlap when users download multiple date
+    // ranges. Identical rows by Date+Action+Symbol+Quantity+Amount are almost
+    // certainly the same transaction.
+    const seen = new Set();
+    const beforeCount = allRows.length;
+    const merged = [];
+    for (const r of allRows) {
+        const key = [r.Date, r.Action, r.Symbol, r.Quantity, r.Amount].map(v => String(v ?? '')).join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(r);
+    }
+    const dupCount = beforeCount - merged.length;
+    if (dupCount > 0) {
+        console.log(`[Multi-CSV merge] ${files.length} files → ${beforeCount} rows, ${dupCount} duplicates removed, ${merged.length} unique rows.`);
+    }
+    process(merged);
 }
 
 async function handleFile(file) {
@@ -1683,19 +1859,41 @@ function render(newSortKey, dataToRender) {
     const feeDragPct = grossPremiumForFees > 0 ? (totalOptionFees / grossPremiumForFees * 100) : null;
 
     document.getElementById('summary').innerHTML = `
-        <div class="stat-card"><div class="stat-label">Sell / Buy<br>to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Buy / Sell<br>to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Cash<br>Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Realized<br>Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Open<br>Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Assigned<br>Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
-        <div class="stat-card"><div class="stat-label">Closed<br>Trades</div><div class="stat-value">${closedTrades}</div></div>
-        <div class="stat-card"><div class="stat-label">Open<br>Positions</div><div class="stat-value waiting">${openTrades}</div></div>
-        <div class="stat-card"><div class="stat-label">Avg Premium<br>Per Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">% Premium<br>Captured</div><div class="stat-value" style="color:${premCaptured !== null ? (premCaptured >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${premCaptured !== null ? premCaptured.toFixed(1) + '%' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">Avg Days<br>Held</div><div class="stat-value">${avgDaysHeld !== null ? avgDaysHeld + 'd' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">Total<br>Contracts</div><div class="stat-value">${totalContracts || '—'}</div></div>
-        <div class="stat-card" title="Total fees &amp; commissions paid on option transactions, and what % of gross premium that represents."><div class="stat-label">Commission<br>Drag</div><div class="stat-value" style="color:#f59e0b;">${totalOptionFees > 0 ? '$' + totalOptionFees.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}${feeDragPct !== null ? `<div style="font-size:0.7rem; color:var(--text-secondary); font-weight:500; margin-top:2px;">${feeDragPct.toFixed(2)}% of gross</div>` : ''}</div></div>
+        <div class="stats-sections">
+            <div>
+                <div class="stats-section-title">Cash Flow</div>
+                <div class="stats-section-grid">
+                    <div class="stat-card"><div class="stat-label">Sell / Buy<br>to Open</div><div class="stat-value ${sellToOpen >= 0 ? 'pos' : 'neg'}">${sellToOpen >= 0 ? '$' : '-$'}${Math.abs(sellToOpen).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+                    <div class="stat-card"><div class="stat-label">Buy / Sell<br>to Close</div><div class="stat-value ${buyToClose >= 0 ? 'pos' : 'neg'}">${buyToClose >= 0 ? '$' : '-$'}${Math.abs(buyToClose).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+                    <div class="stat-card"><div class="stat-label">Cash<br>Flow</div><div class="stat-value ${cashFlow >= 0 ? 'pos' : 'neg'}">$${cashFlow.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+                </div>
+            </div>
+            <div>
+                <div class="stats-section-title">Profit &amp; Loss</div>
+                <div class="stats-section-grid">
+                    <div class="stat-card"><div class="stat-label">Realized<br>Profit / Loss</div><div class="stat-value ${reconPL >= 0 ? 'pos' : 'neg'}">$${reconPL.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+                    <div class="stat-card"><div class="stat-label">Open<br>Premium</div><div class="stat-value waiting">$${reconOpen.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+                    <div class="stat-card"><div class="stat-label">Assigned<br>Premium</div><div class="stat-value" style="color:#f59e0b;">$${reconAssigned.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+                </div>
+            </div>
+            <div>
+                <div class="stats-section-title">Performance</div>
+                <div class="stats-section-grid">
+                    <div class="stat-card"><div class="stat-label">Avg Premium<br>Per Trade</div><div class="stat-value pos">${avgPremium !== null ? '$' + avgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</div></div>
+                    <div class="stat-card"><div class="stat-label">% Premium<br>Captured</div><div class="stat-value" style="color:${premCaptured !== null ? (premCaptured >= 50 ? '#4ade80' : '#f87171') : 'var(--text-secondary)'}">${premCaptured !== null ? premCaptured.toFixed(1) + '%' : '—'}</div></div>
+                    <div class="stat-card" title="Total fees &amp; commissions paid on option transactions, and what % of gross premium that represents."><div class="stat-label">Commission<br>Drag</div><div class="stat-value" style="color:#f59e0b;">${totalOptionFees > 0 ? '$' + totalOptionFees.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}${feeDragPct !== null ? `<div style="font-size:0.7rem; color:var(--text-secondary); font-weight:500; margin-top:2px;">${feeDragPct.toFixed(2)}% of gross</div>` : ''}</div></div>
+                </div>
+            </div>
+            <div>
+                <div class="stats-section-title">Activity</div>
+                <div class="stats-section-grid">
+                    <div class="stat-card"><div class="stat-label">Closed<br>Trades</div><div class="stat-value">${closedTrades}</div></div>
+                    <div class="stat-card"><div class="stat-label">Open<br>Positions</div><div class="stat-value waiting">${openTrades}</div></div>
+                    <div class="stat-card"><div class="stat-label">Total<br>Contracts</div><div class="stat-value">${totalContracts || '—'}</div></div>
+                    <div class="stat-card"><div class="stat-label">Avg Days<br>Held</div><div class="stat-value">${avgDaysHeld !== null ? avgDaysHeld + 'd' : '—'}</div></div>
+                </div>
+            </div>
+        </div>
     `;
 
     if (uploadedDateRange.min && uploadedDateRange.max) {
@@ -1713,11 +1911,14 @@ function render(newSortKey, dataToRender) {
         {lab:'Action',key:'status'},
         {lab:'Premium Received / Paid',key:'openingPremium'},
         {lab:'Profit / Loss',key:'profit'},
-        {lab:'% Return',key:'returnPct'}
+        {lab:'% Return',key:'returnPct'},
+        {lab:'📝',key:'note', noSort:true}
     ];
 
     document.getElementById('headerRow').innerHTML = cols.map((c, i) =>
-        `<th data-col-index="${i}" onclick="sortBy('${c.key}')" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`
+        c.noSort
+            ? `<th data-col-index="${i}" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : 'width:44px; min-width:44px;'} cursor:default;" title="Notes">${c.lab}<div class="resizer"></div></th>`
+            : `<th data-col-index="${i}" onclick="sortBy('${c.key}')" style="${columnWidths[i] ? 'width:' + columnWidths[i] + 'px; min-width:' + columnWidths[i] + 'px;' : ''}">${c.lab} ↕<div class="resizer"></div></th>`
     ).join('');
 
     document.querySelectorAll('.resizer').forEach((resizer) => {
@@ -1772,6 +1973,14 @@ function render(newSortKey, dataToRender) {
             <td class="${premClass}">$${premVal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="${p.isOpen ? 'waiting' : (p.profit >= 0 ? 'pos' : 'neg')}">${p.isOpen ? 'Waiting to close' : '$' + p.profit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="${returnClass}">${returnPct}</td>
+            <td style="padding:8px; width:44px;">${(() => {
+                const note = getTradeNote(p);
+                const key = _noteKey(p);
+                const safeKey = key.replace(/"/g, '&quot;');
+                const hasNote = !!note;
+                const noteTitle = hasNote ? note.replace(/"/g, '&quot;').slice(0,200) : 'Add a note';
+                return `<button onclick="event.stopPropagation(); openNoteEditor('${safeKey}', this)" title="${noteTitle}" style="background:transparent; border:none; cursor:pointer; font-size:1.05rem; padding:2px 6px; border-radius:4px; opacity:${hasNote ? '1' : '0.35'}; filter:${hasNote ? 'none' : 'grayscale(1)'};">${hasNote ? '📝' : '✏️'}</button>`;
+            })()}</td>
         </tr>`;
     }).join('');
 
@@ -1792,6 +2001,7 @@ function render(newSortKey, dataToRender) {
             <td colspan="6" style="text-align:right;padding-right:15px;font-size:0.85rem;">TOTAL</td>
             <td class="${premTotalClass}" style="font-size:0.85rem;">$${totalPremium.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="${profitTotalClass}" style="font-size:0.85rem;">$${totalProfit.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td></td>
             <td></td>
         </tr>`;
 }
@@ -1850,7 +2060,11 @@ function downloadResults() {
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    let csv = 'Date,Symbol,Put or Call,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return\n';
+    const csvEsc = s => {
+        const str = String(s ?? '');
+        return /[",\n]/.test(str) ? `"${str.replace(/"/g,'""')}"` : str;
+    };
+    let csv = 'Date,Symbol,Put or Call,Quantity,Days Till Expiration,Action,Premium Received / Paid,Profit / Loss,% Return,Note\n';
     filtered.forEach(p => {
         const date = p.isOpen ? fmtDateMMDDYYYY(p.openDate) : fmtDateMMDDYYYY(p.closeDate);
         const premium = p.status.toLowerCase().includes('buy') && p.status.toLowerCase().includes('close') ? p.closingPremium : p.openingPremium;
@@ -1861,7 +2075,8 @@ function downloadResults() {
             const denom = p.profit + Math.abs(p.closingPremium);
             if (denom !== 0) returnPct = ((p.profit / denom) * 100).toFixed(2) + '%';
         } else if (p.status.toLowerCase().includes('expired')) { returnPct = '100.00%'; }
-        csv += `${date},${p.symbol},${p.putOrCall},${p.contracts},${dte},${p.status},${premium.toFixed(2)},${pl},${returnPct}\n`;
+        const note = getTradeNote(p);
+        csv += `${date},${csvEsc(p.symbol)},${p.putOrCall},${p.contracts},${dte},${csvEsc(p.status)},${premium.toFixed(2)},${pl},${returnPct},${csvEsc(note)}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -7448,14 +7663,12 @@ function renderTickerSummaryPills(rows) {
     const totalTrades = rows.reduce((s,r) => s+r.trades, 0);
     const overallAvgPremium = totalTrades > 0 ? (totalPremiumSum / totalTrades) : null;
 
-    // Strategy mix: classify closed trades and tally count per strategy
+    // Strategy mix: classify the currently-filtered closed trades (respects
+    // date range, ticker search, and strategy dropdown — same source all the
+    // other pills draw from).
     const stratCounts = {};
     let stratTotal = 0;
-    const closedForClass = finalTrades.filter(x => {
-        const st = x.status.toLowerCase();
-        return !st.includes('assigned') && !st.includes('called away');
-    });
-    classifyStrategies(closedForClass).forEach(s => {
+    classifyStrategies(getFilteredClosedTrades()).forEach(s => {
         stratCounts[s.strategy] = (stratCounts[s.strategy] || 0) + 1;
         stratTotal++;
     });
@@ -7471,12 +7684,26 @@ function renderTickerSummaryPills(rows) {
             <div style="font-size:1.1rem; font-weight:700; color:${color};">${val}</div>
         </div>`;
 
+    // Build a tooltip that expands ONLY the abbreviations currently visible,
+    // so the hint stays short and relevant. STRATEGY_LABELS is the source of
+    // truth (CSP → "Cash-Secured Put", etc).
+    const topStratKeys = Object.entries(stratCounts)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([k]) => k);
+    const stratTooltip = topStratKeys
+        .map(k => `${k} = ${STRATEGY_LABELS[k] || k}`)
+        .join('\n');
+
     document.getElementById('tickerSummaryPills').innerHTML =
         pill('Overall P&L', (totalPL>=0?'+$':'-$')+Math.abs(totalPL).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), totalPL>=0?'#4ade80':'#f87171') +
         pill('Overall Win Rate', overallWinRate.toFixed(1)+'%', overallWinRate>=50?'#4ade80':'#f87171') +
         pill('Avg Premium / Trade', overallAvgPremium !== null ? '$'+overallAvgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—', '#4ade80') +
         pill('% Premium Captured', overallPremCaptured !== null ? overallPremCaptured.toFixed(1)+'%' : '—', overallPremCaptured !== null ? (overallPremCaptured>=50?'#4ade80':'#f87171') : 'var(--text-secondary)') +
-        (topStrats ? pill('Strategy Mix', topStrats, '#a78bfa') : '') +
+        (topStrats ? `<div title="${stratTooltip.replace(/"/g,'&quot;')}" style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center; cursor:help;">
+            <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Strategy Mix <span style="opacity:0.6;">ⓘ</span></div>
+            <div style="font-size:1.1rem; font-weight:700; color:#a78bfa;">${topStrats}</div>
+        </div>` : '') +
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
         (bestTicker  ? pill('Best Ticker',  bestTicker.ticker  + ' (+$'+Math.abs(bestTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#4ade80') : '') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
@@ -7666,6 +7893,12 @@ const _modalCloseMap = {
 
 document.addEventListener('keydown', function(ev) {
     if (ev.key !== 'Escape') return;
+    // Note editor takes priority
+    if (document.getElementById('__notePopover__')) {
+        closeNoteEditor();
+        ev.stopPropagation();
+        return;
+    }
     // Don't swallow Esc if the user is mid-edit in an input/textarea/contenteditable
     const active = document.activeElement;
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
