@@ -545,7 +545,7 @@ th.oc-drop-target {
                 <canvas id="riskConcentrationChart" style="max-height:300px;"></canvas>
             </div>
             <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:12px; padding:16px;">
-                <div style="font-size:0.78rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:10px;">Top Exposures</div>
+                <div style="font-size:0.78rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:10px;">All Active Positions</div>
                 <div id="riskTopExposures"></div>
             </div>
         </div>
@@ -8837,7 +8837,7 @@ function renderPortfolioRisk() {
     const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
     const labelColor = isDark ? '#94a3b8' : '#475569';
     // Color each bar by its share — red if it's >40% of total
-    const barData = data.slice(0, 15);  // cap at 15 bars for legibility
+    const barData = data;  // show all tickers
     const barColors = barData.map(d => {
         const share = totalCapital > 0 ? d.capitalAtRisk / totalCapital : 0;
         return share >= 0.4 ? 'rgba(239,68,68,0.85)' : share >= 0.25 ? 'rgba(251,146,60,0.85)' : 'rgba(14,165,233,0.75)';
@@ -8874,19 +8874,30 @@ function renderPortfolioRisk() {
         }
     });
 
-    // Top exposures list
-    const exposures = data.slice(0, 10);
-    document.getElementById('riskTopExposures').innerHTML = exposures.map((d, i) => {
+    // All active positions list with capital at risk + total premium
+    const fmt$small = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('riskTopExposures').innerHTML =
+        `<div style="display:flex; align-items:center; gap:12px; padding:0 0 6px; border-bottom:2px solid var(--border-color); margin-bottom:4px;">
+            <div style="width:60px; font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Ticker</div>
+            <div style="flex:1; font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Concentration</div>
+            <div style="width:120px; text-align:right; font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Capital at Risk</div>
+            <div style="width:110px; text-align:right; font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Total Premium</div>
+            <div style="width:50px; text-align:right; font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Share</div>
+            <div style="width:70px; text-align:right; font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Legs</div>
+        </div>` +
+        data.map((d, i) => {
         const share = totalCapital > 0 ? (d.capitalAtRisk / totalCapital * 100) : 0;
         const barWidth = Math.max(2, share);
         const barColor = share >= 40 ? '#ef4444' : share >= 25 ? '#f59e0b' : '#0ea5e9';
+        const premColor = d.netPremium >= 0 ? '#4ade80' : '#f87171';
         return `
-            <div style="display:flex; align-items:center; gap:12px; padding:8px 0; ${i < exposures.length - 1 ? 'border-bottom:1px solid var(--border-color);' : ''}">
+            <div style="display:flex; align-items:center; gap:12px; padding:8px 0; ${i < data.length - 1 ? 'border-bottom:1px solid var(--border-color);' : ''}">
                 <div style="width:60px; font-weight:700; color:var(--text-primary);">${d.ticker}</div>
                 <div style="flex:1; background:var(--bg-secondary); height:8px; border-radius:4px; overflow:hidden;">
                     <div style="width:${barWidth}%; height:100%; background:${barColor}; transition:width 0.3s;"></div>
                 </div>
-                <div style="width:110px; text-align:right; font-weight:600; color:var(--text-primary); font-size:0.88rem;">$${d.capitalAtRisk.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                <div style="width:120px; text-align:right; font-weight:600; color:var(--text-primary); font-size:0.88rem;">$${d.capitalAtRisk.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                <div style="width:110px; text-align:right; font-weight:600; color:${premColor}; font-size:0.88rem;">${fmt$small(d.netPremium)}</div>
                 <div style="width:50px; text-align:right; color:var(--text-secondary); font-size:0.78rem;">${share.toFixed(1)}%</div>
                 <div style="width:70px; text-align:right; color:var(--text-secondary); font-size:0.72rem;">${d.positions} leg${d.positions === 1 ? '' : 's'}</div>
             </div>`;
