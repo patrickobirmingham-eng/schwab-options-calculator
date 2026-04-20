@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Schwab Options Tracker — Free & Private">
 <meta name="twitter:description" content="Upload your Schwab transactions CSV for instant options P&L analysis. FIFO matching, monthly summaries, open commitments & more. Data never leaves your browser.">
-<link rel="icon" type="image/x-icon" href="favicon1.ico">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 <!-- Canonical URL -->
 <link rel="canonical" href="https://schwab-options-calculator.vercel.app/">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -330,6 +330,29 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
     }
 }
 
+/* Unified action buttons */
+.action-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 7px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.18s, border-color 0.18s, transform 0.15s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px var(--shadow);
+}
+.action-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
 /* Open Commitments drag-to-reorder column highlight */
 th.oc-drop-target {
     outline: 3px solid #f59e0b !important;
@@ -355,8 +378,22 @@ th.oc-drop-target {
 </button>
 
 <div class="container">
-    <h1>Schwab Options Tracker</h1>
-    <p class="subtitle">Fix Schwab's weak options reporting — FIFO P&L, monthly cash flow, open commitments & more</p>
+    <h1 style="display:flex; align-items:center; justify-content:center; gap:12px;">
+        <svg viewBox="0 0 36 36" width="36" height="36" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0; display:inline-block; vertical-align:middle;">
+            <rect width="36" height="36" rx="8" fill="#6d28d9"/>
+            <line x1="9" y1="8" x2="9" y2="12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="6" y="12" width="6" height="8" rx="1" fill="white"/>
+            <line x1="9" y1="20" x2="9" y2="24" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="18" y1="10" x2="18" y2="14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="15" y="14" width="6" height="11" rx="1" fill="rgba(255,255,255,0.4)" stroke="white" stroke-width="1"/>
+            <line x1="18" y1="25" x2="18" y2="29" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="27" y1="6" x2="27" y2="11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="24" y="11" width="6" height="9" rx="1" fill="white"/>
+            <line x1="27" y1="20" x2="27" y2="25" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Schwab Options Tracker
+    </h1>
+    <p class="subtitle">This app fixes Schwab's weak options reporting — FIFO P&L, monthly cash flow, open commitments & more</p>
     <div style="text-align:center;">
         <span class="privacy-badge">🔒 Your data never leaves your browser — processed 100% locally</span>
     </div>
@@ -402,6 +439,20 @@ th.oc-drop-target {
             </ol>
             <p style="margin-top:10px; font-size:0.78rem; color:var(--text-secondary);">💡 Tip: Export up to 2 years at a time for best results.</p>
         </div>
+    </div>
+
+    <div id="actionButtons" style="display:none; justify-content:center; gap:12px; margin-bottom:25px; flex-wrap:wrap;">
+        <button onclick="showMonthlySummary()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly / Annual Summary</button>
+        <button onclick="showWeeklySummary()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg> Weekly / Monthly Summary</button>
+        <button onclick="showOpenCommitments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0ea5e9"/><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
+        <button onclick="showAssignments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
+        <button onclick="showTransactionSorter()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
+        <button onclick="showRealizedGainLoss()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
+        <button onclick="showTickerBreakdown()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> P&amp;L By Ticker</button>
+        <button onclick="showTaxPreview()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#64748b"/><path d="M9 8h6M9 11h6M9 14h4" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17l1.2 1.2L19.6 16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Tax Preview</button>
+        <button onclick="showPortfolioRisk()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#dc2626"/><path d="M12 6l5 10H7z" fill="white"/><path d="M12 10v3" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14.5" r="0.6" fill="#dc2626"/></svg> Portfolio Risk</button>
+        <button onclick="showExpirationCalendar()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="14" r="0.8" fill="white"/><circle cx="12" cy="14" r="0.8" fill="white"/><circle cx="15" cy="14" r="0.8" fill="white"/></svg> Expiration Calendar</button>
+        <button onclick="showSpyBenchmark()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#16a34a"/><path d="M6 16l4-5 3 3 5-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="12" y="21" text-anchor="middle" font-size="5" font-weight="bold" fill="white">SPY</text></svg> SPY Benchmark</button>
     </div>
 
     <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
@@ -456,19 +507,6 @@ th.oc-drop-target {
         </div>
 
     </div>
-    <div id="actionButtons" style="display:none; justify-content:center; gap:16px; margin-bottom:25px; flex-wrap:wrap;">
-        <button onclick="showMonthlySummary()" style="background:#6d28d9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly / Annual Summary</button>
-        <button onclick="showWeeklySummary()" style="background:#0891b2;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg> Weekly / Monthly Summary</button>
-        <button onclick="showOpenCommitments()" style="background:#0ea5e9;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
-        <button onclick="showAssignments()" style="background:#f59e0b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
-        <button onclick="showTransactionSorter()" style="background:#10b981;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
-        <button onclick="showRealizedGainLoss()" style="background:#a855f7;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
-        <button onclick="showTickerBreakdown()" style="background:#e11d48;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> P&amp;L By Ticker</button>
-        <button onclick="showTaxPreview()" style="background:#64748b;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#64748b"/><path d="M9 8h6M9 11h6M9 14h4" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17l1.2 1.2L19.6 16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Tax Preview</button>
-        <button onclick="showPortfolioRisk()" style="background:#dc2626;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#dc2626"/><path d="M12 6l5 10H7z" fill="white"/><path d="M12 10v3" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14.5" r="0.6" fill="#dc2626"/></svg> Portfolio Risk</button>
-        <button onclick="showExpirationCalendar()" style="background:#0891b2;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="14" r="0.8" fill="white"/><circle cx="12" cy="14" r="0.8" fill="white"/><circle cx="15" cy="14" r="0.8" fill="white"/></svg> Expiration Calendar</button>
-        <button onclick="showSpyBenchmark()" style="background:#16a34a;color:white;border:none;padding:7px 18px;border-radius:8px;cursor:pointer;font-weight:bold;display:inline-flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#16a34a"/><path d="M6 16l4-5 3 3 5-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="12" y="21" text-anchor="middle" font-size="5" font-weight="bold" fill="white">SPY</text></svg> SPY Benchmark</button>
-    </div>
 
     <!-- SPY Benchmark Modal -->
     <div id="spyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:1000; justify-content:center; align-items:center;">
@@ -481,7 +519,7 @@ th.oc-drop-target {
                 <button onclick="closeSpyBenchmark()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
             <div style="padding:10px 14px; background:rgba(22,163,74,0.1); border:1px solid rgba(22,163,74,0.35); border-radius:8px; color:#16a34a; font-size:0.8rem; line-height:1.5; margin-bottom:18px;">
-                Simulates what you'd have instead, if each premium credit you received had been used to buy SPY shares on the same day and held through today. Uses bundled monthly SPY closes for 2000-01 through 2024-12 (works offline). For dates beyond that, attempts live Yahoo/Stooq fetches. Benchmark is a rough approximation — monthly granularity, no dividends, no taxes or slippage.
+                Simulates what you'd have instead, if each premium credit you received had been used to buy SPY shares on the same day and held through today. Uses bundled monthly SPY closes for 2000-01 through 2026-03 (works offline). For dates beyond that, attempts live Yahoo/Stooq fetches. Benchmark is a rough approximation — monthly granularity, no dividends, no taxes or slippage.
             </div>
             <div id="spyStatus" style="text-align:center; padding:20px; color:var(--text-secondary); font-size:0.9rem;">Loading SPY historical data…</div>
             <div id="spySummary" style="display:none; flex-wrap:wrap; gap:12px; margin-bottom:18px;"></div>
@@ -1427,7 +1465,20 @@ async function handleFiles(files) {
     if (dupCount > 0) {
         console.log(`[Multi-CSV merge] ${files.length} files → ${beforeCount} rows, ${dupCount} duplicates removed, ${merged.length} unique rows.`);
     }
-    process(merged);
+    // Restore any embedded notes backup rows before processing
+    const notesRowM = merged.find(r => String(r['Date'] || r[Object.keys(r)[0]] || '').trim() === '__SCHWAB_NOTES__');
+    if (notesRowM) {
+        const notesJson = notesRowM['Action'] || notesRowM[Object.keys(notesRowM)[1]] || '';
+        if (notesJson) {
+            try {
+                const restoredNotes = JSON.parse(notesJson);
+                const existing = _getAllNotes();
+                _saveAllNotes(Object.assign({}, restoredNotes, existing));
+            } catch(e) { console.warn('Could not restore notes from file:', e); }
+        }
+    }
+    const cleanedMerged = merged.filter(r => String(r['Date'] || r[Object.keys(r)[0]] || '').trim() !== '__SCHWAB_NOTES__');
+    process(cleanedMerged);
 }
 
 async function handleFile(file) {
@@ -1475,6 +1526,20 @@ async function handleFile(file) {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         json = XLSX.utils.sheet_to_json(sheet);
+    }
+    // Check for an embedded notes backup row (from "Download + Notes")
+    // and restore those notes into localStorage before normal processing.
+    const notesRow = json.find(r => String(r['Date'] || r[Object.keys(r)[0]] || '').trim() === '__SCHWAB_NOTES__');
+    if (notesRow) {
+        const notesJson = notesRow['Action'] || notesRow[Object.keys(notesRow)[1]] || '';
+        if (notesJson) {
+            try {
+                const restoredNotes = JSON.parse(notesJson);
+                const existing = _getAllNotes();
+                _saveAllNotes(Object.assign({}, restoredNotes, existing)); // existing notes take priority
+            } catch(e) { console.warn('Could not restore notes from file:', e); }
+        }
+        json = json.filter(r => String(r['Date'] || r[Object.keys(r)[0]] || '').trim() !== '__SCHWAB_NOTES__');
     }
     process(json);
 }
@@ -2433,6 +2498,41 @@ function downloadResults() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `options-results-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// Download the original Schwab transaction rows as CSV, with a hidden notes
+// backup row appended at the bottom. Re-uploading this file restores all notes.
+function downloadOriginalWithNotes() {
+    if (!window.allRawRows || !window.allRawRows.length) {
+        alert('No data loaded. Please upload your Schwab transactions file first.');
+        return;
+    }
+    const notes = _getAllNotes();
+    const schwabCols = ['Date', 'Action', 'Symbol', 'Description', 'Quantity', 'Price', 'Fees & Comm', 'Amount'];
+    const csvEsc = s => {
+        const str = String(s ?? '');
+        return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    // Header row using original Schwab column names
+    let csv = schwabCols.map(csvEsc).join(',') + '\n';
+    // Original transaction rows (only original columns, strip our added parse fields)
+    window.allRawRows.forEach(r => {
+        csv += schwabCols.map(col => csvEsc(r[col] ?? '')).join(',') + '\n';
+    });
+    // Append notes backup as a special hidden row at the bottom
+    const notesJson = JSON.stringify(notes);
+    const padding = schwabCols.slice(1).map(() => '').join(',');
+    csv += `__SCHWAB_NOTES__,${csvEsc(notesJson)},${padding}\n`;
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `schwab-transactions-with-notes-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -5973,7 +6073,13 @@ function showRealizedGainLoss() {
         document.getElementById('rglUploadPrompt').style.display = 'none';
         document.getElementById('rglDataSection').style.display = 'block';
         rglRestoreState();
-        rglApplyFilters();
+        // If a preset is active but date inputs are empty (e.g. first open with default
+        // 'currentMonth'), populate the date range from the preset before filtering.
+        if (rglState.datePreset && rglState.datePreset !== 'all' && !rglState.dateFrom && !rglState.dateTo) {
+            rglApplyDatePreset();
+        } else {
+            rglApplyFilters();
+        }
     } else {
         document.getElementById('rglUploadPrompt').style.display = 'flex';
         document.getElementById('rglDataSection').style.display = 'none';
@@ -6094,10 +6200,8 @@ function rglReset() {
     document.getElementById('rglDateTo').value = '';
     document.getElementById('rglSymbolSearch').value = '';
     Object.assign(rglState,{checkedTerms:[],datePreset:'currentMonth',dateFrom:'',dateTo:'',symbolSearch:''});
-    rglApplyDatePreset();
-    rglFiltered = [...rglData];
     rglSortKey = 'parsedDate'; rglSortDir = -1;
-    rglRenderSummary(); rglRenderTable();
+    rglApplyDatePreset();
 }
 
 function rglRenderSummary() {
@@ -8941,13 +9045,13 @@ function computeTradeQuality(trade) {
 // portion covered by bundled data with a warning about the missing recent range.
 // ============================================================
 let spyChartInstance = null;
-const SPY_CACHE_KEY = 'spy_historical_cache_v2';
+const SPY_CACHE_KEY = 'spy_historical_cache_v3';
 const SPY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;  // 24 hours
 
 // Bundled monthly SPY closes. Month-end values, publicly available historical data.
-// Last updated through 2024-12-31. Beyond this date the app falls back to live APIs.
-const SPY_BUNDLED = {"2000-01-31":139.56,"2000-02-29":136.0,"2000-03-31":149.56,"2000-04-30":145.75,"2000-05-31":141.5,"2000-06-30":145.44,"2000-07-31":143.63,"2000-08-31":151.88,"2000-09-30":144.0,"2000-10-31":144.44,"2000-11-30":131.5,"2000-12-31":131.19,"2001-01-31":136.0,"2001-02-28":123.5,"2001-03-31":115.88,"2001-04-30":125.44,"2001-05-31":125.88,"2001-06-30":122.44,"2001-07-31":120.88,"2001-08-31":113.56,"2001-09-30":104.44,"2001-10-31":106.19,"2001-11-30":114.38,"2001-12-31":114.13,"2002-01-31":112.25,"2002-02-28":109.81,"2002-03-31":114.5,"2002-04-30":107.5,"2002-05-31":107.0,"2002-06-30":99.44,"2002-07-31":91.19,"2002-08-31":91.63,"2002-09-30":81.56,"2002-10-31":88.06,"2002-11-30":93.25,"2002-12-31":87.94,"2003-01-31":85.88,"2003-02-28":84.75,"2003-03-31":85.56,"2003-04-30":92.63,"2003-05-31":97.75,"2003-06-30":98.94,"2003-07-31":100.88,"2003-08-31":102.75,"2003-09-30":101.5,"2003-10-31":107.25,"2003-11-30":108.06,"2003-12-31":111.81,"2004-01-31":113.56,"2004-02-29":115.25,"2004-03-31":113.63,"2004-04-30":111.75,"2004-05-31":113.25,"2004-06-30":115.5,"2004-07-31":111.5,"2004-08-31":111.94,"2004-09-30":113.13,"2004-10-31":114.75,"2004-11-30":119.31,"2004-12-31":121.0,"2005-01-31":118.13,"2005-02-28":120.38,"2005-03-31":118.25,"2005-04-30":116.0,"2005-05-31":119.81,"2005-06-30":119.81,"2005-07-31":124.25,"2005-08-31":122.88,"2005-09-30":123.94,"2005-10-31":121.75,"2005-11-30":126.5,"2005-12-31":124.75,"2006-01-31":127.88,"2006-02-28":128.25,"2006-03-31":129.75,"2006-04-30":131.5,"2006-05-31":127.25,"2006-06-30":127.19,"2006-07-31":127.5,"2006-08-31":130.44,"2006-09-30":133.81,"2006-10-31":138.0,"2006-11-30":140.56,"2006-12-31":141.56,"2007-01-31":143.75,"2007-02-28":141.25,"2007-03-31":142.38,"2007-04-30":148.63,"2007-05-31":153.56,"2007-06-30":150.5,"2007-07-31":146.19,"2007-08-31":147.38,"2007-09-30":152.75,"2007-10-31":155.5,"2007-11-30":148.25,"2007-12-31":146.38,"2008-01-31":137.5,"2008-02-29":132.5,"2008-03-31":132.19,"2008-04-30":138.44,"2008-05-31":141.0,"2008-06-30":128.13,"2008-07-31":128.44,"2008-08-31":129.88,"2008-09-30":117.0,"2008-10-31":96.75,"2008-11-30":89.25,"2008-12-31":90.25,"2009-01-31":82.56,"2009-02-28":73.88,"2009-03-31":79.56,"2009-04-30":87.19,"2009-05-31":91.56,"2009-06-30":91.81,"2009-07-31":98.69,"2009-08-31":102.5,"2009-09-30":105.5,"2009-10-31":103.44,"2009-11-30":109.63,"2009-12-31":111.44,"2010-01-31":107.44,"2010-02-28":110.75,"2010-03-31":117.0,"2010-04-30":118.81,"2010-05-31":109.38,"2010-06-30":103.19,"2010-07-31":110.25,"2010-08-31":105.31,"2010-09-30":114.19,"2010-10-31":118.31,"2010-11-30":118.19,"2010-12-31":125.75,"2011-01-31":128.69,"2011-02-28":133.13,"2011-03-31":132.75,"2011-04-30":136.44,"2011-05-31":134.69,"2011-06-30":131.88,"2011-07-31":129.19,"2011-08-31":122.38,"2011-09-30":113.0,"2011-10-31":125.5,"2011-11-30":124.0,"2011-12-31":125.5,"2012-01-31":132.75,"2012-02-29":136.88,"2012-03-31":141.13,"2012-04-30":139.31,"2012-05-31":131.25,"2012-06-30":136.5,"2012-07-31":137.5,"2012-08-31":141.06,"2012-09-30":144.19,"2012-10-31":141.0,"2012-11-30":142.31,"2012-12-31":142.38,"2013-01-31":149.56,"2013-02-28":151.19,"2013-03-31":156.75,"2013-04-30":158.19,"2013-05-31":163.44,"2013-06-30":160.38,"2013-07-31":168.63,"2013-08-31":163.44,"2013-09-30":168.38,"2013-10-31":176.31,"2013-11-30":180.88,"2013-12-31":184.63,"2014-01-31":178.13,"2014-02-28":186.0,"2014-03-31":187.63,"2014-04-30":188.31,"2014-05-31":192.5,"2014-06-30":195.56,"2014-07-31":192.44,"2014-08-31":200.75,"2014-09-30":197.0,"2014-10-31":201.75,"2014-11-30":207.75,"2014-12-31":205.56,"2015-01-31":199.5,"2015-02-28":210.63,"2015-03-31":206.75,"2015-04-30":209.25,"2015-05-31":211.5,"2015-06-30":206.75,"2015-07-31":210.63,"2015-08-31":197.75,"2015-09-30":192.5,"2015-10-31":207.75,"2015-11-30":208.81,"2015-12-31":203.88,"2016-01-31":193.56,"2016-02-29":193.5,"2016-03-31":205.88,"2016-04-30":207.0,"2016-05-31":209.81,"2016-06-30":209.5,"2016-07-31":217.63,"2016-08-31":218.19,"2016-09-30":216.31,"2016-10-31":212.56,"2016-11-30":220.75,"2016-12-31":223.75,"2017-01-31":227.5,"2017-02-28":236.44,"2017-03-31":235.75,"2017-04-30":238.13,"2017-05-31":241.5,"2017-06-30":242.25,"2017-07-31":247.0,"2017-08-31":247.81,"2017-09-30":251.25,"2017-10-31":257.0,"2017-11-30":265.5,"2017-12-31":266.88,"2018-01-31":281.13,"2018-02-28":270.19,"2018-03-31":263.13,"2018-04-30":266.19,"2018-05-31":273.0,"2018-06-30":271.0,"2018-07-31":281.81,"2018-08-31":290.44,"2018-09-30":290.75,"2018-10-31":271.0,"2018-11-30":275.5,"2018-12-31":249.94,"2019-01-31":269.94,"2019-02-28":278.69,"2019-03-31":282.69,"2019-04-30":294.5,"2019-05-31":275.31,"2019-06-30":293.0,"2019-07-31":297.25,"2019-08-31":292.31,"2019-09-30":296.81,"2019-10-31":303.13,"2019-11-30":314.0,"2019-12-31":321.75,"2020-01-31":321.75,"2020-02-29":296.25,"2020-03-31":257.75,"2020-04-30":282.5,"2020-05-31":304.25,"2020-06-30":308.63,"2020-07-31":326.25,"2020-08-31":350.0,"2020-09-30":334.25,"2020-10-31":326.44,"2020-11-30":362.63,"2020-12-31":375.5,"2021-01-31":370.13,"2021-02-28":381.88,"2021-03-31":397.0,"2021-04-30":417.63,"2021-05-31":419.75,"2021-06-30":428.13,"2021-07-31":438.5,"2021-08-31":451.5,"2021-09-30":429.75,"2021-10-31":459.88,"2021-11-30":454.5,"2021-12-31":474.88,"2022-01-31":449.63,"2022-02-28":436.44,"2022-03-31":451.5,"2022-04-30":411.5,"2022-05-31":413.13,"2022-06-30":377.13,"2022-07-31":411.63,"2022-08-31":394.88,"2022-09-30":357.19,"2022-10-31":386.0,"2022-11-30":408.0,"2022-12-31":381.63,"2023-01-31":406.25,"2023-02-28":395.0,"2023-03-31":407.94,"2023-04-30":415.88,"2023-05-31":418.0,"2023-06-30":443.25,"2023-07-31":458.38,"2023-08-31":451.75,"2023-09-30":427.63,"2023-10-31":418.75,"2023-11-30":456.0,"2023-12-31":475.0,"2024-01-31":486.75,"2024-02-29":509.0,"2024-03-31":524.63,"2024-04-30":502.38,"2024-05-31":527.75,"2024-06-30":544.0,"2024-07-31":550.25,"2024-08-31":563.5,"2024-09-30":574.0,"2024-10-31":568.5,"2024-11-30":603.25,"2024-12-31":588.75};
-const SPY_BUNDLE_END = '2024-12-31';  // Last date we have bundled data for
+// Last updated through 2026-03-31. Beyond this date the app falls back to live APIs.
+const SPY_BUNDLED = {"2000-01-31":139.56,"2000-02-29":136.0,"2000-03-31":149.56,"2000-04-30":145.75,"2000-05-31":141.5,"2000-06-30":145.44,"2000-07-31":143.63,"2000-08-31":151.88,"2000-09-30":144.0,"2000-10-31":144.44,"2000-11-30":131.5,"2000-12-31":131.19,"2001-01-31":136.0,"2001-02-28":123.5,"2001-03-31":115.88,"2001-04-30":125.44,"2001-05-31":125.88,"2001-06-30":122.44,"2001-07-31":120.88,"2001-08-31":113.56,"2001-09-30":104.44,"2001-10-31":106.19,"2001-11-30":114.38,"2001-12-31":114.13,"2002-01-31":112.25,"2002-02-28":109.81,"2002-03-31":114.5,"2002-04-30":107.5,"2002-05-31":107.0,"2002-06-30":99.44,"2002-07-31":91.19,"2002-08-31":91.63,"2002-09-30":81.56,"2002-10-31":88.06,"2002-11-30":93.25,"2002-12-31":87.94,"2003-01-31":85.88,"2003-02-28":84.75,"2003-03-31":85.56,"2003-04-30":92.63,"2003-05-31":97.75,"2003-06-30":98.94,"2003-07-31":100.88,"2003-08-31":102.75,"2003-09-30":101.5,"2003-10-31":107.25,"2003-11-30":108.06,"2003-12-31":111.81,"2004-01-31":113.56,"2004-02-29":115.25,"2004-03-31":113.63,"2004-04-30":111.75,"2004-05-31":113.25,"2004-06-30":115.5,"2004-07-31":111.5,"2004-08-31":111.94,"2004-09-30":113.13,"2004-10-31":114.75,"2004-11-30":119.31,"2004-12-31":121.0,"2005-01-31":118.13,"2005-02-28":120.38,"2005-03-31":118.25,"2005-04-30":116.0,"2005-05-31":119.81,"2005-06-30":119.81,"2005-07-31":124.25,"2005-08-31":122.88,"2005-09-30":123.94,"2005-10-31":121.75,"2005-11-30":126.5,"2005-12-31":124.75,"2006-01-31":127.88,"2006-02-28":128.25,"2006-03-31":129.75,"2006-04-30":131.5,"2006-05-31":127.25,"2006-06-30":127.19,"2006-07-31":127.5,"2006-08-31":130.44,"2006-09-30":133.81,"2006-10-31":138.0,"2006-11-30":140.56,"2006-12-31":141.56,"2007-01-31":143.75,"2007-02-28":141.25,"2007-03-31":142.38,"2007-04-30":148.63,"2007-05-31":153.56,"2007-06-30":150.5,"2007-07-31":146.19,"2007-08-31":147.38,"2007-09-30":152.75,"2007-10-31":155.5,"2007-11-30":148.25,"2007-12-31":146.38,"2008-01-31":137.5,"2008-02-29":132.5,"2008-03-31":132.19,"2008-04-30":138.44,"2008-05-31":141.0,"2008-06-30":128.13,"2008-07-31":128.44,"2008-08-31":129.88,"2008-09-30":117.0,"2008-10-31":96.75,"2008-11-30":89.25,"2008-12-31":90.25,"2009-01-31":82.56,"2009-02-28":73.88,"2009-03-31":79.56,"2009-04-30":87.19,"2009-05-31":91.56,"2009-06-30":91.81,"2009-07-31":98.69,"2009-08-31":102.5,"2009-09-30":105.5,"2009-10-31":103.44,"2009-11-30":109.63,"2009-12-31":111.44,"2010-01-31":107.44,"2010-02-28":110.75,"2010-03-31":117.0,"2010-04-30":118.81,"2010-05-31":109.38,"2010-06-30":103.19,"2010-07-31":110.25,"2010-08-31":105.31,"2010-09-30":114.19,"2010-10-31":118.31,"2010-11-30":118.19,"2010-12-31":125.75,"2011-01-31":128.69,"2011-02-28":133.13,"2011-03-31":132.75,"2011-04-30":136.44,"2011-05-31":134.69,"2011-06-30":131.88,"2011-07-31":129.19,"2011-08-31":122.38,"2011-09-30":113.0,"2011-10-31":125.5,"2011-11-30":124.0,"2011-12-31":125.5,"2012-01-31":132.75,"2012-02-29":136.88,"2012-03-31":141.13,"2012-04-30":139.31,"2012-05-31":131.25,"2012-06-30":136.5,"2012-07-31":137.5,"2012-08-31":141.06,"2012-09-30":144.19,"2012-10-31":141.0,"2012-11-30":142.31,"2012-12-31":142.38,"2013-01-31":149.56,"2013-02-28":151.19,"2013-03-31":156.75,"2013-04-30":158.19,"2013-05-31":163.44,"2013-06-30":160.38,"2013-07-31":168.63,"2013-08-31":163.44,"2013-09-30":168.38,"2013-10-31":176.31,"2013-11-30":180.88,"2013-12-31":184.63,"2014-01-31":178.13,"2014-02-28":186.0,"2014-03-31":187.63,"2014-04-30":188.31,"2014-05-31":192.5,"2014-06-30":195.56,"2014-07-31":192.44,"2014-08-31":200.75,"2014-09-30":197.0,"2014-10-31":201.75,"2014-11-30":207.75,"2014-12-31":205.56,"2015-01-31":199.5,"2015-02-28":210.63,"2015-03-31":206.75,"2015-04-30":209.25,"2015-05-31":211.5,"2015-06-30":206.75,"2015-07-31":210.63,"2015-08-31":197.75,"2015-09-30":192.5,"2015-10-31":207.75,"2015-11-30":208.81,"2015-12-31":203.88,"2016-01-31":193.56,"2016-02-29":193.5,"2016-03-31":205.88,"2016-04-30":207.0,"2016-05-31":209.81,"2016-06-30":209.5,"2016-07-31":217.63,"2016-08-31":218.19,"2016-09-30":216.31,"2016-10-31":212.56,"2016-11-30":220.75,"2016-12-31":223.75,"2017-01-31":227.5,"2017-02-28":236.44,"2017-03-31":235.75,"2017-04-30":238.13,"2017-05-31":241.5,"2017-06-30":242.25,"2017-07-31":247.0,"2017-08-31":247.81,"2017-09-30":251.25,"2017-10-31":257.0,"2017-11-30":265.5,"2017-12-31":266.88,"2018-01-31":281.13,"2018-02-28":270.19,"2018-03-31":263.13,"2018-04-30":266.19,"2018-05-31":273.0,"2018-06-30":271.0,"2018-07-31":281.81,"2018-08-31":290.44,"2018-09-30":290.75,"2018-10-31":271.0,"2018-11-30":275.5,"2018-12-31":249.94,"2019-01-31":269.94,"2019-02-28":278.69,"2019-03-31":282.69,"2019-04-30":294.5,"2019-05-31":275.31,"2019-06-30":293.0,"2019-07-31":297.25,"2019-08-31":292.31,"2019-09-30":296.81,"2019-10-31":303.13,"2019-11-30":314.0,"2019-12-31":321.75,"2020-01-31":321.75,"2020-02-29":296.25,"2020-03-31":257.75,"2020-04-30":282.5,"2020-05-31":304.25,"2020-06-30":308.63,"2020-07-31":326.25,"2020-08-31":350.0,"2020-09-30":334.25,"2020-10-31":326.44,"2020-11-30":362.63,"2020-12-31":375.5,"2021-01-31":370.13,"2021-02-28":381.88,"2021-03-31":397.0,"2021-04-30":417.63,"2021-05-31":419.75,"2021-06-30":428.13,"2021-07-31":438.5,"2021-08-31":451.5,"2021-09-30":429.75,"2021-10-31":459.88,"2021-11-30":454.5,"2021-12-31":474.88,"2022-01-31":449.63,"2022-02-28":436.44,"2022-03-31":451.5,"2022-04-30":411.5,"2022-05-31":413.13,"2022-06-30":377.13,"2022-07-31":411.63,"2022-08-31":394.88,"2022-09-30":357.19,"2022-10-31":386.0,"2022-11-30":408.0,"2022-12-31":381.63,"2023-01-31":406.25,"2023-02-28":395.0,"2023-03-31":407.94,"2023-04-30":415.88,"2023-05-31":418.0,"2023-06-30":443.25,"2023-07-31":458.38,"2023-08-31":451.75,"2023-09-30":427.63,"2023-10-31":418.75,"2023-11-30":456.0,"2023-12-31":475.0,"2024-01-31":486.75,"2024-02-29":509.0,"2024-03-31":524.63,"2024-04-30":502.38,"2024-05-31":527.75,"2024-06-30":544.0,"2024-07-31":550.25,"2024-08-31":563.5,"2024-09-30":574.0,"2024-10-31":568.5,"2024-11-30":603.25,"2024-12-31":588.75,"2025-01-31":601.82,"2025-02-28":594.18,"2025-03-31":559.39,"2025-04-30":554.54,"2025-05-31":589.39,"2025-06-30":617.85,"2025-07-31":632.08,"2025-08-31":645.05,"2025-09-30":666.18,"2025-10-31":682.06,"2025-11-30":683.39,"2025-12-31":681.92,"2026-01-31":691.97,"2026-02-28":685.99,"2026-03-31":650.34};
+const SPY_BUNDLE_END = '2026-03-31';  // Last date we have bundled data for
 
 // State flag: did the live fetch succeed? Used in the status message.
 let spyLiveFetchStatus = null;  // 'success' | 'failed' | null
@@ -8970,19 +9074,25 @@ async function fetchSpyHistorical(fromDate, toDate) {
         } catch(e) {}
 
         if (!liveData) {
-            // Fan out across sources and proxies
+            // Fan out across sources and proxies. Tries the most reliable combos first.
+            // Each attempt has a 6-second timeout to avoid hanging on unresponsive proxies.
             const liveFrom = new Date(SPY_BUNDLE_END); liveFrom.setDate(liveFrom.getDate() - 5);
+            const withTimeout = (fn, ms) => Promise.race([fn(), new Promise((_,r) => setTimeout(() => r(new Error('timeout')), ms))]);
             const sources = [
-                { name: 'Yahoo (direct)',     fn: () => _fetchSpyYahoo(liveFrom, toDate, null) },
-                { name: 'Yahoo (allorigins)', fn: () => _fetchSpyYahoo(liveFrom, toDate, 'allorigins') },
-                { name: 'Yahoo (corsproxy)',  fn: () => _fetchSpyYahoo(liveFrom, toDate, 'corsproxy') },
-                { name: 'Stooq (direct)',     fn: () => _fetchSpyStooq(liveFrom, toDate, null) },
-                { name: 'Stooq (allorigins)', fn: () => _fetchSpyStooq(liveFrom, toDate, 'allorigins') },
-                { name: 'Stooq (corsproxy)',  fn: () => _fetchSpyStooq(liveFrom, toDate, 'corsproxy') },
+                { name: 'Stooq (direct)',        fn: () => _fetchSpyStooq(liveFrom, toDate, null) },
+                { name: 'Stooq (allorigins)',     fn: () => _fetchSpyStooq(liveFrom, toDate, 'allorigins') },
+                { name: 'Stooq (corsproxy)',      fn: () => _fetchSpyStooq(liveFrom, toDate, 'corsproxy') },
+                { name: 'Stooq (codetabs)',       fn: () => _fetchSpyStooq(liveFrom, toDate, 'codetabs') },
+                { name: 'Yahoo v1 (allorigins)',  fn: () => _fetchSpyYahoo(liveFrom, toDate, 'allorigins', 'v1') },
+                { name: 'Yahoo v2 (allorigins)',  fn: () => _fetchSpyYahoo(liveFrom, toDate, 'allorigins', 'v2') },
+                { name: 'Yahoo v1 (corsproxy)',   fn: () => _fetchSpyYahoo(liveFrom, toDate, 'corsproxy', 'v1') },
+                { name: 'Yahoo v2 (corsproxy)',   fn: () => _fetchSpyYahoo(liveFrom, toDate, 'corsproxy', 'v2') },
+                { name: 'Yahoo v1 (codetabs)',    fn: () => _fetchSpyYahoo(liveFrom, toDate, 'codetabs', 'v1') },
+                { name: 'Yahoo v1 (direct)',      fn: () => _fetchSpyYahoo(liveFrom, toDate, null, 'v1') },
             ];
             for (const src of sources) {
                 try {
-                    const d = await src.fn();
+                    const d = await withTimeout(src.fn, 6000);
                     if (d && Object.keys(d).length > 0) { liveData = d; break; }
                 } catch(e) { /* try next */ }
             }
@@ -9009,13 +9119,15 @@ function _applyProxy(targetUrl, proxyName) {
     if (!proxyName) return targetUrl;
     if (proxyName === 'allorigins') return `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
     if (proxyName === 'corsproxy')  return `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+    if (proxyName === 'codetabs')   return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
     return targetUrl;
 }
 
-async function _fetchSpyYahoo(fromDate, toDate, proxyName) {
+async function _fetchSpyYahoo(fromDate, toDate, proxyName, version = 'v1') {
     const p1 = Math.floor(fromDate.getTime() / 1000);
     const p2 = Math.floor(toDate.getTime() / 1000);
-    const directUrl = `https://query1.finance.yahoo.com/v8/finance/chart/SPY?period1=${p1}&period2=${p2}&interval=1d`;
+    const host = version === 'v2' ? 'query2.finance.yahoo.com' : 'query1.finance.yahoo.com';
+    const directUrl = `https://${host}/v8/finance/chart/SPY?period1=${p1}&period2=${p2}&interval=1d`;
     const url = _applyProxy(directUrl, proxyName);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -9059,17 +9171,25 @@ async function _fetchSpyStooq(fromDate, toDate, proxyName) {
 }
 
 function _findClosestSpyPrice(spyData, targetDate) {
-    // Walk forward up to 7 days (covers weekends + holidays) to find the next trading day
+    // Walk forward up to 7 days first — covers daily-data gaps (weekends, holidays).
     for (let offset = 0; offset <= 7; offset++) {
         const d = new Date(targetDate);
         d.setDate(d.getDate() + offset);
         const key = d.toISOString().slice(0,10);
         if (spyData[key]) return spyData[key];
     }
-    // Walk backward as a last resort (edge case: very start of data)
-    for (let offset = 1; offset <= 7; offset++) {
+    // Walk backward up to 31 days — essential for monthly bundle data where the
+    // nearest entry may be up to ~30 days before the target date (previous month-end).
+    for (let offset = 1; offset <= 31; offset++) {
         const d = new Date(targetDate);
         d.setDate(d.getDate() - offset);
+        const key = d.toISOString().slice(0,10);
+        if (spyData[key]) return spyData[key];
+    }
+    // Walk forward further as a last resort (e.g. date is before first bundle entry).
+    for (let offset = 8; offset <= 31; offset++) {
+        const d = new Date(targetDate);
+        d.setDate(d.getDate() + offset);
         const key = d.toISOString().slice(0,10);
         if (spyData[key]) return spyData[key];
     }
@@ -9174,9 +9294,11 @@ function renderSpyBenchmark(spyData, credits, today) {
     });
 
     // Build a merged timeline: every close date + every open date that involved a credit
+    // Always include today so the chart extends to the current date regardless of last trade date.
     const timelinePoints = new Set();
     allCloses.forEach(c => timelinePoints.add(c.closeDate.toISOString().slice(0,10)));
     byOpenDate.forEach(c => timelinePoints.add(c.openDate.toISOString().slice(0,10)));
+    timelinePoints.add(today.toISOString().slice(0,10));
     const timelineDates = Array.from(timelinePoints).sort();
 
     const userCumByDate = {};
