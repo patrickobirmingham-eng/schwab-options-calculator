@@ -464,7 +464,7 @@ th.oc-drop-target {
                 <label style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">1. Status Filter</label>
                 <div id="statusCheckboxes" style="display:inline-flex; flex-wrap:wrap; justify-content:center; gap:6px 16px; background:var(--bg-input); padding:8px 14px; border-radius:8px; border:1px solid var(--border-color);">
                     <label class="checkbox-item"><input type="checkbox" id="cbBuyToClose" value="Buy to Close" checked onchange="applyFilters()"> Buy to Close</label>
-                    <label class="checkbox-item"><input type="checkbox" value="Assigned" onchange="applyFilters()"> Assigned</label>
+                    <label class="checkbox-item"><input type="checkbox" value="Assigned" checked onchange="applyFilters()"> Assigned</label>
                     <label class="checkbox-item"><input type="checkbox" value="Called Away" checked onchange="applyFilters()"> Called Away</label>
                     <label class="checkbox-item"><input type="checkbox" id="cbSellToClose" value="Sell to Close" checked onchange="applyFilters()"> Sell to Close</label>
                     <label class="checkbox-item"><input type="checkbox" value="Expired" checked onchange="applyFilters()"> Expired</label>
@@ -1094,6 +1094,9 @@ th.oc-drop-target {
 
         </div>
         <button onclick="downloadResults()" style="background:#10b981;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Download Results</button>
+        <button onclick="exportNotesJson()" title="Save all trade notes to a JSON file so you can restore them later or on another browser" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><path d="M12 7v7m0 0l-3-3m3 3l3-3M8 17h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Export Notes</button>
+        <button onclick="document.getElementById('notesImportInput').click()" title="Restore trade notes from a previously exported JSON file" style="background:#6d28d9;color:white;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.1em" height="1.1em" viewBox="0 0 24 24" style="vertical-align:middle;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><path d="M12 17v-7m0 0l-3 3m3-3l3 3M8 7h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Import Notes</button>
+        <input type="file" id="notesImportInput" accept=".json" style="display:none;" onchange="importNotesJson(this)">
     </div>
 
     <div class="table-container" id="tableContainer" style="display:none;">
@@ -2158,8 +2161,15 @@ function render(newSortKey, dataToRender) {
     const startDate = startVal ? new Date(startVal + "T00:00:00") : null;
     const endDate = endVal ? new Date(endVal + "T23:59:59") : null;
     const searchTerm = document.getElementById('searchInput').value.trim();
+    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
+    const assignedChecked = activeStatuses.some(s => s.includes('assigned'));
 
-    // Cash Flow: STO+BTO received/paid and BTC+STC paid/received within date range (by transaction date)
+    // Cash Flow: STO+BTO received/paid and BTC+STC paid/received within date range (by transaction date).
+    // Respects the status checkboxes — unchecking "Buy to Close" removes BTC amounts, etc.
+    const showSellToOpen  = activeStatuses.some(s => s.includes('sell') && s.includes('open'));
+    const showBuyToOpen   = activeStatuses.some(s => s.includes('buy')  && s.includes('open'));
+    const showBuyToClose  = activeStatuses.some(s => s.includes('buy')  && s.includes('close'));
+    const showSellToClose = activeStatuses.some(s => s.includes('sell') && s.includes('close'));
     let sellToOpen = 0, buyToClose = 0;
     if (window.rawRows) {
         window.rawRows.forEach(r => {
@@ -2171,20 +2181,26 @@ function render(newSortKey, dataToRender) {
             if (startDate && d < startDate) return;
             if (endDate && d > endDate) return;
             const amt = cleanNum(r.Amount);
-            if (action.includes('to open')) sellToOpen += amt;
-            if (action.includes('to close')) buyToClose += amt;
+            const isSTO = action.includes('sell') && action.includes('open');
+            const isBTO = action.includes('buy')  && action.includes('open');
+            const isBTC = action.includes('buy')  && action.includes('close');
+            const isSTC = action.includes('sell') && action.includes('close');
+            if ((isSTO && showSellToOpen) || (isBTO && showBuyToOpen)) sellToOpen += amt;
+            if ((isBTC && showBuyToClose) || (isSTC && showSellToClose)) buyToClose += amt;
         });
     }
     const cashFlow = sellToOpen + buyToClose;
 
-    // Realized P/L: profit on closed non-assigned trades, by close date, respecting status filters
-    const activeStatuses = Array.from(document.querySelectorAll('#statusCheckboxes input:checked')).filter(cb => !cb.dataset.combined).map(cb => cb.value.toLowerCase());
+    // Realized P/L: profit on closed trades, by close date, respecting status filters.
+    // Assigned puts are treated separately (their premium offsets stock cost basis),
+    // but only when the Assigned checkbox is checked do they appear at all.
     let reconPL = 0;
     finalTrades.forEach(x => {
         const sym = x.symbol.toLowerCase();
         if (searchTerm && !sym.includes(searchTerm)) return;
         const st = x.status.toLowerCase();
-        if (st.includes('assigned')) return;
+        // Always exclude assigned puts from reconPL — their premium goes to reconAssigned
+        if (st.includes('assigned') && !st.includes('called')) return;
         if (!activeStatuses.includes(st)) return;
         const d = x.closeDate;
         if (startDate && d < startDate) return;
@@ -2192,17 +2208,20 @@ function render(newSortKey, dataToRender) {
         reconPL += x.profit || 0;
     });
 
-    // Assigned Premium: opening premiums on assigned puts, by assignment (close) date
+    // Assigned Premium: only counted when the Assigned checkbox is checked
     let reconAssigned = 0;
-    finalTrades.forEach(x => {
-        const sym = x.symbol.toLowerCase();
-        if (searchTerm && !sym.includes(searchTerm)) return;
-        if (!x.status.toLowerCase().includes('assigned')) return;
-        const d = x.closeDate;
-        if (startDate && d < startDate) return;
-        if (endDate && d > endDate) return;
-        reconAssigned += Math.abs(x.openingPremium || 0);
-    });
+    if (assignedChecked) {
+        finalTrades.forEach(x => {
+            const sym = x.symbol.toLowerCase();
+            if (searchTerm && !sym.includes(searchTerm)) return;
+            const st = x.status.toLowerCase();
+            if (!st.includes('assigned') || st.includes('called')) return;
+            const d = x.closeDate;
+            if (startDate && d < startDate) return;
+            if (endDate && d > endDate) return;
+            reconAssigned += Math.abs(x.openingPremium || 0);
+        });
+    }
 
     // Open Premium: premiums on currently open positions (always unfiltered by date — these are live)
     let reconOpen = 0;
@@ -2217,7 +2236,9 @@ function render(newSortKey, dataToRender) {
     // ── Win Rate & Trade Stats ─────────────────────────────────
     const closedNonAssigned = finalTrades.filter(x => {
         const st = x.status.toLowerCase();
-        if (st.includes('assigned') || st.includes('called away')) return false;
+        // Assigned puts excluded from win rate/avg premium (always win by definition)
+        if (st.includes('assigned') && !st.includes('called')) return false;
+        if (!activeStatuses.includes(st)) return false;
         if (startDate && x.closeDate < startDate) return false;
         if (endDate && x.closeDate > endDate) return false;
         if (searchTerm && !x.symbol.toLowerCase().includes(searchTerm)) return false;
@@ -2454,7 +2475,7 @@ function setQuickRange() {
 function resetFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('quickRange').value = 'currentMonth';
-    document.querySelectorAll('#statusCheckboxes input').forEach(cb => { cb.checked = (cb.value !== 'Assigned'); cb.indeterminate = false; });
+    document.querySelectorAll('#statusCheckboxes input').forEach(cb => { cb.checked = true; cb.indeterminate = false; });
     setQuickRange();
 }
 
@@ -2539,6 +2560,69 @@ function downloadOriginalWithNotes() {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+}
+
+// ── Notes JSON export / import ────────────────────────────────────────────────
+// Provides a dedicated backup path independent of the CSV download so notes
+// survive browser storage clears and can be moved between browsers or devices.
+
+function exportNotesJson() {
+    const notes = _getAllNotes();
+    const count = Object.keys(notes).length;
+    if (count === 0) {
+        alert('No trade notes to export — add notes to your trades first.');
+        return;
+    }
+    const payload = JSON.stringify({ _type: 'schwab_trade_notes_v1', exported: new Date().toISOString(), notes }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trade-notes-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importNotesJson(input) {
+    const file = input.files[0];
+    if (!file) return;
+    // Reset the input so the same file can be re-selected if needed
+    input.value = '';
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            // Accept either the wrapped format { _type, notes: {...} } or a raw key→text map
+            const incoming = (parsed && parsed._type === 'schwab_trade_notes_v1' && parsed.notes)
+                ? parsed.notes
+                : parsed;
+            if (typeof incoming !== 'object' || Array.isArray(incoming)) {
+                alert('This file doesn\'t look like a notes backup — no notes were imported.');
+                return;
+            }
+            const incomingCount = Object.keys(incoming).length;
+            if (incomingCount === 0) {
+                alert('The notes file is empty — nothing to import.');
+                return;
+            }
+            // Merge: existing notes take priority so a re-import never overwrites edits
+            const existing = _getAllNotes();
+            const merged = Object.assign({}, incoming, existing);
+            _saveAllNotes(merged);
+            const newCount = Object.keys(merged).length - Object.keys(existing).length;
+            const msg = newCount > 0
+                ? `Imported ${incomingCount} note${incomingCount === 1 ? '' : 's'} (${newCount} new, ${incomingCount - newCount} already present).`
+                : `All ${incomingCount} note${incomingCount === 1 ? '' : 's'} were already present — nothing changed.`;
+            alert(msg + '\n\nReload the trade table to see updated notes.');
+            // Re-render the main table if data is already loaded so note icons refresh
+            if (finalTrades && finalTrades.length) applyFilters();
+        } catch (err) {
+            alert('Could not read the notes file — make sure it\'s a valid JSON export from this tool.');
+        }
+    };
+    reader.readAsText(file);
 }
 
 // ── Persistent state for Monthly & Weekly modals ──
@@ -3653,8 +3737,9 @@ function renderOpenCommitmentsTable() {
     const arrow = (key) => ocSortKey === key ? (ocSortDir === 1 ? ' ▲' : ' ▼') : ' ↕';
     const tdBase = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;`;
 
-    // ── Bull Put Spread Detection ──────────────────────────────────────────
-    // Match STO Put + BTO Put sharing ticker, expiry, and contract count.
+    // ── Spread Detection (Bull Put Spread + Bear Call Spread) ─────────────
+    // Match STO+BTO pairs sharing ticker, expiry, and contract count for both
+    // put spreads (BPS) and call spreads (BCS).
     const usedIndices = new Set();
     const displayItems = [];
 
@@ -3663,13 +3748,14 @@ function renderOpenCommitmentsTable() {
         const a = filtered[i];
         let matched = -1;
 
-        if (a.type === 'Put') {
+        // Both puts (BPS) and calls (BCS) can form spreads
+        if (a.type === 'Put' || a.type === 'Call') {
             const tickerA = extractTicker(a.symbol);
             const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
             for (let j = i + 1; j < filtered.length; j++) {
                 if (usedIndices.has(j)) continue;
                 const b = filtered[j];
-                if (b.type !== 'Put') continue;
+                if (b.type !== a.type) continue;
                 if (extractTicker(b.symbol) !== tickerA) continue;
                 const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
                 if (expB !== expA) continue;
@@ -3686,10 +3772,14 @@ function renderOpenCommitmentsTable() {
             const sto = a.action === 'STO' ? a : b;
             const bto = a.action === 'BTO' ? a : b;
             const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
-            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}`;
+            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}|${sto.type}`;
             const spreadNetPremium = sto.premiumReceived - bto.premiumReceived;
-            const spreadMaxLoss = (sto.strike - bto.strike) * sto.contracts * 100 - spreadNetPremium;
-            displayItems.push({ kind: 'spread', sto, bto, spreadId, spreadMaxLoss });
+            // Max loss: for BPS = (short_strike - long_strike) * contracts * 100 - net_credit
+            //           for BCS = (long_strike - short_strike) * contracts * 100 - net_credit
+            // Both reduce to |strike_diff| * contracts * 100 - net_credit
+            const spreadMaxLoss = Math.abs(sto.strike - bto.strike) * sto.contracts * 100 - spreadNetPremium;
+            const isBCS = sto.type === 'Call';
+            displayItems.push({ kind: 'spread', sto, bto, spreadId, spreadMaxLoss, isBCS });
             usedIndices.add(i);
             usedIndices.add(matched);
         } else {
@@ -3714,7 +3804,8 @@ function renderOpenCommitmentsTable() {
     });
     groupedDisplayItems.forEach(item => {
         if (item.kind === 'spread') {
-            totalPuts += item.spreadMaxLoss;
+            if (item.isBCS) totalCalls += item.spreadMaxLoss;
+            else            totalPuts  += item.spreadMaxLoss;
         } else if (item.kind === 'group') {
             item.rows.forEach(r => { totalPuts += r.putCommitment; totalCalls += r.callCommitment; });
         }
@@ -3942,9 +4033,9 @@ function renderOpenCommitmentsTable() {
                 </td></tr>`;
             }
 
-        // ────────── BULL PUT SPREAD ROW ─────────────────────────────────────
+        // ────────── SPREAD ROW (Bull Put Spread or Bear Call Spread) ──────────
         } else {
-            const { sto, bto, spreadId, spreadMaxLoss } = item;
+            const { sto, bto, spreadId, spreadMaxLoss, isBCS } = item;
             const ticker = extractTicker(sto.symbol);
             const pd = ocStockPrices[ticker];
             const stoOcc = buildOCCSymbol(sto.symbol);
@@ -3953,10 +4044,14 @@ function renderOpenCommitmentsTable() {
             const btoOp = btoOcc ? ocOptionPrices[btoOcc] : null;
             const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
 
-            const netPremium    = sto.premiumReceived - bto.premiumReceived;
-            const contracts     = sto.contracts;
-            const breakeven     = sto.strike - (netPremium / (contracts * 100));
-            const isExpanded    = ocSpreadExpanded.has(spreadId);
+            const netPremium = sto.premiumReceived - bto.premiumReceived;
+            const contracts  = sto.contracts;
+            // BPS breakeven: short_put_strike - net_credit_per_share
+            // BCS breakeven: short_call_strike + net_credit_per_share
+            const breakeven  = isBCS
+                ? sto.strike + (netPremium / (contracts * 100))
+                : sto.strike - (netPremium / (contracts * 100));
+            const isExpanded = ocSpreadExpanded.has(spreadId);
             const spreadBg      = isDark ? 'rgba(14,165,233,0.09)' : 'rgba(14,165,233,0.05)';
             rowIndex++;
 
@@ -3995,9 +4090,11 @@ function renderOpenCommitmentsTable() {
             } else { pctBreakevenHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
 
             // OTM/ITM based on the short (STO) strike
+            // BPS: OTM when stock price is ABOVE short put strike
+            // BCS: OTM when stock price is BELOW short call strike
             let otmItmHtml;
             if (pd && !pd.loading && !pd.error && pd.price) {
-                const otm = pd.price > sto.strike;
+                const otm = isBCS ? pd.price < sto.strike : pd.price > sto.strike;
                 otmItmHtml = otm ? `<span style="color:${posColor}">OTM</span>` : `<span style="color:${negColor}">ITM</span>`;
             } else { otmItmHtml = '<span style="color:#64748b;font-size:0.75rem;">—</span>'; }
 
@@ -4006,22 +4103,22 @@ function renderOpenCommitmentsTable() {
             // ── Spread summary row ──
             const spreadCells = {
                 date:          C(sto.date, `color:${textColor};`),
-                symbol:        C(`${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} P</span>`, `color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;`),
+                symbol:        C(`${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} ${isBCS ? 'C' : 'P'}</span>`, `color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;`),
                 strikeDate:    C(expiry, `color:${warnColor};`),
-                action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">BPS</span>`),
+                action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">${isBCS ? 'BCS' : 'BPS'}</span>`),
                 dte:           C(sto.dte !== '' ? sto.dte : '—', `color:${warnColor};font-weight:600;`),
                 strike:        C(`$${sto.strike.toFixed(2)}<br>$${bto.strike.toFixed(2)}`, `color:#a78bfa;font-weight:700;font-size:0.78rem;white-space:normal;`),
                 price:         C(priceCell(ticker), `line-height:1.5;`),
                 assignPrice:   C(`$${breakeven.toFixed(2)}<br><span style="font-size:0.65rem;color:#64748b;">Breakeven</span>`, `color:#e879f9;font-weight:700;`),
                 pctFromStrike: C(`${pctBreakevenHtml}<br><span style="font-size:0.65rem;color:#64748b;">from B/E</span>`, `font-weight:700;`),
                 otmitm:        C(`${otmItmHtml}<br><span style="font-size:0.65rem;color:#64748b;">short leg</span>`, `font-weight:700;`),
-                type:          C('Put', `color:${negColor};font-weight:600;`),
+                type:          C(isBCS ? 'Call' : 'Put', `color:${negColor};font-weight:600;`),
                 contracts:     C(String(contracts), `color:${textColor};`),
                 premium:       C(`${netPremium > 0 ? '$' + netPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}<br><span style="font-size:0.65rem;color:#64748b;">net credit</span>`, `color:#10b981;font-weight:700;`),
                 marketValue:   C(spreadMVHtml, `line-height:1.5;`),
                 pl:            C(spreadPlHtml),
                 plPct:         C(spreadPlPctHtml),
-                puts:          C(`$${item.spreadMaxLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`, `color:${negColor};font-weight:500;`),
+                puts:          C(`$${item.spreadMaxLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}${isBCS ? '<br><span style="font-size:0.6rem;color:#64748b;">call spread</span>' : ''}`, `color:${negColor};font-weight:500;`),
                 calls:         C(`<button onclick="toggleSpread('${safeId}')" style="background:rgba(14,165,233,0.15);border:1px solid #0ea5e9;color:#0ea5e9;padding:4px 11px;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:700;white-space:nowrap;">${isExpanded ? '▲ Hide' : '▼ Legs'}</button>`, `text-align:center;`),
             };
             rowsHtml += renderRow(spreadCells, `background:${spreadBg};border-left:4px solid #0ea5e9;`);
@@ -4140,7 +4237,7 @@ function renderOpenCommitmentsTable() {
     const expGroups = {};
     groupedDisplayItems.forEach(item => {
         if (item.kind === 'spread') {
-            const { sto, bto, spreadMaxLoss } = item;
+            const { sto, bto, spreadMaxLoss, isBCS } = item;
             const sym = sto.symbol.trim();
             const expMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
             const expDate = expMatch ? expMatch[1] : '—';
@@ -4153,7 +4250,8 @@ function renderOpenCommitmentsTable() {
                 ? (stoOp.price - btoOp.price) * sto.contracts * 100 : 0;
             const netPrem = sto.premiumReceived - bto.premiumReceived;
             if (!expGroups[expDate]) expGroups[expDate] = { expDate, dte: sto.dte, totalPuts: 0, totalCalls: 0, totalPremium: 0, totalMarketValue: 0, tickers: new Set() };
-            expGroups[expDate].totalPuts += spreadMaxLoss;
+            if (isBCS) expGroups[expDate].totalCalls += spreadMaxLoss;
+            else       expGroups[expDate].totalPuts  += spreadMaxLoss;
             expGroups[expDate].totalPremium += netPrem;
             expGroups[expDate].totalMarketValue += netMV;
             expGroups[expDate].tickers.add(ticker);
@@ -4924,6 +5022,25 @@ function showMonthlySummary() {
     };
 
     const totCashFlow = totSellOpen + totBuyClose;
+
+    // Best and worst month (by Profit from Closed Options, ignoring months with no activity)
+    const allMonthData = Object.values(monthlyByYear).flat().filter(md => md.profit !== 0);
+    const bestMonth  = allMonthData.length ? allMonthData.reduce((a,b) => a.profit > b.profit ? a : b) : null;
+    const worstMonth = allMonthData.length ? allMonthData.reduce((a,b) => a.profit < b.profit ? a : b) : null;
+    const bestWorstHtml = (bestMonth || worstMonth) ? `
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+            ${bestMonth ? `<div style="flex:1; min-width:200px; background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.35); border-radius:10px; padding:10px 16px;">
+                <div style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">🏆 Best Month</div>
+                <div style="font-size:1.05rem; font-weight:700; color:#4ade80;">${bestMonth.monthLabel}</div>
+                <div style="font-size:0.85rem; color:#4ade80; margin-top:2px;">+${fmt(bestMonth.profit)}</div>
+            </div>` : ''}
+            ${worstMonth && worstMonth.profit < 0 ? `<div style="flex:1; min-width:200px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.35); border-radius:10px; padding:10px 16px;">
+                <div style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">📉 Worst Month</div>
+                <div style="font-size:1.05rem; font-weight:700; color:#f87171;">${worstMonth.monthLabel}</div>
+                <div style="font-size:0.85rem; color:#f87171; margin-top:2px;">${fmt(worstMonth.profit)}</div>
+            </div>` : ''}
+        </div>` : '';
+
     const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
         <td style="text-align:center;padding:12px 14px;color:#a78bfa;">Total</td>
         <td style="padding:12px 14px;color:#16a34a;">${fmt(totSellOpen)}</td>
@@ -4937,7 +5054,7 @@ function showMonthlySummary() {
     const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #6d28d9;white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
     const tblStyle = `width:100%;min-width:540px;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
 
-    document.getElementById('monthlyTableContainer').innerHTML = `
+    document.getElementById('monthlyTableContainer').innerHTML = bestWorstHtml + `
         <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
         <table id="monthlyBreakdownTable" style="${tblStyle}">
             <colgroup><col style="width:14%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"><col style="width:17.2%"></colgroup>
@@ -5220,7 +5337,27 @@ function showWeeklySummary() {
         <td style="padding:12px 14px;color:#d97706;">${grandAssigned > 0 ? fmt(grandAssigned) : '$0.00'}</td>
     </tr>`;
 
-    document.getElementById('weeklyTableContainer').innerHTML = `
+    // Best and worst week (by Profit from Closed Options, ignoring weeks with no activity)
+    const activeWeeks = weekData.filter(w => w.profit !== 0);
+    const bestWeek  = activeWeeks.length ? activeWeeks.reduce((a,b) => a.profit > b.profit ? a : b) : null;
+    const worstWeek = activeWeeks.length ? activeWeeks.reduce((a,b) => a.profit < b.profit ? a : b) : null;
+    const weekBestWorstHtml = (bestWeek || worstWeek) ? `
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+            ${bestWeek ? `<div style="flex:1; min-width:200px; background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.35); border-radius:10px; padding:10px 16px;">
+                <div style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">\u{1F3C6} Best Week</div>
+                <div style="font-size:1.05rem; font-weight:700; color:#4ade80;">${bestWeek.weekLabel}</div>
+                <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:1px;">${bestWeek.calWeek}</div>
+                <div style="font-size:0.85rem; color:#4ade80; margin-top:2px;">+${fmt(bestWeek.profit)}</div>
+            </div>` : ''}
+            ${worstWeek && worstWeek.profit < 0 ? `<div style="flex:1; min-width:200px; background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.35); border-radius:10px; padding:10px 16px;">
+                <div style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">\u{1F4C9} Worst Week</div>
+                <div style="font-size:1.05rem; font-weight:700; color:#f87171;">${worstWeek.weekLabel}</div>
+                <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:1px;">${worstWeek.calWeek}</div>
+                <div style="font-size:0.85rem; color:#f87171; margin-top:2px;">${fmt(worstWeek.profit)}</div>
+            </div>` : ''}
+        </div>` : '';
+
+    document.getElementById('weeklyTableContainer').innerHTML = weekBestWorstHtml + `
         <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
         <table id="weeklyBreakdownTable" style="${tblStyle}">
             <colgroup><col style="width:22%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
@@ -7826,6 +7963,31 @@ function buildTickerData() {
     }
 
     const map = {};
+
+    // Pre-compute which legs are standalone long options (LP or LC strategy) so
+    // they count toward trades/win-rate. Spread buy legs share a group with a
+    // short leg and get classified as BPS/BCS/IC/etc — those stay excluded from
+    // the count because the STO leg already represents the trade.
+    const filteredForClass = finalTrades.filter(x => {
+        const st = x.status.toLowerCase();
+        if (st.includes('assigned') || st.includes('called away')) return false;
+        if (allowedTradeSet && !allowedTradeSet.has(x)) return false;
+        if (x.closeDate) {
+            const cd = x.closeDate.getTime();
+            if (fromMs !== null && cd < fromMs) return false;
+            if (toMs   !== null && cd > toMs)   return false;
+        }
+        const ticker = extractTicker(x.symbol);
+        if (searchTerm && !ticker.toUpperCase().includes(searchTerm)) return false;
+        return true;
+    });
+    const standaloneLongLegs = new Set();
+    classifyStrategies(filteredForClass).forEach(s => {
+        if (s.strategy === 'LP' || s.strategy === 'LC') {
+            s.legs.forEach(l => standaloneLongLegs.add(l));
+        }
+    });
+
     finalTrades.forEach(x => {
         const st = x.status.toLowerCase();
         if (st.includes('assigned') || st.includes('called away')) return;
@@ -7838,51 +8000,51 @@ function buildTickerData() {
         }
         const ticker = extractTicker(x.symbol);
         if (searchTerm && !ticker.toUpperCase().includes(searchTerm)) return;
-        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, totalPL:0, premiumSum:0, netCreditSum:0, daysSum:0, daysCount:0, contracts:0, capitalAtRisk:0 };
+        if (!map[ticker]) map[ticker] = { ticker, trades:0, wins:0, grossWins:0, grossLosses:0, totalPL:0, premiumSum:0, netCreditSum:0, daysSum:0, daysCount:0, contracts:0, _legs:[] };
         const m = map[ticker];
-        const isBuyLeg = (x.openingPremium || 0) < 0;   // buy side of a spread
-        // Parse strike from symbol — used for capital-at-risk estimation
-        const putMatch  = x.symbol.match(/([\d.]+)\s+P\s*$/);
-        const callMatch = x.symbol.match(/([\d.]+)\s+C\s*$/);
-        const strike = putMatch ? parseFloat(putMatch[1]) : callMatch ? parseFloat(callMatch[1]) : 0;
+        const isBuyLeg = (x.openingPremium || 0) < 0;
         const qtyAbs = Math.abs(Number(x.contracts) || 0);
-        if (!isBuyLeg) {
-            // only count sell-side (credit) legs toward trade count and win rate
+        // Count toward trades/wins if: it's a short (credit) leg, OR it's a
+        // standalone long option (not the buy leg of a spread).
+        if (!isBuyLeg || standaloneLongLegs.has(x)) {
             m.trades++;
-            if ((x.profit || 0) > 0) m.wins++;
-            // Capital at risk: for a sold put, strike * 100 * contracts (cash-secured basis).
-            // For a sold call, approximate with strike * 100 * contracts too (covered-call basis).
-            // Spreads: the paired buy leg below reduces this figure.
-            if (strike) m.capitalAtRisk += strike * 100 * qtyAbs;
-        } else {
-            // Buy leg of a spread reduces capital at risk to (short - long) * 100 * contracts.
-            // We subtract the long-leg strike contribution so the net equals the spread width.
-            if (strike) m.capitalAtRisk -= strike * 100 * qtyAbs;
+            const p = x.profit || 0;
+            if (p > 0) { m.wins++; m.grossWins += p; }
+            else if (p < 0) { m.grossLosses += Math.abs(p); }
         }
-        m.totalPL += x.profit || 0;
-        m.premiumSum += Math.abs(x.openingPremium || 0);
+        m.totalPL      += x.profit || 0;
+        m.premiumSum   += Math.abs(x.openingPremium || 0);
         m.netCreditSum += (x.openingPremium || 0);   // signed: sell legs +, buy legs −
-        m.contracts += qtyAbs;
+        m.contracts    += qtyAbs;
         if (x.openDate && x.closeDate) {
             m.daysSum += Math.round((x.closeDate - x.openDate) / 86400000);
             m.daysCount++;
         }
+        // Collect the raw leg so _computeCapitalTied can apply BPS/BCS pairing
+        // using the same max-loss formula as the Open Positions page.
+        m._legs.push(x);
     });
     return Object.values(map).map(m => {
         const avgDays = m.daysCount > 0 ? +(m.daysSum / m.daysCount).toFixed(1) : 0;
-        const capital = Math.max(m.capitalAtRisk, 0);
-        // Annualized ROC: (P&L / capital) * (365 / avgDays) * 100
+        // Use the shared capital helper so ROC matches Open Positions commitments.
+        const capital = _computeCapitalTied(m._legs);
         let roc = null;
         if (capital > 0 && avgDays > 0) {
             roc = (m.totalPL / capital) * (365 / avgDays) * 100;
         }
+        const losses = m.trades - m.wins;
+        const avgWin  = m.wins   > 0 ? m.grossWins   / m.wins   : null;
+        const avgLoss = losses   > 0 ? m.grossLosses / losses   : null;
+        const profitFactor = m.grossLosses > 0 ? m.grossWins / m.grossLosses : null;
+        const { _legs, ...rest } = m;
         return {
-            ...m,
+            ...rest,
+            capitalAtRisk: capital,
             winRate: m.trades > 0 ? (m.wins / m.trades * 100) : 0,
             avgPrem: m.trades > 0 ? m.premiumSum / m.trades : 0,
             avgDays,
             premCaptured: m.netCreditSum > 0 ? (m.totalPL / m.netCreditSum * 100) : null,
-            roc,
+            roc, avgWin, avgLoss, profitFactor,
         };
     });
 }
@@ -8291,6 +8453,15 @@ function renderTickerSummaryPills(rows) {
     const totalTrades = rows.reduce((s,r) => s+r.trades, 0);
     const overallAvgPremium = totalTrades > 0 ? (totalPremiumSum / totalTrades) : null;
 
+    // Profit factor, avg win, avg loss — aggregated across all filtered tickers
+    const totalGrossWins   = rows.reduce((s,r) => s + (r.grossWins   || 0), 0);
+    const totalGrossLosses = rows.reduce((s,r) => s + (r.grossLosses || 0), 0);
+    const totalWins        = rows.reduce((s,r) => s + r.wins, 0);
+    const totalLosses      = totalTrades - totalWins;
+    const overallPF        = totalGrossLosses > 0 ? totalGrossWins / totalGrossLosses : null;
+    const overallAvgWin    = totalWins   > 0 ? totalGrossWins   / totalWins   : null;
+    const overallAvgLoss   = totalLosses > 0 ? totalGrossLosses / totalLosses : null;
+
     // Strategy mix: classify the currently-filtered closed trades (respects
     // date range, ticker search, and strategy dropdown — same source all the
     // other pills draw from).
@@ -8328,6 +8499,12 @@ function renderTickerSummaryPills(rows) {
         pill('Overall Win Rate', overallWinRate.toFixed(1)+'%', overallWinRate>=50?'#4ade80':'#f87171') +
         pill('Avg Premium / Trade', overallAvgPremium !== null ? '$'+overallAvgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—', '#4ade80') +
         pill('% Premium Captured', overallPremCaptured !== null ? overallPremCaptured.toFixed(1)+'%' : '—', overallPremCaptured !== null ? (overallPremCaptured>=50?'#4ade80':'#f87171') : 'var(--text-secondary)') +
+        (overallPF !== null ? `<div title="Gross wins ÷ gross losses. Above 1.5 is healthy — means you make more on winners than you give back on losers." style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center; cursor:help;">
+            <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Profit Factor <span style="opacity:0.6;">ⓘ</span></div>
+            <div style="font-size:1.1rem; font-weight:700; color:${overallPF>=1.5?'#4ade80':overallPF>=1?'#facc15':'#f87171'};">${overallPF.toFixed(2)}</div>
+        </div>` : '') +
+        (overallAvgWin !== null ? pill('Avg Win', '+$'+overallAvgWin.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), '#4ade80') : '') +
+        (overallAvgLoss !== null ? pill('Avg Loss', '-$'+overallAvgLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), '#f87171') : '') +
         (topStrats ? `<div title="${stratTooltip.replace(/"/g,'&quot;')}" style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center; cursor:help;">
             <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Strategy Mix <span style="opacity:0.6;">ⓘ</span></div>
             <div style="font-size:1.1rem; font-weight:700; color:#a78bfa;">${topStrats}</div>
@@ -8349,7 +8526,7 @@ function renderTickerLeaderboard(rows) {
     const losers  = rows.filter(r => r.totalPL < 0).sort((a, b) => a.totalPL - b.totalPL).slice(0, 5);
 
     const fmt$ = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-    const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="display:inline-block; width:20px; text-align:center; font-size:0.85rem; color:var(--text-secondary); font-weight:600;">${i+1}</span>`;
+    const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="display:inline-block; width:40px; text-align:center; font-size:1.7rem; color:var(--text-secondary); font-weight:600;">${i+1}</span>`;
 
     const buildList = (list, accentColor) => {
         if (!list.length) {
@@ -8359,7 +8536,7 @@ function renderTickerLeaderboard(rows) {
             const isLast = i === list.length - 1;
             return `
             <div style="display:flex; align-items:center; gap:12px; padding:10px 14px;${isLast ? '' : ' border-bottom:1px solid var(--border-color);'}">
-                <div style="flex:0 0 28px; font-size:1.1rem; text-align:center;">${medal(i)}</div>
+                <div style="flex:0 0 48px; font-size:1.95rem; text-align:center;">${medal(i)}</div>
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">${r.ticker}</div>
                     <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">${r.trades} ${r.trades === 1 ? 'trade' : 'trades'}</div>
@@ -8470,20 +8647,41 @@ function renderTaxPreview() {
     const bracket = bracketInput === '' ? null : parseFloat(bracketInput);
     try { if (bracketInput !== '') localStorage.setItem('taxBracket', bracketInput); } catch(e) {}
 
-    // Sum realized P&L from closed (non-open) trades that closed within the selected year
+    // Sum realized P&L from CLOSED trades that closed within the selected year.
+    // Exclude open positions (isOpen: true) — their closeDate equals openDate and
+    // they have profit: 0, but they inflate the trade count shown in the card.
     const tradesInYear = finalTrades.filter(t => {
+        if (t.isOpen) return false;
         if (!t.closeDate) return false;
         if (t.closeDate.getFullYear() !== year) return false;
         return true;
     });
 
     let gains = 0, losses = 0, winCount = 0, lossCount = 0;
+    let longTermGains = 0, longTermLosses = 0;
     tradesInYear.forEach(t => {
+        const st = t.status.toLowerCase();
+        // Exclude assigned puts — their premium reduces the cost basis of the
+        // assigned stock and is not a standalone realized gain/loss on the option.
+        // This matches how the Monthly Summary treats assigned trades (separate column).
+        // "Called Away" (assigned calls) are included — they represent a completed sale.
+        if (st.includes('assigned') && !st.includes('called')) return;
         const p = t.profit || 0;
-        if (p > 0) { gains += p; winCount++; }
-        else if (p < 0) { losses += p; lossCount++; }
+        // Classify hold period the same way the RGL view does: >365 days = long term
+        const isLongTerm = t.openDate && t.closeDate &&
+            (t.closeDate - t.openDate) / 86400000 > 365;
+        if (p > 0) {
+            winCount++;
+            if (isLongTerm) longTermGains += p;
+            else gains += p;
+        } else if (p < 0) {
+            lossCount++;
+            if (isLongTerm) longTermLosses += p;
+            else losses += p;
+        }
     });
     const netShortTerm = gains + losses;
+    const netLongTerm  = longTermGains + longTermLosses;
 
     // If losses exceed gains, only $3,000 is deductible against ordinary income
     // in a given year — the rest carries forward. Show both numbers.
@@ -8491,7 +8689,9 @@ function renderTaxPreview() {
     const deductibleLoss = netShortTerm < 0 ? Math.max(netShortTerm, -lossCap) : 0;
     const carryforward = netShortTerm < -lossCap ? netShortTerm + lossCap : 0;
 
-    // Tax estimate
+    // Tax estimate — short-term gains are taxed as ordinary income at the
+    // marginal rate; long-term gains use the preferential capital gains rate.
+    // We only estimate short-term here since the user enters their income bracket.
     let estimatedTax = null;
     if (bracket !== null && !isNaN(bracket)) {
         if (netShortTerm > 0) estimatedTax = netShortTerm * (bracket / 100);
@@ -8517,11 +8717,13 @@ function renderTaxPreview() {
         taxCardHtml = card('Estimated Tax Savings', fmt$(estimatedTax), posColor, `at ${bracket}% marginal rate`);
     }
 
+    const closedCount = tradesInYear.length;
     document.getElementById('taxResults').innerHTML = `
         <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-            ${card('Realized Gains', fmt$(gains), posColor, `${winCount} winning trade${winCount === 1 ? '' : 's'}`)}
-            ${card('Realized Losses', fmt$(losses), negColor, `${lossCount} losing trade${lossCount === 1 ? '' : 's'}`)}
-            ${card('Net Short-Term', fmt$(netShortTerm), netShortTerm >= 0 ? posColor : negColor, `${tradesInYear.length} closed trade${tradesInYear.length === 1 ? '' : 's'} in ${year}`)}
+            ${card('Short-Term Gains', fmt$(gains), posColor, `${winCount} winning trade${winCount === 1 ? '' : 's'}`)}
+            ${card('Short-Term Losses', fmt$(losses), negColor, `${lossCount} losing trade${lossCount === 1 ? '' : 's'}`)}
+            ${card('Net Short-Term', fmt$(netShortTerm), netShortTerm >= 0 ? posColor : negColor, `${closedCount} closed trade${closedCount === 1 ? '' : 's'} in ${year}`)}
+            ${netLongTerm !== 0 ? card('Net Long-Term', fmt$(netLongTerm), netLongTerm >= 0 ? posColor : negColor, 'Held >365 days — taxed at cap gains rate') : ''}
         </div>
         <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
             ${taxCardHtml}
@@ -8807,35 +9009,114 @@ function tickerDownloadPng() {
 // ============================================================
 // PORTFOLIO RISK
 // Computes capital at risk across currently-open positions, grouped by ticker.
-// For each ticker:
-//   - Short puts contribute strike × 100 × contracts (cash-secured basis)
-//   - Long puts reduce the figure by their strike × 100 × contracts (spread)
-//   - Short calls add a cautious capital number based on strike (covered-call basis)
-//   - Long calls reduce short-call risk
-// The result is a floor on "how much money could this ticker cost me".
+// For each ticker, capital = Σ |short_notional − long_notional| over
+// (ticker, P/C) subgroups — see _computeCapitalTied for the full rationale.
+// This gives the correct spread width for bull put spreads, bear call spreads,
+// iron condors (whose put and call wings are in separate subgroups and add),
+// and strike × 100 × qty for naked shorts.
 // ============================================================
 let riskChartInstance = null;
 
+// Shared capital calculator used by Portfolio Risk (per ticker) and the
+// Expiration Calendar (per expiry). Mirrors the exact logic in the Open
+// Positions summary table:
+//
+//   • Bull Put Spread pair (same ticker, same expiry, same contracts, one STO
+//     put + one BTO put): capital = (stoStrike − btoStrike) × contracts × 100
+//                                   − spreadNetPremium   (i.e. max loss)
+//   • Standalone naked short put/call: strike × contracts × 100
+//   • Standalone long put/call: strike × contracts × 100
+//     (the debit is already paid but keeps notional exposure visible)
+//
+// This matches what the "Total Commitments" column in Open Positions shows,
+// so all three views will agree.
+function _computeCapitalTied(positions) {
+    // Build the same ocParsedRows-style objects the Open Positions page uses
+    const rows = positions.map(op => {
+        const sym = (op.symbol || '').trim();
+        const putMatch  = sym.match(/([\d.]+)\s+P\s*$/);
+        const callMatch = sym.match(/([\d.]+)\s+C\s*$/);
+        const isPut  = !!putMatch;
+        const strike = isPut ? parseFloat(putMatch[1])
+                     : callMatch ? parseFloat(callMatch[1]) : null;
+        const contracts = Math.abs(parseFloat(op.contracts) || 0);
+        const premiumReceived = Math.abs(op.openingPremium || 0);
+        const action = (op.status || '').toLowerCase().includes('buy') ? 'BTO' : 'STO';
+        const type   = isPut ? 'Put' : callMatch ? 'Call' : '—';
+        const ticker = extractTicker(sym);
+        const expiryM = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+        const expiry  = expiryM ? expiryM[1] : '';
+        return { sym, ticker, expiry, type, strike, contracts, premiumReceived, action };
+    }).filter(r => r.strike !== null && r.contracts > 0);
+
+    // Pair up BPS legs (same ticker, same expiry, same contracts, STO + BTO put)
+    const usedIdx = new Set();
+    let total = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        if (usedIdx.has(i)) continue;
+        const a = rows[i];
+        let matched = -1;
+
+        if (a.type === 'Put') {
+            for (let j = i + 1; j < rows.length; j++) {
+                if (usedIdx.has(j)) continue;
+                const b = rows[j];
+                if (b.type !== 'Put') continue;
+                if (b.ticker !== a.ticker) continue;
+                if (b.expiry !== a.expiry) continue;
+                if (b.contracts !== a.contracts) continue;
+                const isPair = (a.action === 'STO' && b.action === 'BTO') ||
+                               (a.action === 'BTO' && b.action === 'STO');
+                if (!isPair) continue;
+                matched = j;
+                break;
+            }
+        }
+
+        if (matched !== -1) {
+            const b = rows[matched];
+            const sto = a.action === 'STO' ? a : b;
+            const bto = a.action === 'BTO' ? a : b;
+            const spreadNetPremium = sto.premiumReceived - bto.premiumReceived;
+            const spreadMaxLoss = (sto.strike - bto.strike) * sto.contracts * 100 - spreadNetPremium;
+            total += Math.max(0, spreadMaxLoss);
+            usedIdx.add(i);
+            usedIdx.add(matched);
+        } else {
+            // Standalone: full notional (puts, calls, longs)
+            total += a.strike * a.contracts * 100;
+            usedIdx.add(i);
+        }
+    }
+
+    return total;
+}
+
 function _buildOpenRiskByTicker() {
+    // Bucket positions per ticker, then compute capital via the shared helper.
+    // We still track short/long leg counts and net premium for the UI, since
+    // those aren't captured by capital alone.
     const byTicker = {};
     openPositions.forEach(op => {
         const parsed = _parseOptionSymbol(op.symbol);
         if (!parsed) return;
         const qty = Math.abs(Number(op.contracts) || 0);
         if (qty === 0) return;
-        const isShort = (op.openingPremium || 0) > 0;
         if (!byTicker[parsed.ticker]) {
-            byTicker[parsed.ticker] = { ticker: parsed.ticker, capitalAtRisk: 0, positions: 0, shortLegs: 0, longLegs: 0, netPremium: 0 };
+            byTicker[parsed.ticker] = { ticker: parsed.ticker, _positions: [], positions: 0, shortLegs: 0, longLegs: 0, netPremium: 0 };
         }
         const m = byTicker[parsed.ticker];
-        const legCapital = parsed.strike * 100 * qty;
-        if (isShort) { m.capitalAtRisk += legCapital; m.shortLegs++; }
-        else         { m.capitalAtRisk -= legCapital; m.longLegs++; }  // long leg reduces net risk
+        m._positions.push(op);
         m.positions++;
+        if ((op.openingPremium || 0) > 0) m.shortLegs++; else m.longLegs++;
         m.netPremium += (op.openingPremium || 0);
     });
     return Object.values(byTicker)
-        .map(m => ({ ...m, capitalAtRisk: Math.max(m.capitalAtRisk, 0) }))  // floor at 0
+        .map(m => {
+            const { _positions, ...rest } = m;
+            return { ...rest, capitalAtRisk: _computeCapitalTied(_positions) };
+        })
         .sort((a,b) => b.capitalAtRisk - a.capitalAtRisk);
 }
 
@@ -8960,6 +9241,7 @@ function renderPortfolioRisk() {
 // Shows upcoming expiration dates with the total open premium rolling off
 // each one. Groups by Friday (standard expiries) and surfaces concentration.
 // ============================================================
+
 function showExpirationCalendar() {
     if (!openPositions || !openPositions.length) {
         alert('No open positions to show.');
@@ -8987,12 +9269,14 @@ function renderExpirationCalendar() {
             expiry: parsed.expiry, date: expDate, positions: [], totalPremium: 0, capitalCommitted: 0, byTicker: new Map()
         });
         const b = byExpiry.get(key);
-        b.positions.push({ ...op, parsed });
+        b.positions.push(op);
         b.totalPremium += (op.openingPremium || 0);
         const qty = Math.abs(Number(op.contracts) || 0);
-        if ((op.openingPremium || 0) > 0) b.capitalCommitted += parsed.strike * 100 * qty;
         b.byTicker.set(parsed.ticker, (b.byTicker.get(parsed.ticker) || 0) + qty);
     });
+    // Capital tied per bucket via the shared helper — guarantees the calendar
+    // and the Portfolio Risk view agree on a given set of positions.
+    byExpiry.forEach(b => { b.capitalCommitted = _computeCapitalTied(b.positions); });
 
     const expList = Array.from(byExpiry.values()).sort((a,b) => a.date - b.date);
     if (!expList.length) {
@@ -9011,10 +9295,12 @@ function renderExpirationCalendar() {
         const isPast = dte < 0;
         const isUrgent = dte >= 0 && dte <= 7;
         const tickers = Array.from(e.byTicker.entries()).sort((a,b) => b[1] - a[1]);
-        const tickerBadges = tickers.slice(0, 6).map(([t, qty]) =>
+        const totalContracts = Array.from(e.byTicker.values()).reduce((s, n) => s + n, 0);
+        const posCount = e.positions.length;
+        const tickerBadges = tickers.map(([t, qty]) =>
             `<span style="display:inline-block; padding:2px 8px; border-radius:4px; background:var(--bg-tertiary); color:var(--text-primary); font-size:0.72rem; font-weight:600; margin-right:4px; margin-bottom:2px;">${t} × ${qty}</span>`
         ).join('');
-        const tickerMore = tickers.length > 6 ? `<span style="color:${muted}; font-size:0.72rem;">+${tickers.length - 6} more</span>` : '';
+        const tickerMore = '';
         const premBarWidth = maxPremium > 0 ? Math.max(2, Math.abs(e.totalPremium) / maxPremium * 100) : 0;
         const premBarColor = e.totalPremium >= 0 ? '#22c55e' : '#ef4444';
         const dteLabel = isPast ? `${Math.abs(dte)}d ago` : `${dte}d`;
@@ -9027,6 +9313,7 @@ function renderExpirationCalendar() {
                 <div style="min-width:140px;">
                     <div style="font-size:1rem; font-weight:700; color:var(--text-primary);">${e.expiry}</div>
                     <div style="font-size:0.72rem; color:${muted};">${dayName}</div>
+                    <div style="font-size:0.7rem; color:${muted}; margin-top:2px;">${posCount} position${posCount === 1 ? '' : 's'} · ${totalContracts} contract${totalContracts === 1 ? '' : 's'}</div>
                 </div>
                 <div style="min-width:70px; text-align:center;">
                     <div style="font-size:1.1rem; font-weight:700; color:${dteColor};">${dteLabel}</div>
@@ -9050,6 +9337,30 @@ function renderExpirationCalendar() {
         </div>`;
     }).join('');
 
+    // Urgent banner: positions expiring within 7 days
+    const urgentBuckets = expList.filter(e => {
+        const dte = Math.round((e.date - today) / 86400000);
+        return dte >= 0 && dte <= 7;
+    });
+    let urgentHtml = '';
+    if (urgentBuckets.length) {
+        const urgentPositions  = urgentBuckets.reduce((s,e) => s + e.positions.length, 0);
+        const urgentContracts  = urgentBuckets.reduce((s,e) => s + Array.from(e.byTicker.values()).reduce((a,n) => a+n, 0), 0);
+        const urgentCapital    = urgentBuckets.reduce((s,e) => s + e.capitalCommitted, 0);
+        const urgentPremium    = urgentBuckets.reduce((s,e) => s + e.totalPremium, 0);
+        urgentHtml = `<div style="padding:12px 16px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.45); border-radius:10px; margin-bottom:14px; display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
+            <div style="font-size:1.1rem;">⚠️</div>
+            <div style="flex:1; min-width:200px;">
+                <div style="font-size:0.88rem; font-weight:700; color:#ef4444;">This Week — ${urgentPositions} position${urgentPositions===1?'':'s'} · ${urgentContracts} contract${urgentContracts===1?'':'s'}</div>
+                <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Expiring within 7 days — manage or let expire</div>
+            </div>
+            <div style="text-align:right; white-space:nowrap;">
+                <div style="font-size:0.95rem; font-weight:700; color:#ef4444;">$${urgentCapital.toLocaleString(undefined,{maximumFractionDigits:0})} capital rolling off</div>
+                <div style="font-size:0.78rem; color:${urgentPremium>=0?'#4ade80':'#f87171'}; margin-top:2px;">${urgentPremium>=0?'+':'-'}$${Math.abs(urgentPremium).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} premium</div>
+            </div>
+        </div>`;
+    }
+
     // Concentration warning: any one Friday with >30% of total open premium?
     const totalOpenPremium = expList.reduce((s,e) => s + Math.abs(e.totalPremium), 0);
     const topExp = expList.reduce((max, e) => Math.abs(e.totalPremium) > Math.abs(max?.totalPremium || 0) ? e : max, null);
@@ -9058,7 +9369,7 @@ function renderExpirationCalendar() {
         ? `<div style="padding:10px 14px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.4); border-radius:8px; color:#f59e0b; font-size:0.85rem; margin-bottom:14px;">⚠ <strong>${topShare.toFixed(0)}% of your open premium expires on ${topExp.expiry}</strong> — consider staggering expirations to smooth out weekly exposure.</div>`
         : '';
 
-    document.getElementById('calendarContent').innerHTML = warningHtml + rowsHtml;
+    document.getElementById('calendarContent').innerHTML = urgentHtml + warningHtml + rowsHtml;
 }
 
 // ============================================================
