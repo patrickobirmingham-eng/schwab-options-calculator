@@ -8510,7 +8510,6 @@ function renderTickerSummaryPills(rows) {
             <div style="font-size:1.1rem; font-weight:700; color:#a78bfa;">${topStrats}</div>
         </div>` : '') +
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
-        (bestTicker  ? pill('Best Ticker',  bestTicker.ticker  + ' (+$'+Math.abs(bestTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#4ade80') : '') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
 }
 
