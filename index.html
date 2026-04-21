@@ -4,19 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Schwab Options Tracker | Free Options P&L Tool for Charles Schwab</title>
-<meta name="description" content="Free tool for Charles Schwab options traders. Upload your Schwab CSV export to instantly analyze options P&L, monthly cash flow, open commitments, assignments, and realized gain/loss — all processed locally in your browser.">
+<meta name="description" content="Free tool for Charles Schwab options traders. Upload your Schwab CSV export to instantly analyze options P&L, monthly cash flow, open positions, assignments, and realized gain/loss — all processed locally in your browser.">
 <meta name="keywords" content="schwab options calculator, schwab options tracker, schwab P&L, options profit loss, covered calls tracker, cash secured puts, thetagang, schwab csv analyzer, FIFO options calculator">
 <meta name="author" content="Schwab Options Calculator">
 <meta name="robots" content="index, follow">
 <!-- Open Graph / Social sharing -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Schwab Options Tracker — Free Options P&L Tool">
-<meta property="og:description" content="Fix Schwab's terrible options reporting. Upload your Schwab CSV to get monthly P&L, win rate, open commitments, assignments, and realized gain/loss — free & private.">
+<meta property="og:description" content="Fix Schwab's terrible options reporting. Upload your Schwab CSV to get monthly P&L, win rate, open positions, assignments, and realized gain/loss — free & private.">
 <meta property="og:url" content="https://schwab-options-calculator.vercel.app/">
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Schwab Options Tracker — Free & Private">
-<meta name="twitter:description" content="Upload your Schwab transactions CSV for instant options P&L analysis. FIFO matching, monthly summaries, open commitments & more. Data never leaves your browser.">
+<meta name="twitter:description" content="Upload your Schwab transactions CSV for instant options P&L analysis. FIFO matching, monthly summaries, open positions & more. Data never leaves your browser.">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <!-- Canonical URL -->
 <link rel="canonical" href="https://schwab-options-calculator.vercel.app/">
@@ -393,15 +393,15 @@ th.oc-drop-target {
         </svg>
         Schwab Options Tracker
     </h1>
-    <p class="subtitle">This app fixes Schwab's weak options reporting — FIFO P&L, monthly cash flow, open commitments & more</p>
+    <p class="subtitle">This app fixes Schwab's weak options reporting — FIFO P&L, monthly cash flow, open positions & more</p>
     <div style="text-align:center;">
         <span class="privacy-badge">🔒 Your data never leaves your browser — processed 100% locally</span>
     </div>
     <div class="feature-pills" id="featurePills">
         <span class="feature-pill">📅 Monthly / Annual P&L</span>
-        <span class="feature-pill">📋 Open Commitments</span>
+        <span class="feature-pill">📋 Open Positions</span>
         <span class="feature-pill">📈 Realized Gain / Loss</span>
-        <span class="feature-pill">🔁 Assignment Tracker</span>
+        <span class="feature-pill">🔁 Stocks Assigned</span>
         <span class="feature-pill">🗂️ Transaction Sorter</span>
         <span class="feature-pill">📊 Charts & Export</span>
     </div>
@@ -444,9 +444,9 @@ th.oc-drop-target {
     <div id="actionButtons" style="display:none; justify-content:center; gap:12px; margin-bottom:25px; flex-wrap:wrap;">
         <button onclick="showMonthlySummary()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly / Annual Summary</button>
         <button onclick="showWeeklySummary()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg> Weekly / Monthly Summary</button>
-        <button onclick="showOpenCommitments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0ea5e9"/><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Commitments</button>
-        <button onclick="showAssignments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Assignments</button>
-        <button onclick="showTransactionSorter()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Data Sorter</button>
+        <button onclick="showOpenCommitments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0ea5e9"/><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Positions</button>
+        <button onclick="showAssignments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Stocks Assigned</button>
+        <button onclick="showTransactionSorter()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Sorter</button>
         <button onclick="showRealizedGainLoss()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
         <button onclick="showTickerBreakdown()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> P&amp;L By Ticker</button>
         <button onclick="showTaxPreview()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#64748b"/><path d="M9 8h6M9 11h6M9 14h4" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17l1.2 1.2L19.6 16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Tax Preview</button>
@@ -660,6 +660,8 @@ th.oc-drop-target {
             </div>
             <!-- Summary pills row -->
             <div id="tickerSummaryPills" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
+            <!-- Best / Worst leaderboard -->
+            <div id="tickerLeaderboard" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; margin-bottom:24px;"></div>
             <!-- Chart -->
             <div style="margin-bottom:24px; background:var(--bg-primary); border-radius:12px; padding:16px; border:1px solid var(--border-color);">
                 <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
@@ -698,7 +700,7 @@ th.oc-drop-target {
         <div id="txSorterInner" style="width:95vw; max-width:1600px; margin:20px auto; border-radius:16px; padding:24px; position:relative; box-sizing:border-box;">
             <!-- Header -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-                <h2 style="color:#10b981; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Transaction Data Sorter</h2>
+                <h2 style="color:#10b981; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Transaction Sorter</h2>
                 <button onclick="closeTxSorter()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
 
@@ -948,7 +950,7 @@ th.oc-drop-target {
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Commitments</h2>
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Positions</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
                         <input type="checkbox" id="ocExpandAll" onchange="toggleOcExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer;">
@@ -1009,7 +1011,7 @@ th.oc-drop-target {
         <div id="assignmentsInner" style="border-radius:16px; padding:20px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
             <!-- Title + action buttons row -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Assignments</h2>
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Stocks Assigned</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <button id="refreshAssignmentPricesBtn" onclick="refreshAssignmentPrices()" style="background:#f59e0b;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
                     <button onclick="downloadAssignments()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
@@ -2647,7 +2649,7 @@ function downloadWeeklySummary() {
 }
 
 function downloadOpenCommitments() {
-    if (!ocParsedRows.length) { alert('No open commitments data.'); return; }
+    if (!ocParsedRows.length) { alert('No open positions data.'); return; }
     const fmtN = n => n !== 0 ? +n.toFixed(2) : '';
 
     // ── Bull Put Spread detection (mirrors renderOpenCommitmentsTable) ───────
@@ -2771,13 +2773,13 @@ function downloadOpenCommitments() {
                    {wch:12},{wch:14},{wch:12},{wch:8},
                    {wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:8},
                    {wch:18},{wch:18}];
-    XLSX.utils.book_append_sheet(wb, ws, 'Open Commitments');
-    XLSX.writeFile(wb, `open_commitments_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Open Positions');
+    XLSX.writeFile(wb, `open_positions_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function downloadAssignments() {
     const assigned = typeof getAssignedTrades === 'function' ? getAssignedTrades() : [];
-    if (!assigned.length) { alert('No assignments data.'); return; }
+    if (!assigned.length) { alert('No assigned stocks found.'); return; }
     const headers = ['Assignment Date','Symbol','Ticker','Put/Call','Strike','Contracts',
                      'Shares Assigned','Premium Paid','Purchase Price','Cost Basis',
                      'Sold Price','Current Price','Market Value','P/L','Calls Sold vs Shares','Status'];
@@ -2824,8 +2826,8 @@ function downloadAssignments() {
     ws['!cols'] = [{wch:14},{wch:28},{wch:8},{wch:8},{wch:8},{wch:10},
                    {wch:14},{wch:12},{wch:14},{wch:12},
                    {wch:10},{wch:12},{wch:12},{wch:10},{wch:20},{wch:8}];
-    XLSX.utils.book_append_sheet(wb, ws, 'Assignments');
-    XLSX.writeFile(wb, `assignments_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Stocks Assigned');
+    XLSX.writeFile(wb, `stocks_assigned_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 
@@ -7967,6 +7969,8 @@ function tickerRefresh() {
                 ? 'No closed trades fall within this date range.'
                 : 'No closed trades yet — upload a Schwab CSV to get started.';
         document.getElementById('tickerSummaryPills').innerHTML = `<div style="width:100%; text-align:center; padding:20px; color:var(--text-secondary); font-size:0.9rem;">${emptyMsg}</div>`;
+        const lbEl = document.getElementById('tickerLeaderboard');
+        if (lbEl) lbEl.innerHTML = '';
         document.getElementById('tickerTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px 20px; color:var(--text-secondary);">
             <div style="font-size:2rem; margin-bottom:8px; opacity:0.5;">📊</div>
             <div>${emptyMsg}</div>
@@ -7976,6 +7980,7 @@ function tickerRefresh() {
         return;
     }
     renderTickerSummaryPills(rows);
+    renderTickerLeaderboard(rows);
     renderTickerChart(rows);
     renderTickerTable(rows);
 }
@@ -8330,6 +8335,52 @@ function renderTickerSummaryPills(rows) {
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
         (bestTicker  ? pill('Best Ticker',  bestTicker.ticker  + ' (+$'+Math.abs(bestTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#4ade80') : '') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
+}
+
+// Top 5 winners / Top 5 losers leaderboard. Honors whatever filters are active
+// on the ticker modal (date range, ticker search, strategy) because `rows` is
+// the already-filtered output of buildTickerData().
+function renderTickerLeaderboard(rows) {
+    const el = document.getElementById('tickerLeaderboard');
+    if (!el) return;
+
+    // Split by sign, skip exact zeros (they're noise on both lists)
+    const winners = rows.filter(r => r.totalPL > 0).sort((a, b) => b.totalPL - a.totalPL).slice(0, 5);
+    const losers  = rows.filter(r => r.totalPL < 0).sort((a, b) => a.totalPL - b.totalPL).slice(0, 5);
+
+    const fmt$ = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="display:inline-block; width:20px; text-align:center; font-size:0.85rem; color:var(--text-secondary); font-weight:600;">${i+1}</span>`;
+
+    const buildList = (list, accentColor) => {
+        if (!list.length) {
+            return `<div style="padding:16px 14px; text-align:center; color:var(--text-secondary); font-size:0.85rem; font-style:italic;">No tickers in this category for the current filters.</div>`;
+        }
+        return list.map((r, i) => {
+            const isLast = i === list.length - 1;
+            return `
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 14px;${isLast ? '' : ' border-bottom:1px solid var(--border-color);'}">
+                <div style="flex:0 0 28px; font-size:1.1rem; text-align:center;">${medal(i)}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">${r.ticker}</div>
+                    <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">${r.trades} ${r.trades === 1 ? 'trade' : 'trades'}</div>
+                </div>
+                <div style="text-align:right; font-weight:700; font-size:1rem; color:${accentColor}; white-space:nowrap;">${fmt$(r.totalPL)}</div>
+            </div>`;
+        }).join('');
+    };
+
+    const card = (title, icon, list, accentColor, borderColor) => `
+        <div style="background:var(--bg-primary); border:1px solid ${borderColor}; border-radius:12px; overflow:hidden;">
+            <div style="padding:12px 16px; background:${borderColor === '#4ade80' ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)'}; border-bottom:1px solid ${borderColor}; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.1rem;">${icon}</span>
+                <span style="font-size:0.78rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:${accentColor};">${title}</span>
+            </div>
+            <div>${list}</div>
+        </div>`;
+
+    el.innerHTML =
+        card('Top 5 Most Profitable', '🏆', buildList(winners, '#4ade80'), '#4ade80', '#4ade80') +
+        card('Top 5 Most Damaging', '📉', buildList(losers, '#f87171'), '#f87171', '#f87171');
 }
 
 function showTickerBreakdown() {
