@@ -359,6 +359,59 @@ th.oc-drop-target {
     outline-offset: -2px;
     background: rgba(245,158,11,0.18) !important;
 }
+
+/* Global error toast — shown when an uncaught error or rejection is intercepted */
+#__errorToast__ {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    max-width: 420px;
+    background: var(--bg-secondary);
+    border: 1px solid #ef4444;
+    border-left: 4px solid #ef4444;
+    border-radius: 10px;
+    padding: 14px 16px 14px 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    z-index: 10000;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--text-primary);
+    animation: __errorToastIn__ 0.2s ease-out;
+}
+#__errorToast__ .__title__ {
+    color: #ef4444;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#__errorToast__ .__close__ {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+}
+#__errorToast__ .__close__:hover { color: var(--text-primary); }
+#__errorToast__ .__detail__ {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    margin-top: 6px;
+    word-break: break-word;
+    max-height: 80px;
+    overflow-y: auto;
+}
+@keyframes __errorToastIn__ {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 </style>
 </head>
 
@@ -1109,6 +1162,47 @@ th.oc-drop-target {
 </div>
 
 <script>
+// ============================================================
+// GLOBAL ERROR HANDLER
+// Catches uncaught exceptions and unhandled promise rejections and surfaces
+// them to the user as a dismissible toast instead of silently breaking the UI.
+// ============================================================
+function _showErrorToast(title, detail) {
+    // If a toast is already visible, replace it rather than stacking
+    const existing = document.getElementById('__errorToast__');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = '__errorToast__';
+    toast.innerHTML = `
+        <button class="__close__" onclick="this.parentElement.remove()" title="Dismiss">✕</button>
+        <div class="__title__">⚠ ${title}</div>
+        <div class="__detail__">${detail || ''}</div>
+        <div style="font-size:0.7rem;color:var(--text-secondary);margin-top:6px;font-style:italic;">If this keeps happening, try reloading the page. Your data stays local.</div>
+    `;
+    document.body.appendChild(toast);
+    // Auto-dismiss after 12s so the screen doesn't stay cluttered
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 12000);
+}
+// Escape HTML so error messages can't inject markup
+function _escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+window.addEventListener('error', (ev) => {
+    // Ignore resource load failures (missing images, etc) — only surface real script errors
+    if (ev.error || ev.message) {
+        const msg = ev.message || (ev.error && ev.error.message) || 'Something went wrong';
+        const where = ev.filename ? `${ev.filename.split('/').pop()}:${ev.lineno || '?'}` : '';
+        _showErrorToast('Unexpected error', _escapeHtml(msg) + (where ? ` <span style="opacity:0.6;">(${_escapeHtml(where)})</span>` : ''));
+    }
+});
+window.addEventListener('unhandledrejection', (ev) => {
+    const reason = ev.reason;
+    const msg = (reason && (reason.message || reason.toString())) || 'An async operation failed';
+    _showErrorToast('Unexpected error', _escapeHtml(msg));
+});
+
 let finalTrades = [];
 let openPositions = [];
 let currentFilteredData = [];
@@ -1458,17 +1552,12 @@ async function handleFiles(files) {
     // ranges. Identical rows by Date+Action+Symbol+Quantity+Amount are almost
     // certainly the same transaction.
     const seen = new Set();
-    const beforeCount = allRows.length;
     const merged = [];
     for (const r of allRows) {
         const key = [r.Date, r.Action, r.Symbol, r.Quantity, r.Amount].map(v => String(v ?? '')).join('|');
         if (seen.has(key)) continue;
         seen.add(key);
         merged.push(r);
-    }
-    const dupCount = beforeCount - merged.length;
-    if (dupCount > 0) {
-        console.log(`[Multi-CSV merge] ${files.length} files → ${beforeCount} rows, ${dupCount} duplicates removed, ${merged.length} unique rows.`);
     }
     // Restore any embedded notes backup rows before processing
     const notesRowM = merged.find(r => String(r['Date'] || r[Object.keys(r)[0]] || '').trim() === '__SCHWAB_NOTES__');
@@ -3044,6 +3133,7 @@ function closeOpenCommitments() {
         modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
         delete modalInner._ocScrollHandler;
     }
+    ocRiskFilter = null;
 }
 
 // Finnhub API key (embedded)
@@ -3056,6 +3146,7 @@ const TRADIER_API_KEY = "SX80wDUwoNv3uWWsx7MY6ci9ncA3";
 let ocSortKey = 'dte';
 let ocSortDir = 1;
 let ocSearchValue = '';
+let ocRiskFilter = null;  // null = no filter, or 'itm'|'danger'|'caution'|'safe'|'unpriced'
 let ocParsedRows = [];
 let ocStockPrices = {};   // { TICKER: { price, change, changePct, loading, error } }
 let ocOptionPrices = {};  // { SYMBOL: { price, loading, error } }
@@ -3336,6 +3427,12 @@ function showOpenCommitments() {
     }
 }
 
+function ocSetRiskFilter(bucket) {
+    // Toggle: clicking the active bucket clears the filter
+    ocRiskFilter = ocRiskFilter === bucket ? null : bucket;
+    renderOpenCommitmentsTable();
+}
+
 function sortOpenCommitments(key) {
     if (ocSortKey === key) ocSortDir *= -1;
     else { ocSortKey = key; ocSortDir = 1; }
@@ -3395,6 +3492,30 @@ function toggleOcExpandAll(checked) {
 
 function renderOpenCommitmentsTable() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    // Build the symbol → risk-bucket map up front so the filter step below can use it.
+    // (The Margin of Safety pills later rebuild the same data for display — same logic, same result.)
+    const symbolRiskBucket = new Map();
+    openPositions.forEach(op => {
+        if ((op.openingPremium || 0) <= 0) return;   // only short legs carry assignment risk
+        const parsed = _parseOptionSymbol(op.symbol);
+        if (!parsed) return;
+        const pd = ocStockPrices[parsed.ticker];
+        let bucket;
+        if (!pd || pd.loading || pd.error || !pd.price) {
+            bucket = 'unpriced';
+        } else {
+            const pct = parsed.type === 'P'
+                ? (pd.price / parsed.strike - 1) * 100
+                : (1 - pd.price / parsed.strike) * 100;
+            if (pct < 0)      bucket = 'itm';
+            else if (pct < 3) bucket = 'danger';
+            else if (pct < 7) bucket = 'caution';
+            else              bucket = 'safe';
+        }
+        symbolRiskBucket.set(op.symbol, bucket);
+    });
+
     const textColor = isDark ? '#f8fafc' : '#0f172a';
     const thBg = isDark ? '#0f172a' : '#f1f5f9';
     const rowBg = isDark ? '#1e293b' : '#ffffff';
@@ -3696,7 +3817,7 @@ function renderOpenCommitmentsTable() {
     });
 
     const ocSearchTerms = ocSearchValue.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
-    const filtered = ocSearchTerms.length > 0 ? sorted.filter(r => {
+    let filtered = ocSearchTerms.length > 0 ? sorted.filter(r => {
         const ticker = extractTicker(r.symbol);
         const pd = ocStockPrices[ticker];
         const assignPrice = r.type === 'Put' && r.contracts > 0
@@ -3725,6 +3846,35 @@ function renderOpenCommitmentsTable() {
         ];
         return ocSearchTerms.some(term => vals.some(v => v.toLowerCase().includes(term)));
     }) : sorted;
+
+    // Apply risk bucket filter if active (set by clicking a Margin of Safety pill).
+    // Only the specific positions in the bucket should appear — not all positions
+    // for the same ticker (a ticker can have multiple positions at different strikes
+    // in different buckets). BTO spread legs pass through only when their exact
+    // STO partner is in the bucket.
+    if (ocRiskFilter) {
+        const bucketSymbols = new Set(
+            Array.from(symbolRiskBucket.entries())
+                .filter(([, b]) => b === ocRiskFilter)
+                .map(([sym]) => sym)
+        );
+        const preFilter = filtered; // snapshot before filtering
+        filtered = preFilter.filter(r => {
+            // STO leg: pass if this exact symbol is in the bucket
+            if (r.action === 'STO') return bucketSymbols.has(r.symbol);
+            // BTO leg: pass only if its STO partner (same ticker, expiry, contracts) is in the bucket
+            const ticker = extractTicker(r.symbol);
+            const expiry = (r.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
+            return preFilter.some(other =>
+                other !== r &&
+                other.action === 'STO' &&
+                extractTicker(other.symbol) === ticker &&
+                (other.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1] === expiry &&
+                other.contracts === r.contracts &&
+                bucketSymbols.has(other.symbol)
+            );
+        });
+    }
 
     // totalPuts / totalCalls computed after displayItems so spread legs are netted.
     // (declared with let so the spread-detection block below can assign them)
@@ -3816,24 +3966,16 @@ function renderOpenCommitmentsTable() {
     let rowIndex = 0;
 
     // ── Margin of Safety Summary ───────────────────────────────────────────
-    // Bucket each open short option by distance between current price and strike.
-    // Only short positions generate assignment risk — long options can't be assigned against.
+    // Derive counts and ITM tickers from the symbolRiskBucket map already built
+    // at the top of this function — no need to re-iterate openPositions.
     const riskBuckets = { itm: 0, danger: 0, caution: 0, safe: 0, unpriced: 0 };
     const itmTickers = new Set();
-    openPositions.forEach(op => {
-        const isShort = (op.openingPremium || 0) > 0;  // sold-to-open legs carry assignment risk
-        if (!isShort) return;
-        const parsed = _parseOptionSymbol(op.symbol);
-        if (!parsed) return;
-        const pd = ocStockPrices[parsed.ticker];
-        if (!pd || pd.loading || pd.error || !pd.price) { riskBuckets.unpriced++; return; }
-        let pctFromStrike;
-        if (parsed.type === 'P') pctFromStrike = (pd.price / parsed.strike - 1) * 100;   // +ve = price above strike = safer
-        else                     pctFromStrike = (1 - pd.price / parsed.strike) * 100;    // +ve = price below strike = safer
-        if (pctFromStrike < 0)       { riskBuckets.itm++;    itmTickers.add(parsed.ticker); }
-        else if (pctFromStrike < 3)  { riskBuckets.danger++; }
-        else if (pctFromStrike < 7)  { riskBuckets.caution++; }
-        else                         { riskBuckets.safe++; }
+    symbolRiskBucket.forEach((bucket, sym) => {
+        riskBuckets[bucket]++;
+        if (bucket === 'itm') {
+            const p = _parseOptionSymbol(sym);
+            if (p) itmTickers.add(p.ticker);
+        }
     });
     const riskEl = document.getElementById('ocRiskSummary');
     if (riskEl) {
@@ -3841,23 +3983,30 @@ function renderOpenCommitmentsTable() {
         if (totalRisky === 0 && riskBuckets.unpriced === 0) {
             riskEl.style.display = 'none';
         } else {
-            const pill = (bg, border, text, val, lbl) =>
-                `<div style="flex:1;min-width:120px;background:${bg};border:1px solid ${border};border-radius:8px;padding:8px 12px;text-align:center;">
+            // Clickable pill — clicking toggles the risk filter; active pill gets a ring
+            const pill = (bg, border, text, val, lbl, bucketKey) => {
+                const isActive = ocRiskFilter === bucketKey;
+                const activeStyle = isActive ? `box-shadow:0 0 0 2px ${border};transform:scale(1.04);` : '';
+                return `<div onclick="ocSetRiskFilter('${bucketKey}')" style="flex:1;min-width:120px;background:${bg};border:2px solid ${border};border-radius:8px;padding:8px 12px;text-align:center;cursor:pointer;transition:transform 0.15s;${activeStyle}">
                     <div style="font-size:1.3rem;font-weight:700;color:${text};line-height:1;">${val}</div>
                     <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">${lbl}</div>
+                    ${isActive ? '<div style="font-size:0.62rem;color:var(--text-secondary);margin-top:3px;">click to clear</div>' : ''}
                 </div>`;
+            };
             riskEl.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;';
             const itmTitle = itmTickers.size > 0 ? `ITM: ${Array.from(itmTickers).join(', ')}` : 'No positions in the money';
+            const itmActive = ocRiskFilter === 'itm';
             riskEl.innerHTML =
-                `<div style="flex-basis:100%;font-size:0.78rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:2px;">🛡 Margin of Safety</div>` +
-                `<div title="${itmTitle}" style="flex:1;min-width:120px;background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.5);border-radius:8px;padding:8px 12px;text-align:center;cursor:help;">
+                `<div style="flex-basis:100%;font-size:0.78rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:2px;">🛡 Margin of Safety <span style="font-weight:400;font-style:italic;">${ocRiskFilter ? '— filtered' : '— click a box to filter'}</span></div>` +
+                `<div title="${itmTitle}" onclick="ocSetRiskFilter('itm')" style="flex:1;min-width:120px;background:rgba(248,113,113,0.15);border:2px solid rgba(248,113,113,0.5);border-radius:8px;padding:8px 12px;text-align:center;cursor:pointer;transition:transform 0.15s;${itmActive ? 'box-shadow:0 0 0 2px #ef4444;transform:scale(1.04);' : ''}">
                     <div style="font-size:1.3rem;font-weight:700;color:#ef4444;line-height:1;">${riskBuckets.itm}</div>
                     <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">In the Money</div>
+                    ${itmActive ? '<div style="font-size:0.62rem;color:var(--text-secondary);margin-top:3px;">click to clear</div>' : ''}
                 </div>` +
-                pill('rgba(251,146,60,0.15)', 'rgba(251,146,60,0.5)', '#fb923c', riskBuckets.danger,  'Within 3%') +
-                pill('rgba(250,204,21,0.15)', 'rgba(250,204,21,0.5)', '#eab308', riskBuckets.caution, 'Within 3–7%') +
-                pill('rgba(74,222,128,0.12)', 'rgba(74,222,128,0.45)', '#22c55e', riskBuckets.safe,   'Safe (7%+)') +
-                (riskBuckets.unpriced > 0 ? pill('var(--bg-primary)', 'var(--border-color)', 'var(--text-secondary)', riskBuckets.unpriced, 'Awaiting Price') : '');
+                pill('rgba(251,146,60,0.15)', 'rgba(251,146,60,0.5)', '#fb923c', riskBuckets.danger,  'Within 3%',   'danger') +
+                pill('rgba(250,204,21,0.15)', 'rgba(250,204,21,0.5)', '#eab308', riskBuckets.caution, 'Within 3-7%', 'caution') +
+                pill('rgba(74,222,128,0.12)', 'rgba(74,222,128,0.45)', '#22c55e', riskBuckets.safe,   'Safe (7%+)',   'safe') +
+                (riskBuckets.unpriced > 0 ? pill('var(--bg-primary)', 'var(--border-color)', 'var(--text-secondary)', riskBuckets.unpriced, 'Awaiting Price', 'unpriced') : '');
         }
     }
 
