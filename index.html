@@ -645,17 +645,7 @@ th.oc-drop-target {
 
     <!-- Company Info Modal -->
     <div id="companyInfoModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:1000; justify-content:center; align-items:center;">
-        <div id="companyInfoInner" style="width:95vw; max-width:1300px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:28px; max-height:92vh; overflow-y:auto; position:relative;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:10px; flex-wrap:wrap;">
-                <h2 style="color:#8b5cf6; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#8b5cf6"/><circle cx="12" cy="8" r="2.5" fill="white"/><rect x="9" y="12" width="6" height="1.5" rx="0.75" fill="white"/><rect x="8" y="14.5" width="8" height="1.5" rx="0.75" fill="white"/><rect x="9" y="17" width="6" height="1.5" rx="0.75" fill="white"/></svg>
-                    Company Info
-                </h2>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <button onclick="fetchCompanyInfo()" style="background:#8b5cf6;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh</button>
-                    <button onclick="closeCompanyInfo()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
-                </div>
-            </div>
+        <div id="companyInfoInner" style="width:99vw; max-width:1800px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:28px; max-height:92vh; overflow-y:auto; position:relative;">
             <div id="companyInfoContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading company data…</div></div>
         </div>
     </div>
@@ -9996,6 +9986,10 @@ function renderCompanyInfo(results, openTickers) {
                 const isOpen = openTickers.has(t);
                 return `<button onclick="(function(){ const card = document.getElementById('ci_ticker_${t}'); const nav = document.getElementById('ciTickerNav'); if(!card) return; const container = document.getElementById('companyInfoInner'); const navH = nav ? nav.offsetHeight : 0; const cardTop = card.offsetTop - container.offsetTop; container.scrollTo({top: cardTop - navH - 8, behavior:'smooth'}); })()" style="background:${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'};color:${isOpen ? '#0ea5e9' : 'var(--text-primary)'};border:1px solid ${isOpen ? 'rgba(14,165,233,0.5)' : borderColor};border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='${isOpen ? 'rgba(14,165,233,0.25)' : (isDark ? '#334155' : '#e2e8f0')}'" onmouseout="this.style.background='${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'}'">${t}</button>`;
             }).join('')}
+            <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0;">
+                <button onclick="fetchCompanyInfo()" style="background:#8b5cf6;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:0.82rem;">🔄 Refresh</button>
+                <button onclick="closeCompanyInfo()" style="background:#ef4444;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:0.82rem;">✕ Close</button>
+            </div>
         </div>
     </div>
     <div style="font-size:0.82rem;color:${muted};margin-bottom:14px;">
@@ -10084,7 +10078,7 @@ function renderCompanyInfo(results, openTickers) {
                 <canvas id="ciChart_${ticker}" height="80"></canvas>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
 
                 <!-- Key Metrics -->
                 ${section('Key Metrics', '📊', `
