@@ -507,6 +507,7 @@ th.oc-drop-target {
         <button onclick="showExpirationCalendar()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="14" r="0.8" fill="white"/><circle cx="12" cy="14" r="0.8" fill="white"/><circle cx="15" cy="14" r="0.8" fill="white"/></svg> Expiration Calendar</button>
         <button onclick="showSpyBenchmark()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#16a34a"/><path d="M6 16l4-5 3 3 5-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="12" y="21" text-anchor="middle" font-size="5" font-weight="bold" fill="white">SPY</text></svg> SPY Benchmark</button>
         <button onclick="showEarningsDates()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><path d="M9 14l1.5 1.5 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Earnings Dates</button>
+        <button onclick="showCompanyInfo()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#8b5cf6"/><circle cx="12" cy="8" r="2.5" fill="white"/><rect x="9" y="12" width="6" height="1.5" rx="0.75" fill="white"/><rect x="8" y="14.5" width="8" height="1.5" rx="0.75" fill="white"/><rect x="9" y="17" width="6" height="1.5" rx="0.75" fill="white"/></svg> Company Info</button>
     </div>
 
     <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
@@ -639,6 +640,23 @@ th.oc-drop-target {
                 </div>
             </div>
             <div id="earningsContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading earnings data…</div></div>
+        </div>
+    </div>
+
+    <!-- Company Info Modal -->
+    <div id="companyInfoModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:1000; justify-content:center; align-items:center;">
+        <div id="companyInfoInner" style="width:95vw; max-width:1300px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:28px; max-height:92vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:10px; flex-wrap:wrap;">
+                <h2 style="color:#8b5cf6; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#8b5cf6"/><circle cx="12" cy="8" r="2.5" fill="white"/><rect x="9" y="12" width="6" height="1.5" rx="0.75" fill="white"/><rect x="8" y="14.5" width="8" height="1.5" rx="0.75" fill="white"/><rect x="9" y="17" width="6" height="1.5" rx="0.75" fill="white"/></svg>
+                    Company Info
+                </h2>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <button onclick="fetchCompanyInfo()" style="background:#8b5cf6;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh</button>
+                    <button onclick="closeCompanyInfo()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+            <div id="companyInfoContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading company data…</div></div>
         </div>
     </div>
 
@@ -9831,6 +9849,432 @@ function showEarningsDates() {
 
 function closeEarningsModal() {
     document.getElementById('earningsModal').style.display = 'none';
+}
+
+// ============================================================
+// COMPANY INFO
+// Fetches 6 Finnhub data points per ticker: Basic Financials,
+// Analyst Price Targets, Recommendation Trends, Company News,
+// Insider Transactions, and Dividends/Splits.
+// ============================================================
+function showCompanyInfo() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+    document.getElementById('companyInfoModal').style.display = 'flex';
+    document.getElementById('companyInfoModal').onclick = e => {
+        if (e.target === document.getElementById('companyInfoModal')) closeCompanyInfo();
+    };
+    fetchCompanyInfo();
+}
+
+function closeCompanyInfo() {
+    document.getElementById('companyInfoModal').style.display = 'none';
+}
+
+async function fetchCompanyInfo() {
+    const el = document.getElementById('companyInfoContent');
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);font-size:0.95rem;">⏳ Loading company data…</div>';
+
+    // Collect unique tickers — prefer open positions first, then all traded
+    const openTickers = new Set();
+    const allTickers = new Set();
+    (openPositions || []).forEach(t => { const tk = extractTicker(t.symbol); if (tk) openTickers.add(tk); });
+    (finalTrades || []).forEach(t => { const tk = extractTicker(t.symbol); if (tk) allTickers.add(tk); });
+    openTickers.forEach(t => allTickers.add(t));
+    const tickerList = Array.from(allTickers).sort();
+
+    if (tickerList.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">No tickers found.</div>';
+        return;
+    }
+
+    const today = new Date();
+    const fmt = d => d.toISOString().slice(0, 10);
+    const todayStr = fmt(today);
+    const sixMonthsAgo = new Date(today); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const fromStr = fmt(sixMonthsAgo);
+    // For candle data we need ~18 months: 200 trading days for the MA history
+    // plus the display window, so the 200-day MA is fully populated from the start.
+    const tenMonthsAgo = new Date(today); tenMonthsAgo.setMonth(tenMonthsAgo.getMonth() - 10);
+    const eighteenMonthsAgo = new Date(today); eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18);
+
+    // Fetch all 7 endpoints for each ticker in batches
+    const BATCH = 5;
+    const DELAY_MS = 450;
+    const results = {};
+
+    for (let i = 0; i < tickerList.length; i += BATCH) {
+        const batch = tickerList.slice(i, i + BATCH);
+        const pct = Math.round((i + BATCH) / tickerList.length * 100);
+        el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-secondary);font-size:0.9rem;">
+            ⏳ Fetching data for ${Math.min(i + BATCH, tickerList.length)} of ${tickerList.length} tickers…
+            <div style="margin-top:12px;background:var(--bg-primary);border-radius:8px;overflow:hidden;height:6px;width:60%;margin-left:auto;margin-right:auto;">
+                <div style="background:#8b5cf6;height:100%;width:${pct}%;transition:width 0.3s;"></div>
+            </div>
+        </div>`;
+
+        await Promise.all(batch.map(async ticker => {
+            const key = FINNHUB_API_KEY;
+            const base = 'https://finnhub.io/api/v1';
+            const r = {};
+            await Promise.all([
+                fetch(`${base}/stock/metric?symbol=${ticker}&metric=all&token=${key}`)
+                    .then(x => x.json()).then(d => { r.metrics = d.metric || {}; }).catch(() => {}),
+                // Price target + current price — Tradier quotes endpoint
+                fetch(`https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(ticker)}&greeks=false`, {
+                        headers: { 'Authorization': `Bearer ${TRADIER_API_KEY}`, 'Accept': 'application/json' }
+                    }).then(x => x.json()).then(d => {
+                        const q = d?.quotes?.quote || {};
+                        r.priceTarget = {
+                            currentPrice:     q.last || q.close || null,
+                            high52:           q.week_52_high || q['52_week_high'] || null,
+                            low52:            q.week_52_low  || q['52_week_low']  || null,
+                            targetMean:       null,  // not in free Tradier
+                            targetHigh:       null,
+                            targetLow:        null,
+                            numberOfAnalysts: null,
+                        };
+                    }).catch(() => { r.priceTarget = {}; }),
+                fetch(`${base}/stock/recommendation?symbol=${ticker}&token=${key}`)
+                    .then(x => x.json()).then(d => { r.recommendations = Array.isArray(d) ? d[0] : null; }).catch(() => {}),
+                fetch(`${base}/company-news?symbol=${ticker}&from=${fromStr}&to=${todayStr}&token=${key}`)
+                    .then(x => x.json()).then(d => { r.news = Array.isArray(d) ? d.slice(0, 3) : []; }).catch(() => {}),
+                fetch(`${base}/stock/insider-transactions?symbol=${ticker}&token=${key}`)
+                    .then(x => x.json()).then(d => { r.insider = Array.isArray(d?.data) ? d.data.slice(0, 5) : []; }).catch(() => {}),
+                // Candle data — Tradier history endpoint, 18 months so 200-day MA is fully populated
+                fetch(`https://api.tradier.com/v1/markets/history?symbol=${encodeURIComponent(ticker)}&interval=daily&start=${fmt(eighteenMonthsAgo)}&end=${todayStr}`, {
+                        headers: { 'Authorization': `Bearer ${TRADIER_API_KEY}`, 'Accept': 'application/json' }
+                    }).then(x => x.json()).then(d => {
+                        const days = d?.history?.day;
+                        if (!days || !days.length) { r.candles = null; return; }
+                        const arr = Array.isArray(days) ? days : [days];
+                        r.candles = {
+                            t: arr.map(day => Math.floor(new Date(day.date).getTime() / 1000)),
+                            c: arr.map(day => parseFloat(day.close)),
+                            s: 'ok'
+                        };
+                    }).catch(() => { r.candles = null; }),
+            ]);
+            results[ticker] = r;
+        }));
+
+        if (i + BATCH < tickerList.length) {
+            await new Promise(res => setTimeout(res, DELAY_MS));
+        }
+    }
+
+    renderCompanyInfo(results, openTickers);
+}
+
+function renderCompanyInfo(results, openTickers) {
+    const el = document.getElementById('companyInfoContent');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const cardBg = isDark ? '#1e293b' : '#ffffff';
+    const muted = 'var(--text-secondary)';
+    const accent = '#8b5cf6';
+
+    const fmt$ = v => v != null && !isNaN(v) ? '$' + parseFloat(v).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+    const fmtB = v => v != null && !isNaN(v) ? '$' + (parseFloat(v) / 1e9).toFixed(2) + 'B' : '—';
+    const fmtPct = v => v != null && !isNaN(v) ? parseFloat(v).toFixed(2) + '%' : '—';
+    const fmtNum = v => v != null && !isNaN(v) ? parseFloat(v).toFixed(2) : '—';
+
+    const tickers = Object.keys(results).sort((a, b) => {
+        // Open positions first
+        if (openTickers.has(a) && !openTickers.has(b)) return -1;
+        if (!openTickers.has(a) && openTickers.has(b)) return 1;
+        return a.localeCompare(b);
+    });
+
+    let html = `
+    <div id="ciTickerNav" style="position:sticky;top:-1px;z-index:10;background:var(--bg-secondary);padding:10px 0 10px;margin-bottom:14px;border-bottom:1px solid ${borderColor};">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+            <span style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;white-space:nowrap;margin-right:4px;">Jump to:</span>
+            ${tickers.map(t => {
+                const isOpen = openTickers.has(t);
+                return `<button onclick="(function(){ const card = document.getElementById('ci_ticker_${t}'); const nav = document.getElementById('ciTickerNav'); if(!card) return; const container = document.getElementById('companyInfoInner'); const navH = nav ? nav.offsetHeight : 0; const cardTop = card.offsetTop - container.offsetTop; container.scrollTo({top: cardTop - navH - 8, behavior:'smooth'}); })()" style="background:${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'};color:${isOpen ? '#0ea5e9' : 'var(--text-primary)'};border:1px solid ${isOpen ? 'rgba(14,165,233,0.5)' : borderColor};border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='${isOpen ? 'rgba(14,165,233,0.25)' : (isDark ? '#334155' : '#e2e8f0')}'" onmouseout="this.style.background='${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'}'">${t}</button>`;
+            }).join('')}
+        </div>
+    </div>
+    <div style="font-size:0.82rem;color:${muted};margin-bottom:14px;">
+        Showing data for <strong style="color:var(--text-primary);">${tickers.length}</strong> tickers.
+        <span style="background:rgba(14,165,233,0.12);color:#0ea5e9;border:1px solid rgba(14,165,233,0.35);border-radius:4px;padding:1px 6px;margin-left:4px;font-size:0.75rem;">OPEN</span> = currently have open position.
+    </div>`;
+
+    tickers.forEach(ticker => {
+        const d = results[ticker];
+        const m = d.metrics || {};
+        const pt = d.priceTarget || {};
+        const rec = d.recommendations;
+        const news = d.news || [];
+        const insider = d.insider || [];
+        const isOpen = openTickers.has(ticker);
+
+        // ── Recommendation bar ────────────────────────────────────────────
+        const recTotal = rec ? (rec.strongBuy + rec.buy + rec.hold + rec.sell + rec.strongSell) : 0;
+        const recBar = rec && recTotal > 0 ? (() => {
+            const pct = v => Math.round(v / recTotal * 100);
+            return `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:4px;">
+                <div style="width:${pct(rec.strongBuy)}%;background:#16a34a;" title="Strong Buy: ${rec.strongBuy}"></div>
+                <div style="width:${pct(rec.buy)}%;background:#4ade80;" title="Buy: ${rec.buy}"></div>
+                <div style="width:${pct(rec.hold)}%;background:#eab308;" title="Hold: ${rec.hold}"></div>
+                <div style="width:${pct(rec.sell)}%;background:#f97316;" title="Sell: ${rec.sell}"></div>
+                <div style="width:${pct(rec.strongSell)}%;background:#ef4444;" title="Strong Sell: ${rec.strongSell}"></div>
+            </div>
+            <div style="display:flex;gap:8px;font-size:0.68rem;color:${muted};margin-top:3px;flex-wrap:wrap;">
+                ${rec.strongBuy ? `<span style="color:#16a34a;">SB:${rec.strongBuy}</span>` : ''}
+                ${rec.buy ? `<span style="color:#4ade80;">B:${rec.buy}</span>` : ''}
+                ${rec.hold ? `<span style="color:#eab308;">H:${rec.hold}</span>` : ''}
+                ${rec.sell ? `<span style="color:#f97316;">S:${rec.sell}</span>` : ''}
+                ${rec.strongSell ? `<span style="color:#ef4444;">SS:${rec.strongSell}</span>` : ''}
+            </div>`;
+        })() : `<div style="color:${muted};font-size:0.78rem;">No data</div>`;
+
+        // ── Insider summary ───────────────────────────────────────────────
+        const insiderBuys = insider.filter(t => t.transactionType === 'P - Purchase').length;
+        const insiderSells = insider.filter(t => t.transactionType === 'S - Sale').length;
+        const insiderHtml = insider.length === 0
+            ? `<span style="color:${muted};font-size:0.78rem;">No recent activity</span>`
+            : `<span style="color:#4ade80;font-weight:600;">▲ ${insiderBuys} buy${insiderBuys !== 1 ? 's' : ''}</span>
+               <span style="margin:0 6px;color:${muted};">·</span>
+               <span style="color:#f87171;font-weight:600;">▼ ${insiderSells} sell${insiderSells !== 1 ? 's' : ''}</span>
+               <span style="font-size:0.7rem;color:${muted};margin-left:4px;">(last 6mo)</span>`;
+
+        // ── News snippets ─────────────────────────────────────────────────
+        const newsHtml = news.length === 0
+            ? `<span style="color:${muted};font-size:0.78rem;">No recent news</span>`
+            : news.map(n => {
+                const d = new Date(n.datetime * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+                return `<div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid ${borderColor};">
+                    <a href="${n.url}" target="_blank" rel="noopener" style="color:var(--text-primary);text-decoration:none;font-size:0.8rem;font-weight:600;line-height:1.3;">${n.headline}</a>
+                    <div style="font-size:0.7rem;color:${muted};margin-top:2px;">${n.source} · ${d}</div>
+                </div>`;
+            }).join('');
+
+        // ── Section label helper ──────────────────────────────────────────
+        const section = (title, icon, content) =>
+            `<div style="background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;">
+                <div style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:8px;">${icon} ${title}</div>
+                ${content}
+            </div>`;
+
+        const stat = (lbl, val, color='var(--text-primary)') =>
+            `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid ${borderColor};">
+                <span style="font-size:0.78rem;color:${muted};">${lbl}</span>
+                <span style="font-size:0.82rem;font-weight:600;color:${color};">${val}</span>
+            </div>`;
+
+        // Price target arrow colour
+        const currentPrice = m['52WeekHigh'] ? null : null; // we don't have exact current price here
+        const ptColor = pt.targetMean && pt.targetLow ? '#4ade80' : 'var(--text-primary)';
+
+        html += `
+        <div id="ci_ticker_${ticker}" style="background:${cardBg};border:1px solid ${isOpen ? '#0ea5e9' : borderColor};border-radius:12px;padding:18px;margin-bottom:20px;">
+            <!-- Ticker header -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+                <div style="font-size:1.4rem;font-weight:800;color:${accent};">${ticker}</div>
+                ${isOpen ? '<span style="font-size:0.7rem;background:rgba(14,165,233,0.15);color:#0ea5e9;border:1px solid rgba(14,165,233,0.4);border-radius:4px;padding:2px 8px;">OPEN POSITION</span>' : ''}
+                ${rec ? `<span style="font-size:0.75rem;color:${muted};">Analysts: ${recTotal}</span>` : ''}
+            </div>
+
+            <div style="background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+                <div style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:8px;">📉 Price History · 20-Day MA (amber) &amp; 200-Day MA (green dashed)</div>
+                <canvas id="ciChart_${ticker}" height="80"></canvas>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+
+                <!-- Key Metrics -->
+                ${section('Key Metrics', '📊', `
+                    ${stat('Market Cap', fmtB(m.marketCapitalization))}
+                    ${stat('P/E (TTM)', fmtNum(m.peNormalizedAnnual))}
+                    ${stat('EV/EBITDA', fmtNum(m['ev/ebitda']))}
+                    ${stat('Beta', fmtNum(m.beta))}
+                    ${stat('52W High', fmt$(m['52WeekHigh']))}
+                    ${stat('52W Low', fmt$(m['52WeekLow']))}
+                    ${stat('Debt/Equity', fmtNum(m['totalDebt/totalEquityQuarterly']))}
+                    ${stat('Dividend Yield', fmtPct(m.dividendYieldIndicatedAnnual))}
+                `)}
+
+                <!-- Analyst Price Target -->
+                ${section('Current Quote & Range', '🎯', pt.currentPrice ? `
+                    ${stat('Current Price', fmt$(pt.currentPrice), '#4ade80')}
+                    ${stat('52-Week High', fmt$(pt.high52))}
+                    ${stat('52-Week Low',  fmt$(pt.low52))}
+                    ${pt.high52 && pt.low52 && pt.currentPrice ? stat('Position in Range',
+                        (() => { const pct = ((pt.currentPrice - pt.low52) / (pt.high52 - pt.low52) * 100); return pct.toFixed(0) + '% of 52W range'; })(),
+                        pt.currentPrice > (pt.low52 + (pt.high52 - pt.low52) * 0.7) ? '#4ade80' : pt.currentPrice < (pt.low52 + (pt.high52 - pt.low52) * 0.3) ? '#f87171' : '#eab308'
+                    ) : ''}
+                ` : `<div style="color:${muted};font-size:0.78rem;">No quote data available</div>`)}
+
+                <!-- Analyst Recommendations -->
+                ${section('Analyst Recommendations', '📈', rec ? `
+                    ${recBar}
+                    ${rec.period ? `<div style="font-size:0.68rem;color:${muted};margin-top:4px;">Period: ${rec.period}</div>` : ''}
+                ` : `<div style="color:${muted};font-size:0.78rem;">No recommendation data</div>`)}
+
+                <!-- Insider Transactions -->
+                ${section('Insider Transactions (6mo)', '👤', `<div style="padding:4px 0;">${insiderHtml}</div>${
+                    insider.length > 0 ? `<div style="margin-top:8px;">${insider.slice(0,3).map(t => {
+                        const isBuy = t.transactionType === 'P - Purchase';
+                        return `<div style="font-size:0.75rem;padding:3px 0;border-bottom:1px solid ${borderColor};display:flex;justify-content:space-between;">
+                            <span style="color:${muted};">${(t.name || 'Unknown').slice(0,20)}</span>
+                            <span style="color:${isBuy ? '#4ade80' : '#f87171'};font-weight:600;">${isBuy ? '+' : '-'}${Math.abs(t.share || 0).toLocaleString()} sh</span>
+                        </div>`;
+                    }).join('')}</div>` : ''
+                }`)}
+
+                <!-- Recent News -->
+                ${section('Recent News', '📰', newsHtml)}
+
+            </div>
+        </div>`;
+    });
+
+    html += `<div style="font-size:0.72rem;color:${muted};text-align:right;margin-top:4px;">Data via Finnhub · For informational purposes only</div>`;
+    el.innerHTML = html;
+
+    // Draw price charts after DOM is updated
+    tickers.forEach(ticker => {
+        const candles = results[ticker]?.candles;
+        drawCompanyPriceChart(ticker, candles, isDark);
+    });
+}
+
+function drawCompanyPriceChart(ticker, candles, isDark) {
+    const canvas = document.getElementById(`ciChart_${ticker}`);
+    if (!canvas) return;
+
+    if (!candles || !candles.t || candles.t.length < 2) {
+        const ctx = canvas.getContext('2d');
+        canvas.height = 40;
+        ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No chart data available', canvas.offsetWidth / 2 || 120, 22);
+        return;
+    }
+
+    // Build full date+close arrays — filter out null closes (Yahoo returns nulls for holidays)
+    const allTs = candles.t;
+    const allClose = candles.c;
+    const validPairs = allTs.map((ts, i) => ({ ts, c: allClose[i] })).filter(p => p.c != null);
+    const allDates = validPairs.map(p => new Date(p.ts * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+    const validClose = validPairs.map(p => p.c);
+
+    // Moving average helper
+    const ma = (arr, period) => arr.map((_, i) => {
+        if (i < period - 1) return null;
+        const slice = arr.slice(i - period + 1, i + 1);
+        return slice.reduce((s, v) => s + v, 0) / period;
+    });
+
+    const ma20  = ma(validClose, 20);
+    const ma200 = ma(validClose, 200);
+
+    // Show the full dataset — the chart displays from the first point where the
+    // 200-day MA becomes valid, so both MAs are visible across the entire chart.
+    // The 200-day MA needs 200 data points before it's meaningful, so trim the
+    // display to start exactly where the 200-day MA first has a value.
+    const firstValid200 = ma200.findIndex(v => v !== null);
+    const sliceFrom = firstValid200 >= 0 ? firstValid200 : 0;
+
+    const labels  = allDates.slice(sliceFrom);
+    const prices  = validClose.slice(sliceFrom);
+    const line20  = ma20.slice(sliceFrom);
+    const line200 = ma200.slice(sliceFrom);
+
+    const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const labelColor = isDark ? '#94a3b8' : '#64748b';
+    const tooltipBg  = isDark ? '#1e293b' : '#ffffff';
+
+    // Destroy existing chart instance if any
+    if (canvas._ciChartInstance) { canvas._ciChartInstance.destroy(); }
+
+    canvas._ciChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Close',
+                    data: prices,
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.3,
+                    order: 3,
+                },
+                {
+                    label: '20-Day MA',
+                    data: line20,
+                    borderColor: '#f59e0b',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    borderDash: [],
+                    fill: false,
+                    tension: 0.3,
+                    order: 2,
+                },
+                {
+                    label: '200-Day MA',
+                    data: line200,
+                    borderColor: '#22c55e',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    borderDash: [5, 3],
+                    fill: false,
+                    tension: 0.3,
+                    order: 1,
+                },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            animation: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: labelColor, boxWidth: 20, font: { size: 10 }, padding: 8 }
+                },
+                tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: isDark ? '#f8fafc' : '#0f172a',
+                    bodyColor: isDark ? '#f8fafc' : '#0f172a',
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: labelColor,
+                        maxTicksLimit: 6,
+                        font: { size: 10 },
+                        maxRotation: 0,
+                    },
+                    grid: { color: gridColor }
+                },
+                y: {
+                    ticks: {
+                        color: labelColor,
+                        font: { size: 10 },
+                        callback: v => '$' + v.toFixed(0)
+                    },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
 }
 
 async function fetchEarningsDates() {
