@@ -506,6 +506,7 @@ th.oc-drop-target {
         <button onclick="showPortfolioRisk()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#dc2626"/><path d="M12 6l5 10H7z" fill="white"/><path d="M12 10v3" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14.5" r="0.6" fill="#dc2626"/></svg> Portfolio Risk</button>
         <button onclick="showExpirationCalendar()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="14" r="0.8" fill="white"/><circle cx="12" cy="14" r="0.8" fill="white"/><circle cx="15" cy="14" r="0.8" fill="white"/></svg> Expiration Calendar</button>
         <button onclick="showSpyBenchmark()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#16a34a"/><path d="M6 16l4-5 3 3 5-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="12" y="21" text-anchor="middle" font-size="5" font-weight="bold" fill="white">SPY</text></svg> SPY Benchmark</button>
+        <button onclick="showEarningsDates()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><path d="M9 14l1.5 1.5 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Earnings Dates</button>
     </div>
 
     <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
@@ -615,6 +616,29 @@ th.oc-drop-target {
                 <button onclick="closeExpirationCalendar()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
             </div>
             <div id="calendarContent"></div>
+        </div>
+    </div>
+
+    <!-- Earnings Dates Modal -->
+    <div id="earningsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:1000; justify-content:center; align-items:center;">
+        <div id="earningsInner" style="width:92vw; max-width:1100px; background:var(--bg-secondary); border:1px solid #f59e0b; border-radius:16px; padding:28px; max-height:92vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:10px; flex-wrap:wrap;">
+                <h2 style="color:#f59e0b; font-size:1.2rem; margin:0; display:inline-flex; align-items:center; gap:10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h6M8 15h4" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 15.5l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                    Upcoming Earnings Dates
+                </h2>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <span style="font-size:0.78rem; color:var(--text-secondary);">Next</span>
+                    <select id="earningsDaysAhead" onchange="fetchEarningsDates()" style="background:var(--bg-primary); color:var(--text-primary); border:1px solid var(--border-color); border-radius:6px; padding:5px 8px; font-size:0.85rem;">
+                        <option value="30">30 days</option>
+                        <option value="60" selected>60 days</option>
+                        <option value="90">90 days</option>
+                    </select>
+                    <button onclick="fetchEarningsDates()" style="background:#f59e0b;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh</button>
+                    <button onclick="closeEarningsModal()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+                </div>
+            </div>
+            <div id="earningsContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading earnings data…</div></div>
         </div>
     </div>
 
@@ -9790,6 +9814,203 @@ function closeSpyBenchmark() {
     if (spyChartInstance) { spyChartInstance.destroy(); spyChartInstance = null; }
 }
 
+// ============================================================
+// EARNINGS DATES
+// Fetches upcoming earnings for all tickers found in the user's
+// trades and open positions, using the Finnhub earnings calendar API.
+// ============================================================
+function showEarningsDates() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+    document.getElementById('earningsModal').style.display = 'flex';
+    document.getElementById('earningsModal').onclick = e => { if (e.target === document.getElementById('earningsModal')) closeEarningsModal(); };
+    fetchEarningsDates();
+}
+
+function closeEarningsModal() {
+    document.getElementById('earningsModal').style.display = 'none';
+}
+
+async function fetchEarningsDates() {
+    const el = document.getElementById('earningsContent');
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);font-size:0.95rem;">⏳ Fetching earnings data…</div>';
+
+    // Collect all unique tickers from closed trades + open positions
+    const tickers = new Set();
+    (finalTrades || []).forEach(t => { const tk = extractTicker(t.symbol); if (tk) tickers.add(tk); });
+    (openPositions || []).forEach(t => { const tk = extractTicker(t.symbol); if (tk) tickers.add(tk); });
+
+    if (tickers.size === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);">No tickers found in your trade data.</div>';
+        return;
+    }
+
+    const daysAhead = parseInt(document.getElementById('earningsDaysAhead').value, 10) || 60;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const toDate = new Date(today); toDate.setDate(toDate.getDate() + daysAhead);
+    const fmt = d => d.toISOString().slice(0, 10);
+    const fromStr = fmt(today);
+    const toStr = fmt(toDate);
+
+    try {
+        // Step 1: fetch the full market calendar — fast, one call
+        const calUrl = `https://finnhub.io/api/v1/calendar/earnings?from=${fromStr}&to=${toStr}&token=${FINNHUB_API_KEY}`;
+        const calRes = await fetch(calUrl);
+        if (!calRes.ok) throw new Error(`Finnhub returned ${calRes.status}`);
+        const calData = await calRes.json();
+        const calEvents = (calData.earningsCalendar || []);
+
+        // Filter to our tickers
+        const foundByCalendar = calEvents.filter(e => tickers.has(e.symbol));
+        const foundSymbols = new Set(foundByCalendar.map(e => e.symbol));
+
+        // Step 2: for tickers missing from the calendar, try the earnings surprise endpoint
+        // which often has the next scheduled date
+        const missingTickers = Array.from(tickers).filter(t => !foundSymbols.has(t));
+        const extraEvents = [];
+
+        el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-secondary);font-size:0.9rem;">
+            ⏳ Checking ${missingTickers.length} remaining tickers…
+            <div style="margin-top:12px;background:var(--bg-primary);border-radius:8px;overflow:hidden;height:6px;width:60%;margin-left:auto;margin-right:auto;">
+                <div style="background:#f59e0b;height:100%;width:50%;"></div>
+            </div>
+        </div>`;
+
+        // Batch per-ticker lookups with rate limiting
+        const BATCH = 8;
+        const DELAY_MS = 400;
+        for (let i = 0; i < missingTickers.length; i += BATCH) {
+            const batch = missingTickers.slice(i, i + BATCH);
+            await Promise.all(batch.map(async ticker => {
+                try {
+                    // Use the earnings calendar endpoint filtered by symbol
+                    const url = `https://finnhub.io/api/v1/calendar/earnings?from=${fromStr}&to=${toStr}&symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_API_KEY}`;
+                    const res = await fetch(url);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    const items = (data.earningsCalendar || []).filter(e => e.symbol === ticker);
+                    extraEvents.push(...items);
+                } catch(e) { /* silently skip */ }
+            }));
+            if (i + BATCH < missingTickers.length) {
+                await new Promise(r => setTimeout(r, DELAY_MS));
+            }
+        }
+
+        const allEvents = [...foundByCalendar, ...extraEvents];
+        // Deduplicate by symbol+date
+        const seen = new Set();
+        const events = allEvents.filter(e => {
+            const key = e.symbol + '|' + e.date;
+            if (seen.has(key)) return false;
+            seen.add(key); return true;
+        });
+
+        renderEarningsDates(events, tickers, fromStr, toStr, daysAhead);
+    } catch (err) {
+        el.innerHTML = `<div style="text-align:center;padding:40px;color:#f87171;">⚠ Could not load earnings data: ${err.message}<br><span style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;display:block;">Check your internet connection or try again.</span></div>`;
+    }
+}
+
+function renderEarningsDates(events, allTickers, fromStr, toStr, daysAhead) {
+    const el = document.getElementById('earningsContent');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const muted = 'var(--text-secondary)';
+
+    // Sort by date ascending
+    events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+    // Tickers with no earnings in window
+    const foundTickers = new Set(events.map(e => e.symbol));
+    const noEarnings = Array.from(allTickers).filter(t => !foundTickers.has(t)).sort();
+
+    const fmt$ = v => v != null && v !== '' ? '$' + parseFloat(v).toFixed(2) : '—';
+    const fmtDate = str => {
+        if (!str) return '—';
+        const d = new Date(str + 'T12:00:00');
+        return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+    };
+    const daysUntil = str => {
+        if (!str) return null;
+        return Math.round((new Date(str + 'T12:00:00') - new Date()) / 86400000);
+    };
+
+    if (events.length === 0) {
+        el.innerHTML = `
+            <div style="text-align:center;padding:30px;color:${muted};font-size:0.95rem;">
+                No earnings events found for your tickers in the next ${daysAhead} days.
+            </div>
+            ${noEarnings.length ? `<div style="margin-top:12px;padding:12px 16px;background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;font-size:0.8rem;color:${muted};">
+                <strong style="color:var(--text-primary);">Tickers with no scheduled earnings:</strong> ${noEarnings.join(', ')}
+            </div>` : ''}`;
+        return;
+    }
+
+    // Group by week for easier scanning
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    let tableRows = events.map((e, i) => {
+        const days = daysUntil(e.date);
+        const isThisWeek = days !== null && days >= 0 && days <= 7;
+        const isNextWeek = days !== null && days > 7 && days <= 14;
+        const dteColor = days === 0 ? '#ef4444' : isThisWeek ? '#fb923c' : isNextWeek ? '#eab308' : '#22c55e';
+        const dteBg = days === 0 ? 'rgba(239,68,68,0.1)' : isThisWeek ? 'rgba(251,146,60,0.1)' : isNextWeek ? 'rgba(250,204,21,0.08)' : 'transparent';
+        const when = e.hour === 'bmo' ? '🌅 Before Open' : e.hour === 'amc' ? '🌙 After Close' : '—';
+        const epsEst = e.epsEstimate != null && e.epsEstimate !== '' ? parseFloat(e.epsEstimate).toFixed(2) : '—';
+        const revEst = e.revenueEstimate != null && e.revenueEstimate !== '' ? '$' + (parseFloat(e.revenueEstimate) / 1e6).toFixed(0) + 'M' : '—';
+        // Is this ticker currently open?
+        const isOpen = (openPositions || []).some(p => extractTicker(p.symbol) === e.symbol);
+        const bg = i % 2 === 0 ? rowBg : rowAltBg;
+        return `<tr style="background:${bg};">
+            <td style="padding:10px 12px;border-bottom:1px solid ${borderColor};font-weight:700;color:var(--text-primary);">
+                ${e.symbol}
+                ${isOpen ? '<span style="font-size:0.65rem;background:rgba(14,165,233,0.15);color:#0ea5e9;border:1px solid rgba(14,165,233,0.4);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;">OPEN</span>' : ''}
+            </td>
+            <td style="padding:10px 12px;border-bottom:1px solid ${borderColor};color:var(--text-primary);">${fmtDate(e.date)}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid ${borderColor};text-align:center;">
+                <span style="background:${dteBg};color:${dteColor};font-weight:700;padding:2px 8px;border-radius:6px;font-size:0.85rem;">
+                    ${days === 0 ? 'Today' : days === 1 ? '1 day' : `${days} days`}
+                </span>
+            </td>
+            <td style="padding:10px 12px;border-bottom:1px solid ${borderColor};color:${muted};font-size:0.85rem;">${when}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid ${borderColor};text-align:center;color:var(--text-primary);font-size:0.9rem;">${epsEst !== '—' ? '$' + epsEst : '—'}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid ${borderColor};text-align:center;color:${muted};font-size:0.85rem;">${revEst}</td>
+        </tr>`;
+    }).join('');
+
+    const thStyle = `padding:10px 12px;background:${thBg};color:#f59e0b;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #f59e0b;text-align:center;`;
+    const thCStyle = thStyle.replace('text-align:left', 'text-align:center');
+
+    el.innerHTML = `
+        <div style="font-size:0.82rem;color:${muted};margin-bottom:14px;">
+            Showing <strong style="color:var(--text-primary);">${events.length}</strong> earnings event${events.length !== 1 ? 's' : ''} for your tickers between <strong style="color:var(--text-primary);">${fmtDate(fromStr)}</strong> and <strong style="color:var(--text-primary);">${fmtDate(toStr)}</strong>.
+            <span style="background:rgba(14,165,233,0.12);color:#0ea5e9;border:1px solid rgba(14,165,233,0.35);border-radius:4px;padding:1px 6px;margin-left:4px;font-size:0.75rem;">OPEN</span> = currently have open position.
+        </div>
+        <div style="overflow-x:auto;border:1px solid ${borderColor};border-radius:8px;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+                <thead><tr>
+                    <th style="${thStyle}">Ticker</th>
+                    <th style="${thStyle}">Earnings Date</th>
+                    <th style="${thCStyle}">Days Away</th>
+                    <th style="${thStyle}">When</th>
+                    <th style="${thCStyle}">EPS Est.</th>
+                    <th style="${thCStyle}">Rev Est.</th>
+                </tr></thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </div>
+        ${noEarnings.length ? `<div style="margin-top:14px;padding:12px 16px;background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;font-size:0.8rem;color:${muted};">
+            <strong style="color:var(--text-primary);">No scheduled earnings in this window:</strong> ${noEarnings.join(', ')}
+        </div>` : ''}
+        <div style="margin-top:10px;font-size:0.72rem;color:${muted};text-align:right;">Data via Finnhub · Dates and estimates subject to change</div>`;
+}
+
 function renderSpyBenchmark(spyData, credits, today) {
     // Strategy: each credit received buys fractional shares of SPY on its trade's openDate.
     // Hold all shares through today. Compare "current SPY position value minus total premium invested"
@@ -10018,4 +10239,3 @@ document.addEventListener('keydown', function(ev) {
 </script>
 </body>
 </html>
-
