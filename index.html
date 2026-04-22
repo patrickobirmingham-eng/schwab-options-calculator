@@ -6390,6 +6390,11 @@ function rglRefreshFromMainData() {
         return;
     }
     rglGenerateFromMainData();
+    // Override the datePreset to 'all' on refresh so the user sees every trade,
+    // not just the current month (which is the default on first open).
+    rglState.datePreset = 'all';
+    rglState.dateFrom = '';
+    rglState.dateTo = '';
     const autoNotice = document.getElementById('rglAutoGenNotice');
     if (autoNotice) autoNotice.style.display = 'flex';
     document.getElementById('rglUploadPrompt').style.display = 'none';
@@ -8778,8 +8783,8 @@ function showTaxPreview() {
     const bracketEl = document.getElementById('taxBracket');
     try {
         const saved = localStorage.getItem('taxBracket');
-        if (saved) bracketEl.value = saved;
-    } catch(e) {}
+        bracketEl.value = saved !== null ? saved : '24';
+    } catch(e) { bracketEl.value = '24'; }
 
     document.getElementById('taxModal').style.display = 'flex';
     renderTaxPreview();
@@ -8792,7 +8797,6 @@ function closeTaxPreview() {
 function renderTaxPreview() {
     const year = parseInt(document.getElementById('taxYear').value, 10);
     const bracketInput = document.getElementById('taxBracket').value;
-    const bracket = bracketInput === '' ? null : parseFloat(bracketInput);
     try { if (bracketInput !== '') localStorage.setItem('taxBracket', bracketInput); } catch(e) {}
 
     // Sum realized P&L from CLOSED trades that closed within the selected year.
@@ -8831,7 +8835,24 @@ function renderTaxPreview() {
     const netShortTerm = gains + losses;
     const netLongTerm  = longTermGains + longTermLosses;
 
-    // If losses exceed gains, only $3,000 is deductible against ordinary income
+    // Auto-select bracket from 2024 single-filer brackets based on net short-term income.
+    // Only auto-fills when the user hasn't manually typed a value (i.e. input matches
+    // the last auto-filled value or is the 24% default). User can always override.
+    const autoBracket = netShortTerm <= 0 ? null
+        : netShortTerm <= 100000  ? 22
+        : netShortTerm <= 192000  ? 24
+        : netShortTerm <= 244000  ? 32
+        : netShortTerm <= 610000  ? 35
+        : 37;
+    // Apply auto-bracket only if the field is empty or currently showing an auto value
+    const AUTO_BRACKET_VALUES = new Set(['22','24','32','35','37']);
+    if (autoBracket !== null && (bracketInput === '' || AUTO_BRACKET_VALUES.has(bracketInput.trim()))) {
+        document.getElementById('taxBracket').value = String(autoBracket);
+        try { localStorage.setItem('taxBracket', String(autoBracket)); } catch(e) {}
+    }
+    const effectiveBracketInput = document.getElementById('taxBracket').value;
+    const bracket = effectiveBracketInput === '' ? null : parseFloat(effectiveBracketInput);
+    const isAutoBracket = autoBracket !== null && String(autoBracket) === effectiveBracketInput.trim();
     // in a given year — the rest carries forward. Show both numbers.
     const lossCap = 3000;
     const deductibleLoss = netShortTerm < 0 ? Math.max(netShortTerm, -lossCap) : 0;
@@ -8860,9 +8881,11 @@ function renderTaxPreview() {
     if (estimatedTax === null) {
         taxCardHtml = card('Estimated Federal Tax', '—', muted, 'Enter a marginal bracket above');
     } else if (estimatedTax >= 0) {
-        taxCardHtml = card('Estimated Federal Tax', fmt$(estimatedTax), '#f59e0b', `at ${bracket}% marginal rate`);
+        const bracketNote = isAutoBracket ? `at ${bracket}% — auto-selected from 2024 brackets` : `at ${bracket}% marginal rate`;
+        taxCardHtml = card('Estimated Federal Tax', fmt$(estimatedTax), '#f59e0b', bracketNote);
     } else {
-        taxCardHtml = card('Estimated Tax Savings', fmt$(estimatedTax), posColor, `at ${bracket}% marginal rate`);
+        const bracketNote = isAutoBracket ? `at ${bracket}% — auto-selected from 2024 brackets` : `at ${bracket}% marginal rate`;
+        taxCardHtml = card('Estimated Tax Savings', fmt$(estimatedTax), posColor, bracketNote);
     }
 
     const closedCount = tradesInYear.length;
