@@ -1598,6 +1598,8 @@ async function handleFiles(files) {
 
     window._pricesRefreshedOC = false;
     window._pricesRefreshedAssign = false;
+    ocStockPrices = {}; ocOptionPrices = {}; _ocEarningsMap = {};
+    window._ciCache = null; window._earningsCache = null;
 
     const fnEl = document.getElementById('uploadedFileName');
     const mainFn = document.getElementById('mainFilename');
@@ -1681,6 +1683,8 @@ async function handleFile(file) {
     if (!file) return;
     window._pricesRefreshedOC = false;
     window._pricesRefreshedAssign = false; // reset so prices refresh on next open
+    ocStockPrices = {}; ocOptionPrices = {}; _ocEarningsMap = {};
+    window._ciCache = null; window._earningsCache = null;
     const fnEl = document.getElementById('uploadedFileName');
     fnEl.textContent = 'Filename: ' + file.name;
     fnEl.style.display = 'block';
@@ -3230,8 +3234,7 @@ function toggleWeeklyExpandAll(checked) {
 function closeOpenCommitments() {
     const _di = document.getElementById('ocInner'); if (_di) _di._dragInit = false;
     document.getElementById('openCommitmentsModal').style.display = 'none';
-    _ocEarningsMap = {};
-    window._pricesRefreshedOC = false;
+    // Keep ocStockPrices, ocOptionPrices, _ocEarningsMap cached — no need to refetch on reopen
     const modalInner = document.querySelector('#openCommitmentsModal > div');
     if (modalInner && modalInner._ocScrollHandler) {
         modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
@@ -10044,6 +10047,14 @@ function showEarningsDates() {
     }
     document.getElementById('earningsModal').style.display = 'flex';
     document.getElementById('earningsModal').onclick = e => { if (e.target === document.getElementById('earningsModal')) closeEarningsModal(); };
+    // Use cached results if same daysAhead and < 30 minutes old
+    const daysAhead = parseInt(document.getElementById('earningsDaysAhead')?.value, 10) || 60;
+    const cache = window._earningsCache;
+    const CACHE_TTL = 30 * 60 * 1000;
+    if (cache && cache.events && cache.daysAhead === daysAhead && (Date.now() - cache.ts) < CACHE_TTL) {
+        renderEarningsDates(cache.events, cache.allTickers, cache.fromStr, cache.toStr, cache.daysAhead);
+        return;
+    }
     fetchEarningsDates();
 }
 
@@ -10066,6 +10077,14 @@ function showCompanyInfo() {
     document.getElementById('companyInfoModal').onclick = e => {
         if (e.target === document.getElementById('companyInfoModal')) closeCompanyInfo();
     };
+    // Use cached results if available and < 10 minutes old
+    const cache = window._ciCache;
+    const CACHE_TTL = 10 * 60 * 1000;
+    if (cache && cache.results && cache.openTickers && (Date.now() - cache.ts) < CACHE_TTL) {
+        renderCompanyInfo(cache.results, cache.openTickers);
+        initDraggableModal('companyInfoInner', '#8b5cf6', 1600);
+        return;
+    }
     fetchCompanyInfo();
 }
 
@@ -10391,6 +10410,8 @@ async function fetchCompanyInfo() {
         }
     }
 
+    // Cache results so reopening skips the fetch
+    window._ciCache = { results, openTickers, ts: Date.now() };
     renderCompanyInfo(results, openTickers);
 }
 
@@ -10430,6 +10451,7 @@ function renderCompanyInfo(results, openTickers) {
                     <button type="submit" style="background:#8b5cf6;color:white;border:none;padding:5px 10px;border-radius:0 7px 7px 0;cursor:pointer;font-weight:bold;font-size:0.82rem;white-space:nowrap;">🔍 Look Up</button>
                 </form>
                 <button onclick="fetchCompanyInfo()" style="background:#8b5cf6;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:0.82rem;">🔄 Refresh</button>
+                ${window._ciCache ? `<span style="font-size:0.72rem;color:${muted};white-space:nowrap;" title="Data fetched at ${new Date(window._ciCache.ts).toLocaleTimeString()}">cached ${Math.round((Date.now()-window._ciCache.ts)/60000)}m ago</span>` : ''}
                 <button onclick="closeCompanyInfo()" style="background:#ef4444;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:0.82rem;">✕ Close</button>
             </div>
         </div>
@@ -11059,6 +11081,8 @@ async function fetchEarningsDates() {
             seen.add(key); return true;
         });
 
+        // Cache so reopening doesn't require a re-fetch
+        window._earningsCache = { events, allTickers: tickers, fromStr, toStr, daysAhead, ts: Date.now() };
         renderEarningsDates(events, tickers, fromStr, toStr, daysAhead);
     } catch (err) {
         el.innerHTML = `<div style="text-align:center;padding:40px;color:#f87171;">⚠ Could not load earnings data: ${err.message}<br><span style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;display:block;">Check your internet connection or try again.</span></div>`;
@@ -11142,6 +11166,7 @@ function renderEarningsDates(events, allTickers, fromStr, toStr, daysAhead) {
         <div style="font-size:0.82rem;color:${muted};margin-bottom:14px;">
             Showing <strong style="color:var(--text-primary);">${events.length}</strong> earnings event${events.length !== 1 ? 's' : ''} for your tickers between <strong style="color:var(--text-primary);">${fmtDate(fromStr)}</strong> and <strong style="color:var(--text-primary);">${fmtDate(toStr)}</strong>.
             <span style="background:rgba(14,165,233,0.12);color:#0ea5e9;border:1px solid rgba(14,165,233,0.35);border-radius:4px;padding:1px 6px;margin-left:4px;font-size:0.75rem;">OPEN</span> = currently have open position.
+            ${window._earningsCache ? `<span style="font-size:0.72rem;color:${muted};margin-left:8px;" title="Fetched at ${new Date(window._earningsCache.ts).toLocaleTimeString()}">· cached ${Math.round((Date.now()-window._earningsCache.ts)/60000)}m ago</span>` : ''}
         </div>
         <div style="overflow-x:auto;border:1px solid ${borderColor};border-radius:8px;">
             <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
