@@ -261,11 +261,11 @@ td { padding: 15px; border-bottom: 1px solid var(--border-color); font-size: 0.9
 
 /* ── Mobile-friendly Monthly & Weekly modals ── */
 @media (max-width: 768px) {
-    #monthlyModal, #weeklyModal {
+    #monthlyModal, #weeklyModal, #dailyModal {
         align-items: flex-start !important;
         overflow-y: auto !important;
     }
-    #monthlyInner, #weeklyInner {
+    #monthlyInner, #weeklyInner, #dailyInner {
         position: relative !important;
         left: auto !important; top: auto !important;
         width: 100% !important; max-width: 100% !important;
@@ -446,17 +446,21 @@ th.oc-drop-target {
         </svg>
         Schwab Options Tracker
     </h1>
-    <p class="subtitle">This app fixes Schwab's weak options reporting — FIFO P&L, monthly cash flow, open positions & more</p>
+    <p class="subtitle">Full options P&L tracking for Schwab — daily/weekly/monthly cash flow, open positions with Greeks, company charts, earnings warnings &amp; more</p>
     <div style="text-align:center;">
         <span class="privacy-badge">🔒 Your data never leaves your browser — processed 100% locally</span>
     </div>
     <div class="feature-pills" id="featurePills">
-        <span class="feature-pill">📅 Monthly / Annual P&L</span>
-        <span class="feature-pill">📋 Open Positions</span>
+        <span class="feature-pill">📅 Daily / Weekly / Monthly / Yearly P&amp;L</span>
+        <span class="feature-pill">📋 Open Positions + Greeks &amp; Margin of Safety</span>
         <span class="feature-pill">📈 Realized Gain / Loss</span>
+        <span class="feature-pill">Θ P&amp;L By Ticker</span>
         <span class="feature-pill">🔁 Stocks Assigned</span>
-        <span class="feature-pill">🗂️ Transaction Sorter</span>
-        <span class="feature-pill">📊 Charts & Export</span>
+        <span class="feature-pill">⚠ Earnings Warnings</span>
+        <span class="feature-pill">📉 Company Info + RSI &amp; Bollinger Bands</span>
+        <span class="feature-pill">🏆 Best / Worst Day · Week · Month</span>
+        <span class="feature-pill">📊 Charts &amp; SPY Benchmark</span>
+        <span class="feature-pill">🧾 Tax Preview &amp; Portfolio Risk</span>
     </div>
     <p id="mainFilename" style="text-align:center; font-size:0.85rem; margin-top:-14px; margin-bottom:20px; display:none;"></p>
 
@@ -494,20 +498,20 @@ th.oc-drop-target {
         </div>
     </div>
 
-    <div id="actionButtons" style="display:none; justify-content:center; gap:12px; margin-bottom:25px; flex-wrap:wrap;">
-        <button onclick="showMonthlySummary()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg> Monthly / Annual Summary</button>
-        <button onclick="showWeeklySummary()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg> Weekly / Monthly Summary</button>
-        <button onclick="showOpenCommitments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0ea5e9"/><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Positions</button>
-        <button onclick="showAssignments()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Stocks Assigned</button>
-        <button onclick="showTransactionSorter()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Sorter</button>
-        <button onclick="showRealizedGainLoss()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
-        <button onclick="showTickerBreakdown()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> P&amp;L By Ticker</button>
-        <button onclick="showTaxPreview()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#64748b"/><path d="M9 8h6M9 11h6M9 14h4" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17l1.2 1.2L19.6 16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Tax Preview</button>
-        <button onclick="showPortfolioRisk()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#dc2626"/><path d="M12 6l5 10H7z" fill="white"/><path d="M12 10v3" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14.5" r="0.6" fill="#dc2626"/></svg> Portfolio Risk</button>
-        <button onclick="showExpirationCalendar()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="14" r="0.8" fill="white"/><circle cx="12" cy="14" r="0.8" fill="white"/><circle cx="15" cy="14" r="0.8" fill="white"/></svg> Expiration Calendar</button>
-        <button onclick="showSpyBenchmark()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#16a34a"/><path d="M6 16l4-5 3 3 5-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="12" y="21" text-anchor="middle" font-size="5" font-weight="bold" fill="white">SPY</text></svg> SPY Benchmark</button>
-        <button onclick="showEarningsDates()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><path d="M9 14l1.5 1.5 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Earnings Dates</button>
-        <button onclick="showCompanyInfo()" class="action-btn"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#8b5cf6"/><circle cx="12" cy="8" r="2.5" fill="white"/><rect x="9" y="12" width="6" height="1.5" rx="0.75" fill="white"/><rect x="8" y="14.5" width="8" height="1.5" rx="0.75" fill="white"/><rect x="9" y="17" width="6" height="1.5" rx="0.75" fill="white"/></svg> Company Info</button>
+    <div id="actionButtons" style="display:none; justify-content:center; gap:10px; margin-bottom:25px; flex-wrap:wrap;">
+        <!-- Row 1: Cash Flow & Positions -->
+        <button onclick="showDailySummary()" class="action-btn" title="Daily / Weekly / Monthly / Yearly Cash Flow &amp; Profit"><svg xmlns="http://www.w3.org/2000/svg" width="2.0em" height="2.0em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f97316"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><path d="M5 10.5h14" stroke="white" stroke-width="1.5"/><path d="M9 7V5.5M15 7V5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><rect x="7.5" y="12.5" width="2.5" height="2.5" rx="0.4" fill="white"/><rect x="10.75" y="12.5" width="2.5" height="2.5" rx="0.4" fill="white"/><rect x="14" y="12.5" width="2.5" height="2.5" rx="0.4" fill="white"/></svg> D/W/M/Y Cash Flow &amp; P&amp;L</button>
+        <button onclick="showTickerBreakdown()" class="action-btn" title="P&amp;L breakdown by ticker"><svg xmlns="http://www.w3.org/2000/svg" width="2.4em" height="2.4em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#e11d48"/><text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="bold" fill="white" font-family="serif">Θ</text></svg> P&amp;L By Ticker</button>
+        <button onclick="showRealizedGainLoss()" class="action-btn" title="Realized Gain / Loss by trade"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#a855f7"/><path d="M6 17l4-5 3 3 5-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M17 8h3v3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Realized Gain / Loss</button>
+        <button onclick="showOpenCommitments()" class="action-btn" title="Open Positions with Greeks, Margin of Safety &amp; Earnings Warnings"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0ea5e9"/><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="white" stroke-width="2" fill="white" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="white"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="white"/></svg> Open Positions</button>
+        <button onclick="showAssignments()" class="action-btn" title="Stocks Assigned via options"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><path d="M8 7h8M8 11h8M8 15h5" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="3.5" fill="#f59e0b" stroke="white" stroke-width="1.5"/><path d="M16 16l.8.8 1.7-1.6" stroke="white" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Stocks Assigned</button>
+        <button onclick="showPortfolioRisk()" class="action-btn" title="Portfolio risk concentration chart"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#dc2626"/><path d="M12 6l5 10H7z" fill="white"/><path d="M12 10v3" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="14.5" r="0.6" fill="#dc2626"/></svg> Portfolio Risk</button>
+        <button onclick="showEarningsDates()" class="action-btn" title="Upcoming earnings dates for your tickers"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#f59e0b"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><path d="M9 14l1.5 1.5 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Earnings Dates</button>
+        <button onclick="showCompanyInfo()" class="action-btn" title="Company info: price charts, RSI, Bollinger Bands, analyst ratings, news"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#8b5cf6"/><circle cx="12" cy="8" r="2.5" fill="white"/><rect x="9" y="12" width="6" height="1.5" rx="0.75" fill="white"/><rect x="8" y="14.5" width="8" height="1.5" rx="0.75" fill="white"/><rect x="9" y="17" width="6" height="1.5" rx="0.75" fill="white"/></svg> Company Info</button>
+        <button onclick="showExpirationCalendar()" class="action-btn" title="Options expiration calendar"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="6" y="8" width="12" height="10" rx="1" stroke="white" stroke-width="1.6" fill="none"/><path d="M6 11h12" stroke="white" stroke-width="1.6"/><path d="M9 7v2M15 7v2" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="14" r="0.8" fill="white"/><circle cx="12" cy="14" r="0.8" fill="white"/><circle cx="15" cy="14" r="0.8" fill="white"/></svg> Expiration Calendar</button>
+        <button onclick="showTransactionSorter()" class="action-btn" title="Sort and filter all transactions"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#10b981"/><path d="M7 8h10M7 12h7M7 16h4" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M17 14l2 2 2-2M19 16v-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Transaction Sorter</button>
+        <button onclick="showTaxPreview()" class="action-btn" title="Tax preview: short &amp; long term gains"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#64748b"/><path d="M9 8h6M9 11h6M9 14h4" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M16 17l1.2 1.2L19.6 16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg> Tax Preview</button>
+        <button onclick="showSpyBenchmark()" class="action-btn" title="Compare your returns vs SPY buy-and-hold"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;"><circle cx="12" cy="12" r="12" fill="#16a34a"/><path d="M6 16l4-5 3 3 5-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="12" y="21" text-anchor="middle" font-size="5" font-weight="bold" fill="white">SPY</text></svg> SPY Benchmark</button>
     </div>
 
     <div class="filter-bar" id="filterBar" style="display:none; flex-direction:column; gap:16px;">
@@ -1044,6 +1048,25 @@ th.oc-drop-target {
         </div>
     </div>
 
+    <!-- Daily Summary Modal -->
+    <div id="dailyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
+        <div id="dailyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:98vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
+                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#f97316"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><path d="M5 10.5h14" stroke="white" stroke-width="1.5"/><path d="M9 7V5.5M15 7V5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg><span style="color:#fb923c;">Daily / Weekly / Monthly / Yearly</span> Cash Flow &amp; Profit Summary</h2>
+                <div style="display:flex; justify-content:center; align-items:center;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
+                        <input type="checkbox" id="dailyExpandAll" onchange="toggleDailyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#fb923c;cursor:pointer;">
+                        Fully Expand Table
+                    </label>
+                </div>
+                <button onclick="showDailySummaryChart()" style="background:#f97316;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;">📊 View Chart</button>
+                <button onclick="downloadDailySummary()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
+                <button onclick="closeDailySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
+            </div>
+            <div id="dailyTableContainer"></div>
+        </div>
+    </div>
+
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1760px; width:99vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
@@ -1066,43 +1089,6 @@ th.oc-drop-target {
     </div>
 
     <!-- Monthly Summary Modal -->
-    <div id="monthlyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div id="monthlyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:98vh; overflow-y:auto; position:relative;">
-            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#6d28d9"/><rect x="6" y="13" width="3" height="5" rx="0.5" fill="white"/><rect x="10.5" y="9" width="3" height="9" rx="0.5" fill="white"/><rect x="15" y="11" width="3" height="7" rx="0.5" fill="white"/></svg><span style="color:#a78bfa;">[-]</span> Monthly <span style="color:#a78bfa;">/</span> <span style="color:#a78bfa;">[+]</span> Annual Cash Flow &amp; Profit Summary</h2>
-                <div style="display:flex; justify-content:center; align-items:center;">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
-                        <input type="checkbox" id="monthlyExpandAll" onchange="toggleMonthlyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#a78bfa;cursor:pointer;">
-                        Fully Expand Table
-                    </label>
-                </div>
-                <button onclick="showMonthlySummaryChart()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;">📊 View Chart</button>
-                <button onclick="downloadMonthlySummary()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
-                <button onclick="closeMonthlySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
-            </div>
-            <div id="monthlyTableContainer"></div>
-        </div>
-    </div>
-
-    <!-- Weekly Summary Modal -->
-    <div id="weeklyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div id="weeklyInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
-            <div style="display:flex; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:8px;">
-                <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px; flex-shrink:0; flex:1 1 auto;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><circle cx="12" cy="12" r="12" fill="#0891b2"/><rect x="5" y="7" width="14" height="11" rx="1.5" stroke="white" stroke-width="1.8" fill="none"/><line x1="5" y1="10.5" x2="19" y2="10.5" stroke="white" stroke-width="1.5"/><line x1="9" y1="7" x2="9" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="5.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="13.5" x2="11" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/><line x1="13" y1="13.5" x2="16" y2="13.5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg><span style="color:#67e8f9;">[-]</span> Weekly <span style="color:#67e8f9;">/</span> <span style="color:#67e8f9;">[+]</span> Monthly Cash Flow &amp; Profit Summary</h2>
-                <div style="display:flex; justify-content:center; align-items:center;">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--text-secondary);font-size:0.85rem;font-weight:600;white-space:nowrap;">
-                        <input type="checkbox" id="weeklyExpandAll" onchange="toggleWeeklyExpandAll(this.checked)" style="width:16px;height:16px;accent-color:#67e8f9;cursor:pointer;">
-                        Fully Expand Table
-                    </label>
-                </div>
-                <button onclick="showWeeklySummaryChart()" style="background:#0891b2;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;">📊 View Chart</button>
-                <button onclick="downloadWeeklySummary()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
-                <button onclick="closeWeeklySummary()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;flex-shrink:0;">✕ Close</button>
-            </div>
-            <div id="weeklyTableContainer"></div>
-        </div>
-    </div>
-
     <!-- Assignments Modal -->
     <div id="assignmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
         <div id="assignmentsInner" style="border-radius:16px; padding:20px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative; box-sizing:border-box;">
@@ -2823,6 +2809,7 @@ function importNotesJson(input) {
 // ── Persistent state for Monthly & Weekly modals ──
 const monthlySavedState = { expandedYears: null, expandAllChecked: false, scrollTop: 0 };
 const weeklySavedState  = { expandedMonths: null, expandAllChecked: false, scrollTop: 0 };
+const dailySavedState   = { expandedMonths: null, expandedWeeks: null, expandedDirect: null, expandAllChecked: false, scrollTop: 0, modalPos: null };
 
 function toggleMonthlyYear(year) {
     const monthRows = document.querySelectorAll(`.mb-year-${year}`);
@@ -3140,6 +3127,650 @@ function closeMonthlySummary() {
         _di._dragInit = false;
     }
     document.getElementById('monthlyModal').style.display = 'none';
+}
+
+function closeDailySummary() {
+    // Save expand/collapse state before closing
+    const container = document.getElementById('dailyTableContainer');
+    if (container) {
+        // Save which month-keys have expanded week rows
+        const expandedMonths = new Set();
+        [...new Set([...container.querySelectorAll('tr[class*="ds-week-row-"]')]
+            .map(r => {
+                const cls = [...r.classList].find(c => c.startsWith('ds-week-row-'));
+                return cls ? cls.replace('ds-week-row-', '') : null;
+            }).filter(Boolean))
+        ].forEach(mk => {
+            const rows = container.querySelectorAll(`.ds-week-row-${mk}`);
+            if (rows.length && rows[0].style.display !== 'none') expandedMonths.add(mk);
+        });
+        dailySavedState.expandedMonths = expandedMonths;
+        // Save which week-keys have expanded day rows
+        const expandedWeeks = new Set();
+        [...container.querySelectorAll('button[id^="dswbtn-"]')]
+            .forEach(btn => {
+                const wk = btn.id.replace('dswbtn-', '');
+                const dayRows = container.querySelectorAll(`.ds-day-row-${wk}`);
+                if (dayRows.length && dayRows[0].style.display !== 'none') expandedWeeks.add(wk);
+            });
+        dailySavedState.expandedWeeks = expandedWeeks;
+        // Save which month-keys have direct day rows expanded
+        const expandedDirect = new Set();
+        [...container.querySelectorAll('button[id^="dsdirectbtn-"]')]
+            .forEach(btn => {
+                const mk = btn.id.replace('dsdirectbtn-', '');
+                const directRows = container.querySelectorAll(`.ds-direct-row-${mk}`);
+                if (directRows.length && directRows[0].style.display !== 'none') expandedDirect.add(mk);
+            });
+        dailySavedState.expandedDirect = expandedDirect;
+    }
+    const cb = document.getElementById('dailyExpandAll');
+    dailySavedState.expandAllChecked = cb ? cb.checked : false;
+    const mi = document.getElementById('dailyInner');
+    dailySavedState.scrollTop = mi ? mi.scrollTop : 0;
+    const _di = document.getElementById('dailyInner');
+    if (_di) {
+        dailySavedState.modalPos = {
+            left: _di.style.left, top: _di.style.top,
+            width: _di.style.width, height: _di.style.height
+        };
+        _di._dragInit = false;
+    }
+    document.getElementById('dailyModal').style.display = 'none';
+}
+
+function toggleDailyMonth(monthKey) {
+    // Expand/collapse week rows — collapses direct day rows (mutually exclusive)
+    const weekRows = document.querySelectorAll(`.ds-week-row-${monthKey}`);
+    if (!weekRows.length) return;
+    const isExpanded = weekRows[0].style.display !== 'none';
+    weekRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    if (isExpanded) {
+        // Collapsing weeks — also hide day sub-rows
+        document.querySelectorAll(`.ds-day-row-${monthKey}`).forEach(r => r.style.display = 'none');
+    } else {
+        // Expanding weeks — collapse direct day rows (mutually exclusive)
+        const directRows = document.querySelectorAll(`.ds-direct-row-${monthKey}`);
+        if (directRows.length && directRows[0].style.display !== 'none') {
+            directRows.forEach(r => r.style.display = 'none');
+            const dBtn = document.getElementById(`dsdirectbtn-${monthKey}`);
+            if (dBtn) { dBtn.textContent = '+Day'; dBtn.title = 'Expand to days'; }
+        }
+    }
+    const btn = document.getElementById(`dsbtn-${monthKey}`);
+    if (btn) { btn.textContent = isExpanded ? '+Wk' : '−Wk'; btn.title = isExpanded ? 'Expand to weeks' : 'Collapse weeks'; }
+}
+
+function toggleDailyWeek(weekKey, monthKey) {
+    // Toggles day rows for a given week
+    const dayRows = document.querySelectorAll(`.ds-day-row-${weekKey}`);
+    if (!dayRows.length) return;
+    const isExpanded = dayRows[0].style.display !== 'none';
+    dayRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    const btn = document.getElementById(`dswbtn-${weekKey}`);
+    if (btn) { btn.textContent = isExpanded ? '+' : '−'; btn.title = isExpanded ? 'Expand days' : 'Collapse days'; }
+}
+
+function toggleDailyDirect(monthKey) {
+    // Expand/collapse direct day rows — collapses week rows (mutually exclusive)
+    const directRows = document.querySelectorAll(`.ds-direct-row-${monthKey}`);
+    if (!directRows.length) return;
+    const isExpanded = directRows[0].style.display !== 'none';
+    directRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    if (!isExpanded) {
+        // Expanding direct days — collapse week rows (mutually exclusive)
+        const weekRows = document.querySelectorAll(`.ds-week-row-${monthKey}`);
+        if (weekRows.length && weekRows[0].style.display !== 'none') {
+            weekRows.forEach(r => r.style.display = 'none');
+            document.querySelectorAll(`.ds-day-row-${monthKey}`).forEach(r => r.style.display = 'none');
+            const wBtn = document.getElementById(`dsbtn-${monthKey}`);
+            if (wBtn) { wBtn.textContent = '+Wk'; wBtn.title = 'Expand to weeks'; }
+        }
+    }
+    const btn = document.getElementById(`dsdirectbtn-${monthKey}`);
+    if (btn) { btn.textContent = isExpanded ? '+Day' : '−Day'; btn.title = isExpanded ? 'Expand to days' : 'Collapse days'; }
+}
+
+function toggleDailyExpandAll(checked) {
+    const container = document.getElementById('dailyTableContainer');
+    if (!container) return;
+    // Toggle week rows (month expand/collapse)
+    const monthKeys = [...new Set([...container.querySelectorAll('tr[class*="ds-week-row-"]')]
+        .map(r => {
+            const cls = [...r.classList].find(c => c.startsWith('ds-week-row-'));
+            return cls ? cls.replace('ds-week-row-', '') : null;
+        }).filter(Boolean))];
+    monthKeys.forEach(mk => {
+        const weekRows = container.querySelectorAll(`.ds-week-row-${mk}`);
+        if (!weekRows.length) return;
+        const isExpanded = weekRows[0].style.display !== 'none';
+        if (checked && !isExpanded) toggleDailyMonth(mk);
+        else if (!checked && isExpanded) toggleDailyMonth(mk);
+    });
+    // Toggle day rows (week expand/collapse) only when expanding all
+    if (checked) {
+        const weekKeys = [...new Set([...container.querySelectorAll('tr[id^="dswbtn-"]')]
+            .map(btn => btn.id.replace('dswbtn-', '')))];
+        weekKeys.forEach(wk => {
+            const dayRows = container.querySelectorAll(`.ds-day-row-${wk}`);
+            if (!dayRows.length) return;
+            const isExpanded = dayRows[0].style.display !== 'none';
+            if (!isExpanded) toggleDailyWeek(wk);
+        });
+    }
+}
+
+function showDailySummary() {
+    if (!window.allTransactions || window.allTransactions.length === 0) {
+        alert('Please upload a file first.');
+        return;
+    }
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const modalBg = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const rowBg = isDark ? '#1e293b' : '#ffffff';
+    const rowAltBg = isDark ? '#162032' : '#f8fafc';
+    const totalRowBg = isDark ? '#334155' : '#e2e8f0';
+    const monthRowBg = isDark ? '#1a2540' : '#f0f4ff';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const accent = '#f97316';
+    const accentLight = '#fb923c';
+
+    const modalInner = document.querySelector('#dailyModal > div');
+    modalInner.style.background = modalBg;
+    modalInner.style.border = `1px solid ${accent}`;
+
+    const fmt = (n) => (n >= 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const fmtNeg = (n) => n === 0 ? '$0.00' : (n > 0 ? '$' : '-$') + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentYearStr = String(currentYear);
+
+    // ── Collect all trading days from allTransactions + finalTrades ──────────
+    // A "day" is defined as any calendar date with at least one transaction
+    const dayDataMap = {}; // key: "YYYY-MM-DD" → { sellOpen, buyClose, profit, assignedPaid }
+
+    window.allTransactions.forEach(t => {
+        if (!t.date) return;
+        const d = t.date;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!dayDataMap[key]) dayDataMap[key] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        if (t.action.includes('to open'))  dayDataMap[key].sellOpen  += t.amount;
+        if (t.action.includes('to close')) dayDataMap[key].buyClose  += t.amount;
+    });
+
+    finalTrades.forEach(t => {
+        if (!t.closeDate) return;
+        const d = t.closeDate;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!dayDataMap[key]) dayDataMap[key] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        const st = t.status.toLowerCase();
+        if (!st.includes('assigned') || st.includes('called')) dayDataMap[key].profit += t.profit;
+        if (st.includes('assigned') && !st.includes('called')) dayDataMap[key].assignedPaid += Math.abs(t.openingPremium);
+    });
+
+    if (Object.keys(dayDataMap).length === 0) {
+        document.getElementById('dailyTableContainer').innerHTML =
+            `<div style="text-align:center;padding:40px;color:var(--text-secondary);">No trading data found.</div>`;
+        document.getElementById('dailyModal').style.display = 'flex';
+        return;
+    }
+
+    // ── Build complete date spine: every calendar month from first trade to today ──
+    // Fill in missing months, weeks, and Mon-Fri days with $0.00
+    const existingKeys = Object.keys(dayDataMap);
+    const firstKey = existingKeys.reduce((a,b) => a < b ? a : b);
+    const [fy, fm] = firstKey.split('-').map(Number);
+    const today = now;
+    // Add every Mon-Fri between first trade and today that isn't already in dayDataMap
+    const spineDate = new Date(fy, fm - 1, 1);
+    while (spineDate <= today) {
+        const dow = spineDate.getDay();
+        if (dow >= 1 && dow <= 5) { // Mon-Fri only
+            const sk = `${spineDate.getFullYear()}-${String(spineDate.getMonth()+1).padStart(2,'0')}-${String(spineDate.getDate()).padStart(2,'0')}`;
+            if (!dayDataMap[sk]) dayDataMap[sk] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        }
+        spineDate.setDate(spineDate.getDate() + 1);
+    }
+
+    // Sort all days descending
+    const allDayKeys = Object.keys(dayDataMap).sort((a,b) => b.localeCompare(a));
+
+    // ── ISO week helper ─────────────────────────────────────────────────────
+    const getISOWeekDS = d => {
+        const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        dt.setUTCDate(dt.getUTCDate() + 4 - (dt.getUTCDay() || 7));
+        const ys = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+        return { week: Math.ceil((((dt - ys) / 86400000) + 1) / 7), year: dt.getUTCFullYear() };
+    };
+    const getWeekStart = (isoYear, isoWeek) => {
+        const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+        const d = new Date(jan4);
+        d.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay() || 7) + 1 + (isoWeek - 1) * 7);
+        return d;
+    };
+    const weekLabel = (isoYear, isoWeek) => {
+        const ws = getWeekStart(isoYear, isoWeek);
+        const we = new Date(ws); we.setUTCDate(ws.getUTCDate() + 4);
+        return `Wk ${String(isoWeek).padStart(2,'0')} · ${ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})}–${we.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+    };
+
+    // Group days by year-month key, then further by ISO week within each month
+    const monthGroups = {}; // { "2025_01": { label, year, month, mk, weeks:{wk: {wkLabel, days:[]}}, totals } }
+    allDayKeys.forEach(dk => {
+        const [y, m, dd] = dk.split('-');
+        const mk = `${y}_${m}`;
+        if (!monthGroups[mk]) {
+            const d = new Date(parseInt(y), parseInt(m)-1, 1);
+            monthGroups[mk] = {
+                label: d.toLocaleDateString('en-US', {month:'short', year:'numeric'}),
+                year: parseInt(y), month: parseInt(m)-1, mk, weeks:{}, days:[]
+            };
+        }
+        const dayObj = new Date(parseInt(y), parseInt(m)-1, parseInt(dd));
+        const { week: isoWk, year: isoWkY } = getISOWeekDS(dayObj);
+        const wk = `${isoWkY}_W${String(isoWk).padStart(2,'0')}`;
+        if (!monthGroups[mk].weeks[wk]) {
+            monthGroups[mk].weeks[wk] = {
+                wk, isoYear: isoWkY, isoWeek: isoWk,
+                label: weekLabel(isoWkY, isoWk),
+                days: []
+            };
+        }
+        const dayEntry = { dk, ...dayDataMap[dk] };
+        monthGroups[mk].weeks[wk].days.push(dayEntry);
+        monthGroups[mk].days.push(dayEntry);
+    });
+
+    // Sort month keys descending
+    const sortedMKs = Object.keys(monthGroups).sort((a,b) => b.localeCompare(a));
+
+    // Group months by year for year-level collapse
+    const yearGroups = {}; // { "2025": [mk, mk, …] }
+    sortedMKs.forEach(mk => {
+        const y = mk.split('_')[0];
+        if (!yearGroups[y]) yearGroups[y] = [];
+        yearGroups[y].push(mk);
+    });
+    const sortedYears = Object.keys(yearGroups).sort((a,b) => b.localeCompare(a));
+
+    // Default expand state:
+    // - Current year: expanded to show month rows only (no weeks, no days)
+    // - Prior years: collapsed to year summary row
+    // Use saved state if available (restored from closeDailySummary)
+    const defaultExpandedMonths = dailySavedState.expandedMonths
+        ? new Set(dailySavedState.expandedMonths)
+        : new Set(); // +Wk collapsed by default
+    const defaultExpandedWeeks = dailySavedState.expandedWeeks
+        ? new Set(dailySavedState.expandedWeeks)
+        : new Set(); // week→day collapsed by default
+    const defaultExpandedDirect = dailySavedState.expandedDirect
+        ? new Set(dailySavedState.expandedDirect)
+        : new Set(); // +Day collapsed by default — show months only
+
+    const defaultExpandedYears = new Set([currentYearStr]);
+
+    // Compute week-level totals
+    sortedMKs.forEach(mk => {
+        const g = monthGroups[mk];
+        Object.values(g.weeks).forEach(w => {
+            w.totals = w.days.reduce((acc, d) => ({
+                sellOpen: acc.sellOpen + d.sellOpen,
+                buyClose: acc.buyClose + d.buyClose,
+                profit: acc.profit + d.profit,
+                assignedPaid: acc.assignedPaid + d.assignedPaid,
+            }), { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 });
+            w.totals.cashFlow = w.totals.sellOpen + w.totals.buyClose;
+        });
+    });
+
+    // Compute month-level totals
+    sortedMKs.forEach(mk => {
+        const g = monthGroups[mk];
+        g.totals = g.days.reduce((acc, d) => ({
+            sellOpen: acc.sellOpen + d.sellOpen,
+            buyClose: acc.buyClose + d.buyClose,
+            profit: acc.profit + d.profit,
+            assignedPaid: acc.assignedPaid + d.assignedPaid,
+        }), { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 });
+        g.totals.cashFlow = g.totals.sellOpen + g.totals.buyClose;
+    });
+
+    // Compute year-level totals
+    const yearTotals = {};
+    sortedYears.forEach(y => {
+        yearTotals[y] = yearGroups[y].reduce((acc, mk) => {
+            const t = monthGroups[mk].totals;
+            return {
+                sellOpen: acc.sellOpen + t.sellOpen,
+                buyClose: acc.buyClose + t.buyClose,
+                profit: acc.profit + t.profit,
+                assignedPaid: acc.assignedPaid + t.assignedPaid,
+            };
+        }, { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 });
+        yearTotals[y].cashFlow = yearTotals[y].sellOpen + yearTotals[y].buyClose;
+    });
+
+    // ── Best / Worst: Day, Week, Month ──────────────────────────────────────
+    const allDays = allDayKeys.map(dk => ({ dk, ...dayDataMap[dk] })).filter(d => d.profit !== 0);
+    const bestDay  = allDays.length ? allDays.reduce((a,b) => a.profit > b.profit ? a : b) : null;
+    const worstDay = allDays.length ? allDays.reduce((a,b) => a.profit < b.profit ? a : b) : null;
+    const fmtDayLabel = dk => {
+        const [y,m,d] = dk.split('-');
+        return new Date(parseInt(y), parseInt(m)-1, parseInt(d)).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+    };
+
+    // Best/worst week — aggregate across all week entries
+    const allWeeks = [];
+    sortedMKs.forEach(mk => {
+        Object.values(monthGroups[mk].weeks).forEach(w => {
+            if (w.totals.profit !== 0) allWeeks.push({ label: w.label, profit: w.totals.profit });
+        });
+    });
+    const bestWeek  = allWeeks.length ? allWeeks.reduce((a,b) => a.profit > b.profit ? a : b) : null;
+    const worstWeek = allWeeks.length ? allWeeks.reduce((a,b) => a.profit < b.profit ? a : b) : null;
+
+    // Best/worst month
+    const allMonths = sortedMKs.map(mk => ({ label: monthGroups[mk].label, profit: monthGroups[mk].totals.profit })).filter(m => m.profit !== 0);
+    const bestMonth  = allMonths.length ? allMonths.reduce((a,b) => a.profit > b.profit ? a : b) : null;
+    const worstMonth = allMonths.length ? allMonths.reduce((a,b) => a.profit < b.profit ? a : b) : null;
+
+    const bwCard = (label, title, value, isGood) => `
+        <div style="flex:1;min-width:160px;background:${isGood ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)'};border:1px solid ${isGood ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)'};border-radius:10px;padding:10px 14px;">
+            <div style="font-size:0.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">${label}</div>
+            <div style="font-size:0.9rem;font-weight:700;color:${isGood ? '#4ade80' : '#f87171'};line-height:1.3;">${title}</div>
+            <div style="font-size:0.82rem;color:${isGood ? '#4ade80' : '#f87171'};margin-top:2px;">${isGood ? '+' : ''}${fmt(value)}</div>
+        </div>`;
+
+    const hasBW = bestDay || worstDay || bestWeek || worstWeek || bestMonth || worstMonth;
+    const bestWorstHtml = hasBW ? `
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            ${bestDay  ? bwCard('🏆 Best Day',   fmtDayLabel(bestDay.dk),   bestDay.profit,   true)  : ''}
+            ${worstDay && worstDay.profit < 0 ? bwCard('📉 Worst Day', fmtDayLabel(worstDay.dk), worstDay.profit, false) : ''}
+            ${bestWeek  ? bwCard('🏆 Best Week',  bestWeek.label,   bestWeek.profit,   true)  : ''}
+            ${worstWeek && worstWeek.profit < 0 ? bwCard('📉 Worst Week', worstWeek.label, worstWeek.profit, false) : ''}
+            ${bestMonth  ? bwCard('🏆 Best Month', bestMonth.label,  bestMonth.profit,  true)  : ''}
+            ${worstMonth && worstMonth.profit < 0 ? bwCard('📉 Worst Month', worstMonth.label, worstMonth.profit, false) : ''}
+        </div>` : '';
+
+    // Grand totals
+    let totSellOpen=0, totBuyClose=0, totProfit=0, totAssigned=0;
+    allDayKeys.forEach(dk => {
+        const d = dayDataMap[dk];
+        totSellOpen += d.sellOpen; totBuyClose += d.buyClose;
+        totProfit += d.profit; totAssigned += d.assignedPaid;
+    });
+    const totCashFlow = totSellOpen + totBuyClose;
+
+    const thStyle = `padding:10px 8px;background:${thBg};color:${accentLight};font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid ${accent};white-space:normal;word-break:break-word;text-align:center;vertical-align:middle;`;
+    const tblStyle = `width:100%;min-width:540px;border-collapse:collapse;background:${rowBg};font-size:0.9rem;table-layout:fixed;`;
+
+    // ── Build rows ────────────────────────────────────────────────────────────
+    // Hierarchy: Year → Month → Week → Day
+    // Left ➕ on month row = expand/collapse week rows
+    // Right ➕ on week row = expand/collapse day rows within that week
+    const buildRows = () => {
+        let html = '';
+        const topBorderAccent = `border-top:2px solid ${accent};`;
+        const topBorderMonth  = `border-top:1px solid ${borderColor};`;
+        const weekRowBg  = isDark ? '#0f2235' : '#e8f0fe';
+
+        sortedYears.forEach(y => {
+            const mks = yearGroups[y];
+            const yt = yearTotals[y];
+            const isYearExpanded = defaultExpandedYears.has(y);
+
+            // ── Year collapsed summary row ──────────────────────────────
+            html += `<tr class="ds-year-collapsed-${y}" style="display:${isYearExpanded ? 'none' : 'table-row'};background:${totalRowBg};">
+                <td style="color:${textColor};padding:10px 8px 10px 10px;${topBorderAccent}border-bottom:1px solid ${borderColor};font-weight:700;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button onclick="toggleDailyYear('${y}')" id="dsybtn-${y}" style="background:none;border:none;cursor:pointer;color:${accentLight};font-size:1rem;padding:0;line-height:1;flex-shrink:0;">➕</button>
+                        <span>${y}</span>
+                    </div>
+                </td>
+                <td style="padding:10px 14px;${topBorderAccent}border-bottom:1px solid ${borderColor};color:#16a34a;">${fmt(yt.sellOpen)}</td>
+                <td style="padding:10px 14px;${topBorderAccent}border-bottom:1px solid ${borderColor};color:${yt.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(yt.buyClose)}</td>
+                <td style="padding:10px 14px;${topBorderAccent}border-bottom:1px solid ${borderColor};color:${yt.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(yt.cashFlow)}</td>
+                <td style="padding:10px 14px;${topBorderAccent}border-bottom:1px solid ${borderColor};color:${yt.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(yt.profit)}</td>
+                <td style="padding:10px 14px;${topBorderAccent}border-bottom:1px solid ${borderColor};color:#d97706;">${yt.assignedPaid > 0 ? fmt(yt.assignedPaid) : '$0.00'}</td>
+            </tr>`;
+
+            mks.forEach((mk, mkIdx) => {
+                const g = monthGroups[mk];
+                const t = g.totals;
+                const isWeekExpanded = defaultExpandedMonths.has(mk);  // left ➕ shows weeks
+                const isFirstMK = mkIdx === 0;
+                const monthTopBorder = isFirstMK ? topBorderAccent : topBorderMonth;
+
+                // Sort weeks within month descending
+                const sortedWks = Object.keys(g.weeks).sort((a,b) => b.localeCompare(a));
+                // isDirectExpanded: direct day rows visible under this month (bypassing weeks)
+                const isDirectExpanded = defaultExpandedDirect.has(mk);
+
+                // ── Month row — two expand buttons on right: [+Weekly] [+Daily]
+                html += `<tr class="ds-month-row-${y}" style="display:${isYearExpanded ? 'table-row' : 'none'};background:${monthRowBg};">
+                    <td style="color:${textColor};padding:8px 8px 8px 10px;${monthTopBorder}border-bottom:1px solid ${borderColor};font-weight:600;">
+                        <div style="display:flex;align-items:center;gap:4px;justify-content:space-between;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:4px;min-width:0;flex:1;">
+                                ${isFirstMK ? `<button onclick="toggleDailyYear('${y}')" id="dsybtn-${y}" style="background:none;border:none;cursor:pointer;color:${accentLight};font-size:1rem;padding:0;line-height:1;flex-shrink:0;" title="Collapse year">➖</button>` : '<span style="display:inline-block;width:1rem;flex-shrink:0;"></span>'}
+                                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.label}</span>
+                            </div>
+                            <div style="display:flex;gap:3px;flex-shrink:0;">
+                                <button onclick="toggleDailyMonth('${mk}')" id="dsbtn-${mk}" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.5);cursor:pointer;color:${accentLight};font-size:0.72rem;padding:3px 6px;border-radius:4px;line-height:1;font-weight:700;white-space:nowrap;min-width:34px;text-align:center;" title="${isWeekExpanded ? 'Collapse weeks' : 'Expand to weeks'}">${isWeekExpanded ? '−Wk' : '+Wk'}</button>
+                                <button onclick="toggleDailyDirect('${mk}')" id="dsdirectbtn-${mk}" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.5);cursor:pointer;color:${accentLight};font-size:0.72rem;padding:3px 6px;border-radius:4px;line-height:1;font-weight:700;white-space:nowrap;min-width:36px;text-align:center;" title="${isDirectExpanded ? 'Collapse days' : 'Expand to days'}">${isDirectExpanded ? '−Day' : '+Day'}</button>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding:10px 14px;${monthTopBorder}border-bottom:1px solid ${borderColor};color:#16a34a;">${fmt(t.sellOpen)}</td>
+                    <td style="padding:10px 14px;${monthTopBorder}border-bottom:1px solid ${borderColor};color:${t.buyClose < 0 ? '#dc2626' : textColor};">${fmtNeg(t.buyClose)}</td>
+                    <td style="padding:10px 14px;${monthTopBorder}border-bottom:1px solid ${borderColor};color:${t.cashFlow >= 0 ? '#16a34a' : '#dc2626'};">${fmt(t.cashFlow)}</td>
+                    <td style="padding:10px 14px;${monthTopBorder}border-bottom:1px solid ${borderColor};color:${t.profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(t.profit)}</td>
+                    <td style="padding:10px 14px;${monthTopBorder}border-bottom:1px solid ${borderColor};color:#d97706;">${t.assignedPaid > 0 ? fmt(t.assignedPaid) : '$0.00'}</td>
+                </tr>`;
+
+                // ── Week rows (visible when month is expanded) ──────────
+                sortedWks.forEach((wk, wkIdx) => {
+                    const w = g.weeks[wk];
+                    const wt = w.totals;
+                    const isDayExpanded = defaultExpandedWeeks.has(wk);
+
+                    html += `<tr class="ds-week-row-${mk}" style="display:${isWeekExpanded ? 'table-row' : 'none'};background:${weekRowBg};">
+                        <td style="color:${textColor};padding:7px 8px 7px 10px;border-bottom:1px solid ${borderColor};font-size:0.85rem;font-weight:600;">
+                            <div style="display:flex;align-items:center;gap:4px;justify-content:space-between;min-width:0;">
+                                <span style="padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${w.label}</span>
+                                <button onclick="toggleDailyWeek('${wk}','${mk}')" id="dswbtn-${wk}" style="background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.4);cursor:pointer;color:${accentLight};font-size:0.72rem;padding:2px 5px;border-radius:4px;line-height:1;font-weight:700;flex-shrink:0;" title="${isDayExpanded ? 'Collapse days' : 'Expand days'}">${isDayExpanded ? '−' : '+'}</button>
+                            </div>
+                        </td>
+                        <td style="padding:8px 14px;border-bottom:1px solid ${borderColor};color:#16a34a;font-size:0.85rem;">${fmt(wt.sellOpen)}</td>
+                        <td style="padding:8px 14px;border-bottom:1px solid ${borderColor};color:${wt.buyClose < 0 ? '#dc2626' : textColor};font-size:0.85rem;">${fmtNeg(wt.buyClose)}</td>
+                        <td style="padding:8px 14px;border-bottom:1px solid ${borderColor};color:${wt.cashFlow >= 0 ? '#16a34a' : '#dc2626'};font-size:0.85rem;">${fmt(wt.cashFlow)}</td>
+                        <td style="padding:8px 14px;border-bottom:1px solid ${borderColor};color:${wt.profit >= 0 ? '#16a34a' : '#dc2626'};font-size:0.85rem;">${fmt(wt.profit)}</td>
+                        <td style="padding:8px 14px;border-bottom:1px solid ${borderColor};color:#d97706;font-size:0.85rem;">${wt.assignedPaid > 0 ? fmt(wt.assignedPaid) : '<span style="color:#64748b;">—</span>'}</td>
+                    </tr>`;
+
+                    // ── Day rows (visible when week is expanded) ────────
+                    w.days.forEach((d, di) => {
+                        const [dy, dm, dd] = d.dk.split('-');
+                        const dayLabel = new Date(parseInt(dy), parseInt(dm)-1, parseInt(dd))
+                            .toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+                        const cashFlow = d.sellOpen + d.buyClose;
+                        html += `<tr class="ds-day-row-${wk} ds-day-row-${mk}" style="display:${isDayExpanded ? 'table-row' : 'none'};background:${di % 2 === 0 ? rowBg : rowAltBg};">
+                            <td style="color:${textColor};text-align:center;padding:7px 14px 7px 30px;border-bottom:1px solid ${borderColor};font-size:0.82rem;">${dayLabel}</td>
+                            <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:#16a34a;font-size:0.82rem;">${d.sellOpen !== 0 ? fmt(d.sellOpen) : '<span style="color:#64748b;">—</span>'}</td>
+                            <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:${d.buyClose < 0 ? '#dc2626' : textColor};font-size:0.82rem;">${d.buyClose !== 0 ? fmtNeg(d.buyClose) : '<span style="color:#64748b;">—</span>'}</td>
+                            <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:${cashFlow >= 0 ? '#16a34a' : '#dc2626'};font-size:0.82rem;">${cashFlow !== 0 ? fmt(cashFlow) : '<span style="color:#64748b;">—</span>'}</td>
+                            <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:${d.profit >= 0 ? '#16a34a' : '#dc2626'};font-size:0.82rem;">${d.profit !== 0 ? fmt(d.profit) : '<span style="color:#64748b;">—</span>'}</td>
+                            <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:#d97706;font-size:0.82rem;">${d.assignedPaid > 0 ? fmt(d.assignedPaid) : '<span style="color:#64748b;">—</span>'}</td>
+                        </tr>`;
+                    });
+                });
+                // ── Direct day rows under month (bypassing weeks) ──────
+                g.days.forEach((d, di) => {
+                    const [dy, dm, dd2] = d.dk.split('-');
+                    const dayLabel = new Date(parseInt(dy), parseInt(dm)-1, parseInt(dd2))
+                        .toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+                    const cashFlow = d.sellOpen + d.buyClose;
+                    html += `<tr class="ds-direct-row-${mk}" style="display:${isDirectExpanded ? 'table-row' : 'none'};background:${di % 2 === 0 ? rowBg : rowAltBg};">
+                        <td style="color:${textColor};text-align:center;padding:7px 14px 7px 24px;border-bottom:1px solid ${borderColor};font-size:0.82rem;">${dayLabel}</td>
+                        <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:#16a34a;font-size:0.82rem;">${d.sellOpen !== 0 ? fmt(d.sellOpen) : '<span style="color:#64748b;">—</span>'}</td>
+                        <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:${d.buyClose < 0 ? '#dc2626' : textColor};font-size:0.82rem;">${d.buyClose !== 0 ? fmtNeg(d.buyClose) : '<span style="color:#64748b;">—</span>'}</td>
+                        <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:${cashFlow >= 0 ? '#16a34a' : '#dc2626'};font-size:0.82rem;">${cashFlow !== 0 ? fmt(cashFlow) : '<span style="color:#64748b;">—</span>'}</td>
+                        <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:${d.profit >= 0 ? '#16a34a' : '#dc2626'};font-size:0.82rem;">${d.profit !== 0 ? fmt(d.profit) : '<span style="color:#64748b;">—</span>'}</td>
+                        <td style="padding:7px 14px;border-bottom:1px solid ${borderColor};color:#d97706;font-size:0.82rem;">${d.assignedPaid > 0 ? fmt(d.assignedPaid) : '<span style="color:#64748b;">—</span>'}</td>
+                    </tr>`;
+                });
+            });
+        });
+        return html;
+    };
+
+    const totalRow = `<tr style="background:${totalRowBg};font-weight:bold;">
+        <td style="text-align:center;padding:12px 14px;color:${accentLight};border-top:2px solid ${accent};">Total</td>
+        <td style="padding:12px 14px;color:#16a34a;border-top:2px solid ${accent};">${fmt(totSellOpen)}</td>
+        <td style="padding:12px 14px;color:${totBuyClose < 0 ? '#dc2626' : textColor};border-top:2px solid ${accent};">${fmtNeg(totBuyClose)}</td>
+        <td style="padding:12px 14px;color:${totCashFlow >= 0 ? '#16a34a' : '#dc2626'};border-top:2px solid ${accent};">${fmt(totCashFlow)}</td>
+        <td style="padding:12px 14px;color:${totProfit >= 0 ? '#16a34a' : '#dc2626'};border-top:2px solid ${accent};">${fmt(totProfit)}</td>
+        <td style="padding:12px 14px;color:#d97706;border-top:2px solid ${accent};">${totAssigned > 0 ? fmt(totAssigned) : '$0.00'}</td>
+    </tr>`;
+
+    document.getElementById('dailyTableContainer').innerHTML = bestWorstHtml + `
+        <div style="overflow-x:auto; border:1px solid ${borderColor}; border-radius:8px;">
+        <table id="dailyBreakdownTable" style="${tblStyle}">
+            <colgroup><col style="width:16%"><col style="width:16.8%"><col style="width:16.8%"><col style="width:16.8%"><col style="width:16.8%"><col style="width:16.8%"></colgroup>
+            <thead><tr>
+                <th style="${thStyle}">Date</th>
+                <th style="${thStyle}">Sell to Open + Buy to Open</th>
+                <th style="${thStyle}">Buy to Close + Sell to Close</th>
+                <th style="${thStyle}">Cash Flow</th>
+                <th style="${thStyle}">Profit from Closed Options</th>
+                <th style="${thStyle}">Paid Premium Assigned</th>
+            </tr></thead>
+            <tbody id="dailyBreakdownBody">${buildRows()}${totalRow}</tbody>
+        </table>
+        </div>`;
+
+    const modal = document.getElementById('dailyModal');
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) closeDailySummary(); };
+
+    // Restore expand-all checkbox state
+    const expandAllCb = document.getElementById('dailyExpandAll');
+    if (expandAllCb) expandAllCb.checked = dailySavedState.expandAllChecked;
+
+    // Restore scroll position
+    setTimeout(() => {
+        const miScroll = document.getElementById('dailyInner');
+        if (miScroll && dailySavedState.scrollTop) miScroll.scrollTop = dailySavedState.scrollTop;
+    }, 60);
+
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) {
+        initDraggableModal('dailyInner', accent, 1600);
+        const mi = document.getElementById('dailyInner');
+        if (dailySavedState.modalPos && mi) {
+            mi.style.left   = dailySavedState.modalPos.left;
+            mi.style.top    = dailySavedState.modalPos.top;
+            mi.style.width  = dailySavedState.modalPos.width;
+            mi.style.height = dailySavedState.modalPos.height;
+        } else {
+            setTimeout(() => {
+                const vw = window.innerWidth, vh = window.innerHeight;
+                const w = Math.min(Math.round(vw * 0.95), 1600);
+                const h = Math.min(Math.round(vh * 0.90), vh - 20);
+                mi.style.width  = w + 'px';
+                mi.style.height = h + 'px';
+                mi.style.left   = Math.round((vw - w) / 2) + 'px';
+                mi.style.top    = Math.round((vh - h) / 2) + 'px';
+            }, 50);
+        }
+    } else {
+        const mi = document.getElementById('dailyInner');
+        if (mi) {
+            mi.style.position = ''; mi.style.left = ''; mi.style.top = '';
+            mi.style.width = ''; mi.style.height = ''; mi.style.maxWidth = '';
+            mi.style.maxHeight = ''; mi.style.margin = '';
+            mi._dragInit = false;
+        }
+    }
+}
+
+function toggleDailyYear(year) {
+    const monthRows = document.querySelectorAll(`.ds-month-row-${year}`);
+    const collapsedRow = document.querySelector(`.ds-year-collapsed-${year}`);
+    if (!monthRows.length || !collapsedRow) return;
+    const isExpanded = monthRows[0].style.display !== 'none';
+    monthRows.forEach(r => r.style.display = isExpanded ? 'none' : 'table-row');
+    collapsedRow.style.display = isExpanded ? 'table-row' : 'none';
+
+    const container = document.getElementById('dailyTableContainer');
+    if (container) {
+        const allMKs = [...new Set([...container.querySelectorAll('tr[class*="ds-month-row-"]')]
+            .map(r => {
+                const cls = [...r.classList].find(c => c.startsWith('ds-month-row-'));
+                return cls ? cls.replace('ds-month-row-', '') : null;
+            }).filter(Boolean)
+        )].filter(mk => mk.startsWith(year + '_'));
+
+        if (isExpanded) {
+            // Collapsing: hide all child rows
+            allMKs.forEach(mk => {
+                container.querySelectorAll(`.ds-week-row-${mk}`).forEach(r => r.style.display = 'none');
+                container.querySelectorAll(`.ds-day-row-${mk}`).forEach(r => r.style.display = 'none');
+                container.querySelectorAll(`.ds-direct-row-${mk}`).forEach(r => r.style.display = 'none');
+            });
+        } else {
+            // Expanding: restore direct rows and week rows based on button state
+            allMKs.forEach(mk => {
+                const directBtn = document.getElementById(`dsdirectbtn-${mk}`);
+                if (directBtn && directBtn.textContent === '−Day') {
+                    container.querySelectorAll(`.ds-direct-row-${mk}`).forEach(r => r.style.display = 'table-row');
+                }
+                const wkBtn = document.getElementById(`dsbtn-${mk}`);
+                if (wkBtn && wkBtn.textContent === '−Wk') {
+                    container.querySelectorAll(`.ds-week-row-${mk}`).forEach(r => r.style.display = 'table-row');
+                }
+            });
+        }
+    }
+    document.querySelectorAll(`#dsybtn-${year}`).forEach(btn => {
+        btn.textContent = isExpanded ? '➕' : '➖';
+    });
+}
+
+function downloadDailySummary() {
+    if (!window.allTransactions || !window.allTransactions.length) { alert('No data available.'); return; }
+    const now = new Date();
+    const dayMap = {};
+    window.allTransactions.forEach(t => {
+        if (!t.date) return;
+        const d = t.date;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!dayMap[key]) dayMap[key] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        if (t.action.includes('to open'))  dayMap[key].sellOpen  += t.amount;
+        if (t.action.includes('to close')) dayMap[key].buyClose  += t.amount;
+    });
+    finalTrades.forEach(t => {
+        if (!t.closeDate) return;
+        const d = t.closeDate;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!dayMap[key]) dayMap[key] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        const st = t.status.toLowerCase();
+        if (!st.includes('assigned') || st.includes('called')) dayMap[key].profit += t.profit;
+        if (st.includes('assigned') && !st.includes('called')) dayMap[key].assignedPaid += Math.abs(t.openingPremium);
+    });
+    const rows = [['Date','Sell to Open + Buy to Open','Buy to Close + Sell to Close','Cash Flow','Profit from Closed Options','Paid Premium Assigned']];
+    Object.keys(dayMap).sort((a,b) => b.localeCompare(a)).forEach(dk => {
+        const d = dayMap[dk];
+        const [y,m,dd] = dk.split('-');
+        const label = new Date(parseInt(y), parseInt(m)-1, parseInt(dd)).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+        rows.push([label, +d.sellOpen.toFixed(2), +d.buyClose.toFixed(2), +(d.sellOpen+d.buyClose).toFixed(2), +d.profit.toFixed(2), +d.assignedPaid.toFixed(2)]);
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Daily Summary');
+    XLSX.writeFile(wb, 'daily_summary.xlsx');
 }
 
 function closeWeeklySummary() {
@@ -7327,7 +7958,7 @@ function rglMdtDownload() {
 // ── State ────────────────────────────────────────────────────
 let _scChartInstance = null;
 let _scType     = 'line';       // line | bar | area | mixed
-let _scDataMode = 'monthly';    // monthly | weekly
+let _scDataMode = 'monthly';    // monthly | weekly | daily
 let _scLabels   = [];
 let _scRawData  = {};           // key -> array of numbers (same order as _scLabels)
 let _scDateFrom = null;         // Date | null
@@ -7447,6 +8078,7 @@ function scRglTypeFilterChanged() {
 function scRebuildAndRender() {
     if      (_scDataMode === 'monthly')  scBuildMonthlyData();
     else if (_scDataMode === 'weekly')   scBuildWeeklyData();
+    else if (_scDataMode === 'daily')    scBuildDailyData();
     else if (_scDataMode === 'txSorter') scBuildTsData();
     else if (_scDataMode === 'rgl')      scBuildRglData();
     scRender();
@@ -7508,6 +8140,56 @@ function scBuildMonthlyData() {
         cashFlowArr.push(+(sellOpen + buyClose).toFixed(2));
         profitArr.push(+profit.toFixed(2));
         assignedArr.push(+assignedPaid.toFixed(2));
+    });
+    _scLabels  = labels;
+    _scRawData = { sellOpen: sellOpenArr, buyClose: buyCloseArr, cashFlow: cashFlowArr, profit: profitArr, assignedPaid: assignedArr };
+}
+
+function scBuildDailyData() {
+    if (!window.allTransactions || !finalTrades) return;
+    // Collect all trading days
+    const dayMap = {};
+    window.allTransactions.forEach(t => {
+        if (!t.date) return;
+        if (_scDateFrom && t.date < _scDateFrom) return;
+        if (_scDateTo   && t.date > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = extractTicker(t.symbol || '').toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return;
+        }
+        const d = t.date;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!dayMap[key]) dayMap[key] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        if (t.action.includes('to open'))  dayMap[key].sellOpen  += t.amount;
+        if (t.action.includes('to close')) dayMap[key].buyClose  += t.amount;
+    });
+    finalTrades.forEach(t => {
+        if (!t.closeDate) return;
+        if (_scDateFrom && t.closeDate < _scDateFrom) return;
+        if (_scDateTo   && t.closeDate > _scDateTo)   return;
+        if (_scSymbolFilter.length > 0) {
+            const ticker = extractTicker(t.symbol || '').toUpperCase();
+            if (!_scSymbolFilter.includes(ticker)) return;
+        }
+        const d = t.closeDate;
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!dayMap[key]) dayMap[key] = { sellOpen:0, buyClose:0, profit:0, assignedPaid:0 };
+        const st = t.status.toLowerCase();
+        if (!st.includes('assigned') || st.includes('called')) dayMap[key].profit += t.profit;
+        if (st.includes('assigned') && !st.includes('called')) dayMap[key].assignedPaid += Math.abs(t.openingPremium);
+    });
+    const sortedKeys = Object.keys(dayMap).sort((a,b) => a.localeCompare(b));
+    const labels = [], sellOpenArr = [], buyCloseArr = [], cashFlowArr = [], profitArr = [], assignedArr = [];
+    sortedKeys.forEach(dk => {
+        const [y,m,dd] = dk.split('-');
+        labels.push(new Date(parseInt(y), parseInt(m)-1, parseInt(dd))
+            .toLocaleDateString('en-US', {month:'short', day:'numeric', year:'2-digit'}));
+        const d = dayMap[dk];
+        sellOpenArr.push(+d.sellOpen.toFixed(2));
+        buyCloseArr.push(+d.buyClose.toFixed(2));
+        cashFlowArr.push(+(d.sellOpen + d.buyClose).toFixed(2));
+        profitArr.push(+d.profit.toFixed(2));
+        assignedArr.push(+d.assignedPaid.toFixed(2));
     });
     _scLabels  = labels;
     _scRawData = { sellOpen: sellOpenArr, buyClose: buyCloseArr, cashFlow: cashFlowArr, profit: profitArr, assignedPaid: assignedArr };
@@ -7778,6 +8460,7 @@ function _scOpenChart(mode, title, accentColor) {
     // Build data first (needed before checkboxes so we can restore state)
     if      (mode === 'monthly')  scBuildMonthlyData();
     else if (mode === 'weekly')   scBuildWeeklyData();
+    else if (mode === 'daily')    scBuildDailyData();
     else if (mode === 'txSorter') scBuildTsData();
     else if (mode === 'rgl')      scBuildRglData();
 
@@ -7788,17 +8471,25 @@ function _scOpenChart(mode, title, accentColor) {
     if (!hadSaved) {
         // First open — apply defaults
         _scType = 'line';
-        _scDateFrom = null;
-        _scDateTo   = null;
+        // Default to last 12 months for monthly, weekly, and daily charts
+        const defaultPreset = (mode === 'monthly' || mode === 'weekly' || mode === 'daily') ? 'last12Months' : 'all';
+        const today = new Date(); today.setHours(0,0,0,0);
+        if (defaultPreset === 'last12Months') {
+            _scDateFrom = new Date(today.getFullYear(), today.getMonth()-12, 1);
+            _scDateTo   = new Date(); _scDateTo.setHours(23,59,59,999);
+        } else {
+            _scDateFrom = null;
+            _scDateTo   = null;
+        }
         ['line','bar','area','mixed'].forEach(id => {
             const el = document.getElementById('scLabel' + id.charAt(0).toUpperCase() + id.slice(1));
             if (el) el.classList.toggle('sc-active', id === 'line');
         });
-        const cum = document.getElementById('scCumulative'); if (cum) cum.checked = (mode === 'monthly' || mode === 'weekly');
+        const cum = document.getElementById('scCumulative'); if (cum) cum.checked = (mode === 'monthly' || mode === 'weekly' || mode === 'daily');
         const stk = document.getElementById('scStacked');    if (stk) stk.checked = false;
-        const p = document.getElementById('scDatePreset');   if (p) p.value = 'all';
-        const f = document.getElementById('scDateFrom');     if (f) f.value = '';
-        const t = document.getElementById('scDateTo');       if (t) t.value = '';
+        const p = document.getElementById('scDatePreset');   if (p) p.value = defaultPreset;
+        const f = document.getElementById('scDateFrom');     if (f) f.value = _scDateFrom ? scToISODate(_scDateFrom) : '';
+        const t = document.getElementById('scDateTo');       if (t) t.value = _scDateTo   ? scToISODate(_scDateTo)   : '';
         if (symWrap) symWrap.value = '';
         _scSymbolFilter = [];
     }
@@ -7816,7 +8507,8 @@ function _scOpenChart(mode, title, accentColor) {
     const modal = document.getElementById('summaryChartModal');
     modal.style.display = 'flex';
     modal.onclick = e => { if (e.target === modal) closeSummaryChart(); };
-    setTimeout(scRender, 150);
+    // Rebuild data with the (possibly freshly set) date filter before rendering
+    setTimeout(scRebuildAndRender, 150);
     initDraggableModal('summaryChartInner', accentColor, 1300);
 }
 
@@ -7825,6 +8517,9 @@ function showMonthlySummaryChart() {
 }
 function showWeeklySummaryChart() {
     _scOpenChart('weekly', '📊 Weekly / Monthly Cash Flow & Profit — Chart View', '#0891b2');
+}
+function showDailySummaryChart() {
+    _scOpenChart('daily', '📊 Daily Cash Flow & Profit — Chart View', '#f97316');
 }
 
 function closeSummaryChart() {
@@ -7920,7 +8615,7 @@ function scDownloadPng() {
 function _scGetActiveSeries() {
     if (_scDataMode === 'txSorter') return _scTsDynamicSeries;
     if (_scDataMode === 'rgl')      return RGL_CHART_SERIES;
-    return SC_SERIES;
+    return SC_SERIES;  // monthly, weekly, daily all share the same series
 }
 
 // ============================================================
@@ -11371,6 +12066,7 @@ const _modalCloseMap = {
     openCommitmentsModal:  'closeOpenCommitments',
     monthlyModal:          'closeMonthlySummary',
     weeklyModal:           'closeWeeklySummary',
+    dailyModal:            'closeDailySummary',
     assignmentsModal:      'closeAssignments',
     summaryChartModal:     'closeSummaryChart',
     taxModal:              'closeTaxPreview',
