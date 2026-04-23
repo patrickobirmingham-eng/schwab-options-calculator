@@ -3490,19 +3490,19 @@ function toggleOcExpandAll(checked) {
         if (checked) ocGroupExpanded.add(key);
         else ocGroupExpanded.delete(key);
     });
-    // Expand/collapse all BPS spreads
-    // We need to reconstruct spread IDs the same way renderOpenCommitmentsTable does
+    // Expand/collapse all spreads (BPS and BCS)
+    // spreadId must exactly match the format used in renderOpenCommitmentsTable
     const usedBps = new Set();
     for (let i = 0; i < ocParsedRows.length; i++) {
         if (usedBps.has(i)) continue;
         const a = ocParsedRows[i];
-        if (a.type !== 'Put') continue;
+        if (a.type !== 'Put' && a.type !== 'Call') continue;
         const tickerA = extractTicker(a.symbol);
         const expA = (a.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
         for (let j = i + 1; j < ocParsedRows.length; j++) {
             if (usedBps.has(j)) continue;
             const b = ocParsedRows[j];
-            if (b.type !== 'Put') continue;
+            if (b.type !== a.type) continue;
             if (extractTicker(b.symbol) !== tickerA) continue;
             const expB = (b.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || [])[1];
             if (expB !== expA) continue;
@@ -3512,7 +3512,7 @@ function toggleOcExpandAll(checked) {
             const sto = a.action === 'STO' ? a : b;
             const bto = a.action === 'BTO' ? a : b;
             const expiry = (sto.symbol.match(/(\d{1,2}\/\d{1,2}\/\d{4})/) || ['',''])[1];
-            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}`;
+            const spreadId = `${extractTicker(sto.symbol)}|${expiry}|${sto.strike}|${bto.strike}|${sto.type}`;
             if (checked) ocSpreadExpanded.add(spreadId);
             else ocSpreadExpanded.delete(spreadId);
             usedBps.add(i); usedBps.add(j);
