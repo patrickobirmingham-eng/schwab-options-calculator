@@ -3175,7 +3175,13 @@ function closeDailySummary() {
             width: _di.style.width, height: _di.style.height
         };
         _di._dragInit = false;
+        if (_di._dailyScrollHandler) {
+            _di.removeEventListener('scroll', _di._dailyScrollHandler);
+            delete _di._dailyScrollHandler;
+        }
     }
+    const floatHdr = document.getElementById('dailyFloatingHeader');
+    if (floatHdr) floatHdr.remove();
     document.getElementById('dailyModal').style.display = 'none';
 }
 
@@ -3695,6 +3701,48 @@ function showDailySummary() {
             mi._dragInit = false;
         }
     }
+
+    // ── Floating sticky header for Daily table ────────────────────────────
+    if (!isMobile) setTimeout(() => {
+        const modalInner = document.getElementById('dailyInner');
+        const dailyTable = document.getElementById('dailyBreakdownTable');
+        const dailyThead = dailyTable ? dailyTable.querySelector('thead') : null;
+        if (!modalInner || !dailyTable || !dailyThead) return;
+
+        // Remove old float header if re-opened
+        const old = document.getElementById('dailyFloatingHeader');
+        if (old) old.remove();
+
+        const floatDiv = document.createElement('div');
+        floatDiv.id = 'dailyFloatingHeader';
+        floatDiv.style.cssText = `position:absolute;left:0;top:0;pointer-events:none;z-index:50;display:none;box-sizing:border-box;`;
+        const floatTbl = document.createElement('table');
+        floatTbl.style.cssText = `width:100%;border-collapse:collapse;table-layout:fixed;font-size:0.9rem;`;
+        floatTbl.innerHTML = `<colgroup><col style="width:16%"><col style="width:16.8%"><col style="width:16.8%"><col style="width:16.8%"><col style="width:16.8%"><col style="width:16.8%"></colgroup>` + dailyThead.outerHTML;
+        floatDiv.appendChild(floatTbl);
+        modalInner.appendChild(floatDiv);
+
+        const onScroll = () => {
+            const innerRect  = modalInner.getBoundingClientRect();
+            const theadRect  = dailyThead.getBoundingClientRect();
+            const tableRect  = dailyTable.getBoundingClientRect();
+            const theadH     = dailyThead.offsetHeight;
+            if (theadRect.top < innerRect.top && tableRect.bottom > innerRect.top + theadH) {
+                floatDiv.style.display = 'block';
+                floatDiv.style.top   = modalInner.scrollTop + 'px';
+                floatDiv.style.width = dailyTable.offsetWidth + 'px';
+                floatDiv.style.left  = dailyTable.offsetLeft + 'px';
+            } else {
+                floatDiv.style.display = 'none';
+            }
+        };
+
+        if (modalInner._dailyScrollHandler) {
+            modalInner.removeEventListener('scroll', modalInner._dailyScrollHandler);
+        }
+        modalInner._dailyScrollHandler = onScroll;
+        modalInner.addEventListener('scroll', onScroll);
+    }, 100);
 }
 
 function toggleDailyYear(year) {
