@@ -645,8 +645,20 @@ th.oc-drop-target {
 
     <!-- Company Info Modal -->
     <div id="companyInfoModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:1000; justify-content:center; align-items:center;">
-        <div id="companyInfoInner" style="width:99vw; max-width:1800px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:28px; max-height:92vh; overflow-y:auto; position:relative;">
+        <div id="companyInfoInner" style="width:99vw; max-width:1600px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:0 28px 28px; max-height:97vh; overflow-y:auto; position:relative;">
             <div id="companyInfoContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading company data…</div></div>
+        </div>
+    </div>
+
+    <!-- Stock Lookup Popup (Company Info page search) -->
+    <div id="ciLookupModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:2000; justify-content:center; align-items:center;">
+        <div id="ciLookupInner" style="width:99vw; max-width:1600px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:24px; max-height:97vh; overflow-y:auto; position:relative;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+                <span style="font-size:1.05rem;font-weight:700;color:#8b5cf6;">🔍 Stock Lookup</span>
+                <span id="ciLookupTicker" style="font-size:1.1rem;font-weight:800;color:var(--text-primary);margin-left:4px;"></span>
+                <button onclick="closeCiLookup()" style="margin-left:auto;background:#ef4444;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.9rem;">✕ Close</button>
+            </div>
+            <div id="ciLookupContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading…</div></div>
         </div>
     </div>
 
@@ -1033,7 +1045,7 @@ th.oc-drop-target {
     </div>
 
     <div id="openCommitmentsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center;">
-        <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1600px; width:95vw; max-height:90vh; overflow-y:auto; position:relative;">
+        <div id="ocInner" style="border-radius:16px; padding:30px; max-width:1760px; width:99vw; max-height:90vh; overflow-y:auto; position:relative;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:10px;">
                 <h2 style="color: var(--text-primary); font-size:1.2rem; display:inline-flex; align-items:center; gap:10px;"><svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24" style="vertical-align:middle;flex-shrink:0;"><rect x="7" y="7" width="10" height="13" rx="1.5" stroke="#0ea5e9" stroke-width="2" fill="#0ea5e9" fill-opacity="0.15"/><path d="M10 7V6a2 2 0 0 1 4 0v1" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="9.5" y="10" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="13" width="5" height="1.5" rx="0.75" fill="#0ea5e9"/><rect x="9.5" y="16" width="3" height="1.5" rx="0.75" fill="#0ea5e9"/></svg>Open Positions</h2>
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1350,13 +1362,14 @@ function toggleTheme() {
     html.setAttribute('data-theme', isDark ? 'light' : 'dark');
     document.getElementById('toggleEmoji').textContent = isDark ? '🌙' : '☀️';
     localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    const newIsDark = !isDark;
 
     // Re-render open commitments if modal is open so BPS rows pick up the new theme
     const ocModal = document.getElementById('openCommitmentsModal');
     if (ocModal && ocModal.style.display !== 'none' && ocParsedRows.length) {
         const modalInner = document.querySelector('#openCommitmentsModal > div');
         if (modalInner) {
-            modalInner.style.background = !isDark ? '#1e293b' : '#ffffff';
+            modalInner.style.background = newIsDark ? '#1e293b' : '#ffffff';
         }
         renderOpenCommitmentsTable();
     }
@@ -1365,6 +1378,63 @@ function toggleTheme() {
     if (currentFilteredData && currentFilteredData.length) {
         render(null, null);
     }
+
+    // ── Redraw all open Chart.js instances with new theme colors ─────────────
+    const gridColor  = newIsDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const labelColor = newIsDark ? '#94a3b8' : '#64748b';
+    const tooltipBg  = newIsDark ? '#1e293b' : '#ffffff';
+    const tooltipTitle = newIsDark ? '#f8fafc' : '#0f172a';
+
+    const applyThemeToChart = (chart) => {
+        if (!chart) return;
+        try {
+            // Scales
+            ['x','y'].forEach(axis => {
+                if (chart.options.scales && chart.options.scales[axis]) {
+                    if (chart.options.scales[axis].ticks) chart.options.scales[axis].ticks.color = labelColor;
+                    if (chart.options.scales[axis].grid)  chart.options.scales[axis].grid.color  = gridColor;
+                }
+            });
+            // Legend
+            if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = labelColor;
+            // Tooltip
+            if (chart.options.plugins?.tooltip) {
+                chart.options.plugins.tooltip.backgroundColor = tooltipBg;
+                chart.options.plugins.tooltip.titleColor = tooltipTitle;
+                chart.options.plugins.tooltip.bodyColor  = tooltipTitle;
+            }
+            chart.update('none'); // 'none' = no animation
+        } catch(e) { /* skip if chart was destroyed */ }
+    };
+
+    // SPY benchmark chart
+    if (typeof spyChartInstance !== 'undefined') applyThemeToChart(spyChartInstance);
+
+    // Summary modal chart
+    if (typeof _scChartInstance !== 'undefined') applyThemeToChart(_scChartInstance);
+
+    // Ticker breakdown chart
+    if (typeof tickerChartInstance !== 'undefined') applyThemeToChart(tickerChartInstance);
+
+    // Risk concentration chart
+    if (typeof riskChartInstance !== 'undefined') applyThemeToChart(riskChartInstance);
+
+    // Company info price + RSI charts (one per ticker card)
+    document.querySelectorAll('canvas[id^="ciChart_"]').forEach(canvas => {
+        if (canvas._ciChartInstance && canvas._ciCandleData) {
+            const ticker = canvas.id.replace('ciChart_', '');
+            drawCompanyPriceChart(ticker, canvas._ciCandleData, newIsDark);
+        }
+    });
+    document.querySelectorAll('canvas[id^="ciRSIChart_"]').forEach(canvas => {
+        if (canvas._ciRSIInstance) {
+            const ticker = canvas.id.replace('ciRSIChart_', '');
+            const priceCanvas = document.getElementById(`ciChart_${ticker}`);
+            if (priceCanvas && priceCanvas._ciCandleData) {
+                drawRSIChart(ticker, priceCanvas._ciCandleData, newIsDark);
+            }
+        }
+    });
 }
 
 // Restore saved theme on load
@@ -3160,6 +3230,8 @@ function toggleWeeklyExpandAll(checked) {
 function closeOpenCommitments() {
     const _di = document.getElementById('ocInner'); if (_di) _di._dragInit = false;
     document.getElementById('openCommitmentsModal').style.display = 'none';
+    _ocEarningsMap = {};
+    window._pricesRefreshedOC = false;
     const modalInner = document.querySelector('#openCommitmentsModal > div');
     if (modalInner && modalInner._ocScrollHandler) {
         modalInner.removeEventListener('scroll', modalInner._ocScrollHandler);
@@ -3184,6 +3256,42 @@ let ocStockPrices = {};   // { TICKER: { price, change, changePct, loading, erro
 let ocOptionPrices = {};  // { SYMBOL: { price, loading, error } }
 let ocPriceFetchTime = null;
 let ocSpreadExpanded = new Set(); // tracks which spread rows are expanded
+// earnings map: { TICKER: 'YYYY-MM-DD' } — nearest upcoming earnings within 60 days
+let _ocEarningsMap = {};
+
+async function fetchOcEarnings() {
+    const tickers = [...new Set(ocParsedRows.map(r => extractTicker(r.symbol)).filter(Boolean))];
+    if (!tickers.length) return;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const toDate = new Date(today); toDate.setDate(toDate.getDate() + 60);
+    const fmt = d => d.toISOString().slice(0,10);
+    const fromStr = fmt(today); const toStr = fmt(toDate);
+    try {
+        // Bulk calendar fetch first
+        const calRes = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${fromStr}&to=${toStr}&token=${FINNHUB_API_KEY}`);
+        if (!calRes.ok) return;
+        const calData = await calRes.json();
+        const events = (calData.earningsCalendar || []).filter(e => tickers.includes(e.symbol));
+        const found = new Set(events.map(e => e.symbol));
+        events.forEach(e => {
+            if (!_ocEarningsMap[e.symbol] || e.date < _ocEarningsMap[e.symbol])
+                _ocEarningsMap[e.symbol] = e.date;
+        });
+        // Per-ticker lookup for any not found in bulk
+        const missing = tickers.filter(t => !found.has(t));
+        for (const t of missing) {
+            try {
+                const r = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${fromStr}&to=${toStr}&symbol=${encodeURIComponent(t)}&token=${FINNHUB_API_KEY}`);
+                if (!r.ok) continue;
+                const d = await r.json();
+                const ev = (d.earningsCalendar || []).filter(e => e.symbol === t);
+                if (ev.length) _ocEarningsMap[t] = ev[0].date;
+            } catch(e) { /* skip */ }
+            await new Promise(r => setTimeout(r, 120));
+        }
+    } catch(e) { /* silently fail */ }
+    renderOpenCommitmentsTable();
+}
 let ocGroupExpanded = new Set();  // tracks which same-symbol groups are expanded
 
 // ── Column config & drag-to-reorder for Open Commitments table ───────────────
@@ -3198,6 +3306,9 @@ const OC_COLUMNS = [
     { key: 'assignPrice',   label: 'Assignment Price',    width: '6%'  },
     { key: 'pctFromStrike', label: '% From Strike',       width: '6%'  },
     { key: 'otmitm',        label: 'OTM / ITM',           width: '5%'  },
+    { key: 'delta',         label: 'Delta',               width: '4%'  },
+    { key: 'theta',         label: 'Theta',               width: '4%'  },
+    { key: 'iv',            label: 'IV',                  width: '4%'  },
     { key: 'type',          label: 'Put or Call',         width: '5%'  },
     { key: 'contracts',     label: '# of Contracts',      width: '5%'  },
     { key: 'premium',       label: 'Premium',             width: '6%'  },
@@ -3288,9 +3399,9 @@ function buildOCCSymbol(symbol) {
     return `${ticker}${yy}${mm}${dd}${optType}${strikeStr}`;
 }
 
-// Fetch current option price from Tradier API
+// Fetch current option price + greeks from Tradier API
 async function fetchOptionPrice(occSymbol) {
-    const url = `https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(occSymbol)}&greeks=false`;
+    const url = `https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(occSymbol)}&greeks=true`;
     const res = await fetch(url, {
         headers: {
             'Authorization': `Bearer ${TRADIER_API_KEY}`,
@@ -3311,7 +3422,17 @@ async function fetchOptionPrice(occSymbol) {
         if (bid > 0 || ask > 0) price = (bid + ask) / 2;
         else throw new Error('No valid price available');
     }
-    return { price };
+    const greeks = quote.greeks || {};
+    return {
+        price,
+        delta: greeks.delta != null ? greeks.delta : null,
+        theta: greeks.theta != null ? greeks.theta : null,
+        gamma: greeks.gamma != null ? greeks.gamma : null,
+        iv:    greeks.mid_iv != null ? greeks.mid_iv :
+               greeks.ask_iv != null ? greeks.ask_iv :
+               greeks.bid_iv != null ? greeks.bid_iv :
+               quote.smv_vol != null ? quote.smv_vol : null,
+    };
 }
 
 // Fetch option market prices for all open positions using Tradier
@@ -3335,7 +3456,7 @@ async function refreshOptionPrices() {
     for (const occ of occSymbols) {
         try {
             const data = await fetchOptionPrice(occ);
-            ocOptionPrices[occ] = { price: data.price, loading: false, error: false };
+            ocOptionPrices[occ] = { price: data.price, delta: data.delta, theta: data.theta, gamma: data.gamma, iv: data.iv, loading: false, error: false };
         } catch(e) {
             ocOptionPrices[occ] = { loading: false, error: true, errMsg: e.message };
         }
@@ -3452,10 +3573,11 @@ function showOpenCommitments() {
     modal.onclick = (e) => { if (e.target === modal) closeOpenCommitments(); };
     initDraggableModal('ocInner', '#0ea5e9', 1400);
 
-    // Auto-refresh prices once per session for open commitments
+    // Auto-refresh prices + earnings once per session for open commitments
     if (!window._pricesRefreshedOC) {
         window._pricesRefreshedOC = true;
         setTimeout(() => { refreshStockPrices(); }, 200);
+        setTimeout(() => { fetchOcEarnings(); }, 400);
     }
 }
 
@@ -3524,6 +3646,24 @@ function toggleOcExpandAll(checked) {
 
 function renderOpenCommitmentsTable() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    // ── Earnings warning helper ───────────────────────────────────────────────
+    // Returns a warning badge if any upcoming earnings date falls before the
+    // option expiry, meaning the position carries earnings event risk.
+    const earningsWarning = (ticker, strikeDateStr) => {
+        const eDate = _ocEarningsMap[ticker];
+        if (!eDate || !strikeDateStr || strikeDateStr === '—') return '';
+        // Parse strike date (MM/DD/YYYY) and earnings date (YYYY-MM-DD)
+        const sdParts = strikeDateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (!sdParts) return '';
+        const expiry  = new Date(parseInt(sdParts[3]), parseInt(sdParts[1])-1, parseInt(sdParts[2]));
+        const earnings = new Date(eDate + 'T12:00:00');
+        if (earnings > expiry) return ''; // earnings after expiry — no risk
+        const today = new Date(); today.setHours(0,0,0,0);
+        const daysUntil = Math.round((earnings - today) / 86400000);
+        const urgency = daysUntil <= 7 ? '#ef4444' : daysUntil <= 14 ? '#fb923c' : '#eab308';
+        return `<br><span style="font-size:0.62rem;background:${urgency}22;color:${urgency};border:1px solid ${urgency}88;border-radius:3px;padding:1px 4px;white-space:nowrap;" title="Earnings on ${eDate} — before expiry!">⚠ Earnings ${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : 'in ' + daysUntil + 'd'}</span>`;
+    };
 
     // Build the symbol → risk-bucket map up front so the filter step below can use it.
     // (The Margin of Safety pills later rebuild the same data for display — same logic, same result.)
@@ -4073,6 +4213,47 @@ function renderOpenCommitmentsTable() {
         return { mv, plH, plPctH };
     };
 
+    // Helper: render delta/theta/iv for a single STO leg
+    const greekCell = (occ, action) => {
+        const op = occ ? ocOptionPrices[occ] : null;
+        const dash = '<span style="color:#64748b;font-size:0.75rem;">—</span>';
+        if (!op) return { delta: dash, theta: dash, iv: dash };
+        if (op.loading) {
+            const ld = '<span style="color:#64748b;font-size:0.75rem;animation:pulse 1s infinite;">…</span>';
+            return { delta: ld, theta: ld, iv: ld };
+        }
+        if (op.error) {
+            const er = `<span style="color:#f87171;font-size:0.75rem;">⚠</span>`;
+            return { delta: er, theta: er, iv: er };
+        }
+        const isSTO = action === 'STO';
+        // Delta
+        let deltaHtml = dash;
+        if (op.delta != null) {
+            const d = op.delta;
+            // For STO puts delta is negative; color red if deep ITM (|delta|>0.5), green if far OTM
+            const absD = Math.abs(d);
+            const dColor = absD > 0.5 ? '#f87171' : absD > 0.3 ? '#fbbf24' : '#4ade80';
+            deltaHtml = `<span style="font-weight:700;font-size:0.88rem;color:${dColor};">${d.toFixed(2)}</span>`;
+        }
+        // Theta (daily decay — Tradier returns per-day already)
+        let thetaHtml = dash;
+        if (op.theta != null) {
+            const t = op.theta;
+            // For STO theta is negative (cost to hold), positive meaning for seller
+            const tColor = isSTO ? '#4ade80' : '#f87171'; // STO benefits from decay
+            thetaHtml = `<span style="font-weight:700;font-size:0.88rem;color:${tColor};">${t.toFixed(3)}</span>`;
+        }
+        // IV
+        let ivHtml = dash;
+        if (op.iv != null) {
+            const ivPct = (op.iv * 100).toFixed(1);
+            const ivColor = op.iv > 0.6 ? '#fb923c' : op.iv > 0.3 ? '#fbbf24' : '#94a3b8';
+            ivHtml = `<span style="font-size:0.88rem;color:${ivColor};">${ivPct}%</span>`;
+        }
+        return { delta: deltaHtml, theta: thetaHtml, iv: ivHtml };
+    };
+
     // Helper: emit a <tr> from a cell-map { colKey: htmlString } in current column order
     const renderRow = (cellMap, trStyle) => {
         const cells = ocColumnOrder.map(k => {
@@ -4152,7 +4333,7 @@ function renderOpenCommitmentsTable() {
             const groupCells = {
                 date:          C(`${r0.date}${rows.length > 1 ? `<br><span style="font-size:0.7rem;color:#64748b;">${rows.length} entries</span>` : ''}`, `color:${textColor};`),
                 symbol:        C(r0.symbol, `color:${textColor};font-size:0.8rem;`),
-                strikeDate:    C(r0.strikeDate, `color:${warnColor};`),
+                strikeDate:    C(r0.strikeDate + earningsWarning(ticker, r0.strikeDate), `color:${warnColor};`),
                 action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:${r0.action==='BTO'?'rgba(16,185,129,0.55)':'rgba(139,92,246,0.55)'};color:${isDark?'#fff':'#000'};">${r0.action}</span>`),
                 dte:           C(r0.dte !== '' ? r0.dte : '—', `color:${warnColor};`),
                 strike:        C(r0.strikeDisplay, `color:#a78bfa;font-weight:600;`),
@@ -4160,6 +4341,7 @@ function renderOpenCommitmentsTable() {
                 assignPrice:   C(r0.type === 'Put' && totalContracts > 0 ? '$' + ((totalPutCommit - totalPremium) / (totalContracts * 100)).toFixed(2) : '—', `color:#e879f9;font-weight:600;`),
                 pctFromStrike: C(pctFromStrikeHtml, `font-weight:700;`),
                 otmitm:        C(otmItmHtml, `font-weight:700;`),
+                ...(() => { const occ = buildOCCSymbol(r0.symbol); const g = greekCell(occ, r0.action); return { delta: C(g.delta), theta: C(g.theta), iv: C(g.iv) }; })(),
                 type:          C(r0.type, `color:${r0.type === 'Put' ? negColor : r0.type === 'Call' ? posColor : textColor};font-weight:600;`),
                 contracts:     C(String(totalContracts), `color:${textColor};font-weight:700;`),
                 premium:       C(totalPremium > 0 ? '$' + totalPremium.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', `color:#10b981;font-weight:600;`),
@@ -4193,6 +4375,7 @@ function renderOpenCommitmentsTable() {
                         assignPrice:   IC(r.type==='Put'&&r.contracts>0?'$'+(r.strike-(r.premiumReceived/(r.contracts*100))).toFixed(2):'—'),
                         pctFromStrike: IC('—'),
                         otmitm:        IC('—'),
+                        ...(() => { const occ = buildOCCSymbol(r.symbol); const g = greekCell(occ, r.action); return { delta: IC(g.delta), theta: IC(g.theta), iv: IC(g.iv) }; })(),
                         type:          IC(r.type, `font-weight:600;`),
                         contracts:     IC(String(r.contracts)),
                         premium:       IC(r.premiumReceived>0?'$'+r.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}):'—'),
@@ -4289,7 +4472,7 @@ function renderOpenCommitmentsTable() {
             const spreadCells = {
                 date:          C(sto.date, `color:${textColor};`),
                 symbol:        C(`${ticker}<br><span style="font-size:0.75rem;font-weight:400;color:${warnColor};">${expiry} ${isBCS ? 'C' : 'P'}</span>`, `color:${textColor};font-weight:600;font-size:0.8rem;white-space:normal;word-break:break-word;`),
-                strikeDate:    C(expiry, `color:${warnColor};`),
+                strikeDate:    C(expiry + earningsWarning(ticker, expiry), `color:${warnColor};`),
                 action:        C(`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;background:rgba(14,165,233,0.55);color:${isDark?'#fff':'#000'};white-space:nowrap;">${isBCS ? 'BCS' : 'BPS'}</span>`),
                 dte:           C(sto.dte !== '' ? sto.dte : '—', `color:${warnColor};font-weight:600;`),
                 strike:        C(`$${sto.strike.toFixed(2)}<br>$${bto.strike.toFixed(2)}`, `color:#a78bfa;font-weight:700;font-size:0.78rem;white-space:normal;`),
@@ -4297,6 +4480,7 @@ function renderOpenCommitmentsTable() {
                 assignPrice:   C(`$${breakeven.toFixed(2)}<br><span style="font-size:0.65rem;color:#64748b;">Breakeven</span>`, `color:#e879f9;font-weight:700;`),
                 pctFromStrike: C(`${pctBreakevenHtml}<br><span style="font-size:0.65rem;color:#64748b;">from B/E</span>`, `font-weight:700;`),
                 otmitm:        C(`${otmItmHtml}<br><span style="font-size:0.65rem;color:#64748b;">short leg</span>`, `font-weight:700;`),
+                ...(() => { const g = greekCell(stoOcc, 'STO'); return { delta: C(g.delta), theta: C(g.theta), iv: C(g.iv) }; })(),
                 type:          C(isBCS ? 'Call' : 'Put', `color:${negColor};font-weight:600;`),
                 contracts:     C(String(contracts), `color:${textColor};`),
                 premium:       C(`${netPremium > 0 ? '$' + netPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}<br><span style="font-size:0.65rem;color:#64748b;">net credit</span>`, `color:#10b981;font-weight:700;`),
@@ -4335,6 +4519,7 @@ function renderOpenCommitmentsTable() {
                         assignPrice:   LC(leg.type === 'Put' && leg.contracts > 0 ? '$' + (leg.strike - (leg.premiumReceived / (leg.contracts * 100))).toFixed(2) : '—', `font-size:0.85rem;`),
                         pctFromStrike: LC((() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; const ap = leg.contracts > 0 ? leg.strike - (leg.premiumReceived / (leg.contracts * 100)) : null; if (ap===null) return '—'; const pct=(1-ap/p.price)*100; return (pct>=0?'+':'')+pct.toFixed(1)+'%'; })(), `font-size:0.85rem;`),
                         otmitm:        LC((() => { const p = ocStockPrices[legTicker]; if (!p || p.loading || p.error || !p.price) return '—'; return p.price > leg.strike ? 'OTM' : 'ITM'; })(), `font-size:0.85rem;`),
+                        ...(() => { const occ = buildOCCSymbol(leg.symbol); const g = greekCell(occ, leg.action); return { delta: LC(g.delta), theta: LC(g.theta), iv: LC(g.iv) }; })(),
                         type:          LC('Put', `font-size:0.85rem;`),
                         contracts:     LC(String(leg.contracts), `font-size:0.85rem;`),
                         premium:       LC(leg.premiumReceived > 0 ? '$' + leg.premiumReceived.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', `font-size:0.85rem;`),
@@ -4386,11 +4571,32 @@ function renderOpenCommitmentsTable() {
         : '—';
 
     // Total row — spans up to the first numeric column, then individual cells per column
+    // Portfolio-level theta: sum theta of all STO legs (negative = daily decay collected)
+    let portfolioTheta = 0; let thetaCount = 0;
+    groupedDisplayItems.forEach(item => {
+        if (item.kind === 'spread') {
+            const stoOcc = buildOCCSymbol(item.sto.symbol);
+            const op = stoOcc ? ocOptionPrices[stoOcc] : null;
+            if (op && !op.loading && !op.error && op.theta != null) { portfolioTheta += op.theta * item.sto.contracts; thetaCount++; }
+        } else if (item.kind === 'group') {
+            item.rows.forEach(r => {
+                if (r.action !== 'STO') return;
+                const occ = buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                if (op && !op.loading && !op.error && op.theta != null) { portfolioTheta += op.theta * r.contracts; thetaCount++; }
+            });
+        }
+    });
+    const thetaTotalHtml = thetaCount > 0
+        ? `<span style="font-weight:700;color:#4ade80;" title="Daily theta collected across all STO positions">${portfolioTheta >= 0 ? '+' : ''}$${(Math.abs(portfolioTheta) * 100).toFixed(2)}/day</span>`
+        : '—';
+
     const totalCellValues = {
         premium:     { content: (totalPremium >= 0 ? '$' : '-$') + Math.abs(totalPremium).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), color: totalPremium >= 0 ? '#10b981' : negColor },
         marketValue: { content: totalMarketValue > 0 ? '$' + totalMarketValue.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: '#f59e0b' },
         pl:          { content: totalPLStr, color: totalPLColor },
         plPct:       { content: totalPLPctStr, color: totalPLColor },
+        theta:       { content: thetaCount > 0 ? thetaTotalHtml : '—', color: '#4ade80' },
         puts:        { content: totalPuts > 0 ? '$' + totalPuts.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: negColor },
         calls:       { content: totalCalls > 0 ? '$' + totalCalls.toLocaleString(undefined,{minimumFractionDigits:2}) : '—', color: posColor },
     };
@@ -9867,6 +10073,232 @@ function closeCompanyInfo() {
     document.getElementById('companyInfoModal').style.display = 'none';
 }
 
+function closeCiLookup() {
+    document.getElementById('ciLookupModal').style.display = 'none';
+    // Destroy chart instances if present
+    const existing = document.getElementById('ciChart_lookup');
+    if (existing && existing._ciChartInstance) { existing._ciChartInstance.destroy(); existing._ciChartInstance = null; }
+    const rsiExisting = document.getElementById('ciRSIChart_lookup');
+    if (rsiExisting && rsiExisting._ciRSIInstance) { rsiExisting._ciRSIInstance.destroy(); rsiExisting._ciRSIInstance = null; }
+    // Reset RSI panel visibility for next lookup
+    const rsiPanel = document.getElementById('ciRSI_lookup');
+    if (rsiPanel) rsiPanel.style.display = 'none';
+    _ciRSIEnabled.delete('lookup');
+    const rsiBtn = document.getElementById('ciRSIToggle_lookup');
+    if (rsiBtn) { rsiBtn.textContent = '📈 RSI Off'; rsiBtn.style.background = 'rgba(251,146,60,0.12)'; rsiBtn.style.borderColor = 'rgba(251,146,60,0.4)'; }
+}
+
+async function lookupStockInfo(ticker) {
+    ticker = ticker.trim().toUpperCase();
+    if (!ticker) return;
+
+    // Show modal immediately with loading state
+    const modal = document.getElementById('ciLookupModal');
+    const content = document.getElementById('ciLookupContent');
+    const titleEl = document.getElementById('ciLookupTicker');
+    modal.style.display = 'flex';
+    titleEl.textContent = ticker;
+    content.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-secondary);font-size:0.95rem;">⏳ Fetching data for <strong style="color:var(--text-primary);">${ticker}</strong>…</div>`;
+    modal.onclick = e => { if (e.target === modal) closeCiLookup(); };
+
+    // Destroy any old chart
+    const oldCanvas = document.getElementById('ciChart_lookup');
+    if (oldCanvas && oldCanvas._ciChartInstance) { oldCanvas._ciChartInstance.destroy(); oldCanvas._ciChartInstance = null; }
+
+    const today = new Date();
+    const fmt = d => d.toISOString().slice(0, 10);
+    const todayStr = fmt(today);
+    const sixMonthsAgo = new Date(today); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const fromStr = fmt(sixMonthsAgo);
+    const eighteenMonthsAgo = new Date(today); eighteenMonthsAgo.setMonth(eighteenMonthsAgo.getMonth() - 18);
+
+    const key = FINNHUB_API_KEY;
+    const base = 'https://finnhub.io/api/v1';
+    const r = {};
+
+    try {
+        await Promise.all([
+            fetch(`${base}/stock/metric?symbol=${ticker}&metric=all&token=${key}`)
+                .then(x => x.json()).then(d => { r.metrics = d.metric || {}; }).catch(() => { r.metrics = {}; }),
+            fetch(`https://api.tradier.com/v1/markets/quotes?symbols=${encodeURIComponent(ticker)}&greeks=false`, {
+                    headers: { 'Authorization': `Bearer ${TRADIER_API_KEY}`, 'Accept': 'application/json' }
+                }).then(x => x.json()).then(d => {
+                    const q = d?.quotes?.quote || {};
+                    r.priceTarget = {
+                        currentPrice: q.last || q.close || null,
+                        high52: q.week_52_high || q['52_week_high'] || null,
+                        low52:  q.week_52_low  || q['52_week_low']  || null,
+                    };
+                }).catch(() => { r.priceTarget = {}; }),
+            fetch(`${base}/stock/recommendation?symbol=${ticker}&token=${key}`)
+                .then(x => x.json()).then(d => { r.recommendations = Array.isArray(d) ? d[0] : null; }).catch(() => {}),
+            fetch(`${base}/company-news?symbol=${ticker}&from=${fromStr}&to=${todayStr}&token=${key}`)
+                .then(x => x.json()).then(d => { r.news = Array.isArray(d) ? d.slice(0, 3) : []; }).catch(() => { r.news = []; }),
+            fetch(`${base}/stock/insider-transactions?symbol=${ticker}&token=${key}`)
+                .then(x => x.json()).then(d => { r.insider = Array.isArray(d?.data) ? d.data.slice(0, 5) : []; }).catch(() => { r.insider = []; }),
+            fetch(`https://api.tradier.com/v1/markets/history?symbol=${encodeURIComponent(ticker)}&interval=daily&start=${fmt(eighteenMonthsAgo)}&end=${todayStr}`, {
+                    headers: { 'Authorization': `Bearer ${TRADIER_API_KEY}`, 'Accept': 'application/json' }
+                }).then(x => x.json()).then(d => {
+                    const days = d?.history?.day;
+                    if (!days || !days.length) { r.candles = null; return; }
+                    const arr = Array.isArray(days) ? days : [days];
+                    r.candles = {
+                        t: arr.map(day => Math.floor(new Date(day.date).getTime() / 1000)),
+                        c: arr.map(day => parseFloat(day.close)),
+                        s: 'ok'
+                    };
+                }).catch(() => { r.candles = null; }),
+        ]);
+    } catch(e) {
+        content.innerHTML = `<div style="text-align:center;padding:40px;color:#f87171;">Failed to fetch data for <strong>${ticker}</strong>. Check the symbol and try again.</div>`;
+        return;
+    }
+
+    renderCiLookup(ticker, r);
+}
+
+function renderCiLookup(ticker, d) {
+    const content = document.getElementById('ciLookupContent');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const cardBg = isDark ? '#1e293b' : '#ffffff';
+    const muted = 'var(--text-secondary)';
+    const accent = '#8b5cf6';
+
+    const m = d.metrics || {};
+    const pt = d.priceTarget || {};
+    const rec = d.recommendations;
+    const news = d.news || [];
+    const insider = d.insider || [];
+
+    const fmt$ = v => v != null && !isNaN(v) ? '$' + parseFloat(v).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+    const fmtB = v => v != null && !isNaN(v) ? '$' + (parseFloat(v) / 1e9).toFixed(2) + 'B' : '—';
+    const fmtPct = v => v != null && !isNaN(v) ? parseFloat(v).toFixed(2) + '%' : '—';
+    const fmtNum = v => v != null && !isNaN(v) ? parseFloat(v).toFixed(2) : '—';
+
+    const section = (title, icon, cnt) =>
+        `<div style="background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:8px;">${icon} ${title}</div>
+            ${cnt}
+        </div>`;
+
+    const stat = (lbl, val, color='var(--text-primary)') =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid ${borderColor};">
+            <span style="font-size:0.78rem;color:${muted};">${lbl}</span>
+            <span style="font-size:0.82rem;font-weight:600;color:${color};">${val}</span>
+        </div>`;
+
+    // Recommendation bar
+    const recTotal = rec ? (rec.strongBuy + rec.buy + rec.hold + rec.sell + rec.strongSell) : 0;
+    const recBar = rec && recTotal > 0 ? (() => {
+        const pct = v => Math.round(v / recTotal * 100);
+        return `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:4px;">
+            <div style="width:${pct(rec.strongBuy)}%;background:#16a34a;" title="Strong Buy: ${rec.strongBuy}"></div>
+            <div style="width:${pct(rec.buy)}%;background:#4ade80;" title="Buy: ${rec.buy}"></div>
+            <div style="width:${pct(rec.hold)}%;background:#eab308;" title="Hold: ${rec.hold}"></div>
+            <div style="width:${pct(rec.sell)}%;background:#f97316;" title="Sell: ${rec.sell}"></div>
+            <div style="width:${pct(rec.strongSell)}%;background:#ef4444;" title="Strong Sell: ${rec.strongSell}"></div>
+        </div>
+        <div style="display:flex;gap:8px;font-size:0.68rem;color:${muted};margin-top:3px;flex-wrap:wrap;">
+            ${rec.strongBuy ? `<span style="color:#16a34a;">SB:${rec.strongBuy}</span>` : ''}
+            ${rec.buy ? `<span style="color:#4ade80;">B:${rec.buy}</span>` : ''}
+            ${rec.hold ? `<span style="color:#eab308;">H:${rec.hold}</span>` : ''}
+            ${rec.sell ? `<span style="color:#f97316;">S:${rec.sell}</span>` : ''}
+            ${rec.strongSell ? `<span style="color:#ef4444;">SS:${rec.strongSell}</span>` : ''}
+        </div>`;
+    })() : `<div style="color:${muted};font-size:0.78rem;">No data</div>`;
+
+    // Insider
+    const insiderBuys  = insider.filter(t => t.transactionType === 'P - Purchase').length;
+    const insiderSells = insider.filter(t => t.transactionType === 'S - Sale').length;
+    const insiderHtml  = insider.length === 0
+        ? `<span style="color:${muted};font-size:0.78rem;">No recent activity</span>`
+        : `<span style="color:#4ade80;font-weight:600;">▲ ${insiderBuys} buy${insiderBuys!==1?'s':''}</span>
+           <span style="margin:0 6px;color:${muted};">·</span>
+           <span style="color:#f87171;font-weight:600;">▼ ${insiderSells} sell${insiderSells!==1?'s':''}</span>
+           <span style="font-size:0.7rem;color:${muted};margin-left:4px;">(last 6mo)</span>`;
+
+    // News
+    const newsHtml = news.length === 0
+        ? `<span style="color:${muted};font-size:0.78rem;">No recent news</span>`
+        : news.map(n => {
+            const nd = new Date(n.datetime * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+            return `<div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid ${borderColor};">
+                <a href="${n.url}" target="_blank" rel="noopener" style="color:var(--text-primary);text-decoration:none;font-size:0.8rem;font-weight:600;line-height:1.3;">${n.headline}</a>
+                <div style="font-size:0.7rem;color:${muted};margin-top:2px;">${n.source} · ${nd}</div>
+            </div>`;
+        }).join('');
+
+    // Check if any real data came back at all
+    const hasData = pt.currentPrice || m.marketCapitalization || rec || news.length > 0;
+    if (!hasData) {
+        content.innerHTML = `<div style="text-align:center;padding:40px;">
+            <div style="font-size:1.1rem;color:#f87171;margin-bottom:10px;">⚠ No data found for <strong>${ticker}</strong></div>
+            <div style="font-size:0.85rem;color:${muted};">Check that the symbol is correct (e.g. AAPL, MSFT, SPY) and try again.</div>
+        </div>`;
+        return;
+    }
+
+    content.innerHTML = `
+    <div style="background:${cardBg};border:1px solid ${borderColor};border-radius:12px;padding:18px;">
+        <!-- Chart -->
+        <div style="background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                <span style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">📉 Price History · 20-Day MA (amber) &amp; 200-Day MA (green dashed)</span>
+                <button id="ciBBToggle_lookup" onclick="toggleCiBB('lookup')" style="margin-left:auto;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.15s;" title="Toggle Bollinger Bands (20-day, 2σ)">📊 BB Off</button>
+                <button id="ciRSIToggle_lookup" onclick="toggleCiRSI('lookup')" style="background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.4);color:#fb923c;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.15s;" title="Toggle RSI (14-period)">📈 RSI Off</button>
+            </div>
+            <canvas id="ciChart_lookup" height="72"></canvas>
+            <div id="ciRSI_lookup" style="display:none;margin-top:8px;border-top:1px solid var(--border-color);padding-top:8px;">
+                <div style="font-size:0.65rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:4px;">RSI (14) — <span id="ciRSIVal_lookup" style="color:#fb923c;font-weight:700;"></span></div>
+                <canvas id="ciRSIChart_lookup" height="40"></canvas>
+            </div>
+        </div>
+
+        <!-- Info grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+            ${section('Key Metrics', '📊', `
+                ${stat('Market Cap', fmtB(m.marketCapitalization))}
+                ${stat('P/E (TTM)', fmtNum(m.peNormalizedAnnual))}
+                ${stat('EV/EBITDA', fmtNum(m['ev/ebitda']))}
+                ${stat('Beta', fmtNum(m.beta))}
+                ${stat('52W High', fmt$(m['52WeekHigh']))}
+                ${stat('52W Low', fmt$(m['52WeekLow']))}
+                ${stat('Debt/Equity', fmtNum(m['totalDebt/totalEquityQuarterly']))}
+                ${stat('Dividend Yield', fmtPct(m.dividendYieldIndicatedAnnual))}
+            `)}
+            ${section('Current Quote & Range', '🎯', pt.currentPrice ? `
+                ${stat('Current Price', fmt$(pt.currentPrice), '#4ade80')}
+                ${stat('52-Week High', fmt$(pt.high52))}
+                ${stat('52-Week Low',  fmt$(pt.low52))}
+                ${pt.high52 && pt.low52 && pt.currentPrice ? stat('Position in Range',
+                    (() => { const pct = ((pt.currentPrice - pt.low52) / (pt.high52 - pt.low52) * 100); return pct.toFixed(0) + '% of 52W range'; })(),
+                    pt.currentPrice > (pt.low52 + (pt.high52 - pt.low52) * 0.7) ? '#4ade80' : pt.currentPrice < (pt.low52 + (pt.high52 - pt.low52) * 0.3) ? '#f87171' : '#eab308'
+                ) : ''}
+            ` : `<div style="color:${muted};font-size:0.78rem;">No quote data</div>`)}
+            ${section('Analyst Recommendations', '📈', rec ? `
+                ${recBar}
+                ${rec.period ? `<div style="font-size:0.68rem;color:${muted};margin-top:4px;">Period: ${rec.period}</div>` : ''}
+            ` : `<div style="color:${muted};font-size:0.78rem;">No recommendation data</div>`)}
+            ${section('Insider Transactions (6mo)', '👤', `<div style="padding:4px 0;">${insiderHtml}</div>${
+                insider.length > 0 ? `<div style="margin-top:8px;">${insider.slice(0,3).map(t => {
+                    const isBuy = t.transactionType === 'P - Purchase';
+                    return `<div style="font-size:0.75rem;padding:3px 0;border-bottom:1px solid ${borderColor};display:flex;justify-content:space-between;">
+                        <span style="color:${muted};">${(t.name||'Unknown').slice(0,20)}</span>
+                        <span style="color:${isBuy?'#4ade80':'#f87171'};font-weight:600;">${isBuy?'+':'-'}${Math.abs(t.share||0).toLocaleString()} sh</span>
+                    </div>`;
+                }).join('')}</div>` : ''
+            }`)}
+            ${section('Recent News', '📰', newsHtml)}
+        </div>
+    </div>
+    <div style="font-size:0.72rem;color:${muted};text-align:right;margin-top:8px;">Data via Finnhub &amp; Tradier · For informational purposes only</div>`;
+
+    // Draw chart — reuse drawCompanyPriceChart with 'lookup' as ticker key
+    // ciChart_lookup is the canvas id so drawCompanyPriceChart finds it directly
+    drawCompanyPriceChart('lookup', d.candles, isDark);
+}
+
 async function fetchCompanyInfo() {
     const el = document.getElementById('companyInfoContent');
     el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);font-size:0.95rem;">⏳ Loading company data…</div>';
@@ -9983,14 +10415,20 @@ function renderCompanyInfo(results, openTickers) {
     });
 
     let html = `
-    <div id="ciTickerNav" style="position:sticky;top:-1px;z-index:10;background:var(--bg-secondary);padding:10px 0 10px;margin-bottom:14px;border-bottom:1px solid ${borderColor};">
+    <div id="ciTickerNav" style="position:sticky;top:0;z-index:10;background:var(--bg-secondary);padding:14px 28px 10px;margin:0 -28px 14px;border-bottom:1px solid ${borderColor};border-radius:16px 16px 0 0;">
         <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
             <span style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;white-space:nowrap;margin-right:4px;">Jump to:</span>
             ${tickers.map(t => {
                 const isOpen = openTickers.has(t);
-                return `<button onclick="(function(){ const card = document.getElementById('ci_ticker_${t}'); const nav = document.getElementById('ciTickerNav'); if(!card) return; const container = document.getElementById('companyInfoInner'); const navH = nav ? nav.offsetHeight : 0; const cardTop = card.offsetTop - container.offsetTop; container.scrollTo({top: cardTop - navH - 8, behavior:'smooth'}); })()" style="background:${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'};color:${isOpen ? '#0ea5e9' : 'var(--text-primary)'};border:1px solid ${isOpen ? 'rgba(14,165,233,0.5)' : borderColor};border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='${isOpen ? 'rgba(14,165,233,0.25)' : (isDark ? '#334155' : '#e2e8f0')}'" onmouseout="this.style.background='${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'}'">${t}</button>`;
+                return `<button onclick="(function(){ const card = document.getElementById('ci_ticker_${t}'); const nav = document.getElementById('ciTickerNav'); if(!card) return; const container = document.getElementById('companyInfoInner'); const navH = nav ? nav.offsetHeight : 0; const cardTop = card.offsetTop - container.offsetTop; container.scrollTo({top: cardTop - navH + 20, behavior:'smooth'}); })()" style="background:${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'};color:${isOpen ? '#0ea5e9' : 'var(--text-primary)'};border:1px solid ${isOpen ? 'rgba(14,165,233,0.5)' : borderColor};border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='${isOpen ? 'rgba(14,165,233,0.25)' : (isDark ? '#334155' : '#e2e8f0')}'" onmouseout="this.style.background='${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'}'">${t}</button>`;
             }).join('')}
-            <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0;">
+            <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0;align-items:center;">
+                <form onsubmit="event.preventDefault(); const v=document.getElementById('ciLookupInput').value.trim().toUpperCase(); if(v) lookupStockInfo(v);" style="display:flex;gap:0;">
+                    <input id="ciLookupInput" type="text" placeholder="Lookup symbol…" maxlength="10"
+                        style="background:var(--bg-input);border:1px solid #8b5cf6;border-right:none;color:var(--text-primary);padding:5px 10px;border-radius:7px 0 0 7px;outline:none;font-size:0.82rem;width:130px;text-transform:uppercase;"
+                        oninput="this.value=this.value.toUpperCase()">
+                    <button type="submit" style="background:#8b5cf6;color:white;border:none;padding:5px 10px;border-radius:0 7px 7px 0;cursor:pointer;font-weight:bold;font-size:0.82rem;white-space:nowrap;">🔍 Look Up</button>
+                </form>
                 <button onclick="fetchCompanyInfo()" style="background:#8b5cf6;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:0.82rem;">🔄 Refresh</button>
                 <button onclick="closeCompanyInfo()" style="background:#ef4444;color:white;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:bold;font-size:0.82rem;">✕ Close</button>
             </div>
@@ -10078,11 +10516,19 @@ function renderCompanyInfo(results, openTickers) {
             </div>
 
             <div style="background:var(--bg-primary);border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-                <div style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:8px;">📉 Price History · 20-Day MA (amber) &amp; 200-Day MA (green dashed)</div>
-                <canvas id="ciChart_${ticker}" height="80"></canvas>
+                <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                    <span style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">📉 Price History · 20-Day MA (amber) &amp; 200-Day MA (green dashed)</span>
+                    <button id="ciBBToggle_${ticker}" onclick="toggleCiBB('${ticker}')" style="margin-left:auto;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.4);color:#38bdf8;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.15s;" title="Toggle Bollinger Bands (20-day, 2σ)">📊 BB Off</button>
+                    <button id="ciRSIToggle_${ticker}" onclick="toggleCiRSI('${ticker}')" style="background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.4);color:#fb923c;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.15s;" title="Toggle RSI (14-period)">📈 RSI Off</button>
+                </div>
+                <canvas id="ciChart_${ticker}" height="72"></canvas>
+                <div id="ciRSI_${ticker}" style="display:none;margin-top:8px;border-top:1px solid ${borderColor};padding-top:8px;">
+                    <div style="font-size:0.65rem;color:${muted};text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:4px;">RSI (14) — <span id="ciRSIVal_${ticker}" style="color:#fb923c;font-weight:700;"></span></div>
+                    <canvas id="ciRSIChart_${ticker}" height="40"></canvas>
+                </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
 
                 <!-- Key Metrics -->
                 ${section('Key Metrics', '📊', `
@@ -10141,9 +10587,228 @@ function renderCompanyInfo(results, openTickers) {
     });
 }
 
+// Track which tickers have BB / RSI enabled
+const _ciBBEnabled  = new Set();
+const _ciRSIEnabled = new Set();
+
+function toggleCiBB(ticker) {
+    const btn = document.getElementById(`ciBBToggle_${ticker}`);
+    if (_ciBBEnabled.has(ticker)) {
+        _ciBBEnabled.delete(ticker);
+        if (btn) { btn.textContent = '📊 BB Off'; btn.style.background = 'rgba(56,189,248,0.12)'; btn.style.borderColor = 'rgba(56,189,248,0.4)'; }
+    } else {
+        _ciBBEnabled.add(ticker);
+        if (btn) { btn.textContent = '📊 BB On'; btn.style.background = 'rgba(56,189,248,0.3)'; btn.style.borderColor = '#38bdf8'; }
+    }
+    const canvas = document.getElementById(`ciChart_${ticker}`);
+    if (canvas && canvas._ciCandleData) {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        drawCompanyPriceChart(ticker, canvas._ciCandleData, isDark);
+    }
+}
+
+function toggleCiRSI(ticker) {
+    const btn = document.getElementById(`ciRSIToggle_${ticker}`);
+    const panel = document.getElementById(`ciRSI_${ticker}`);
+    if (_ciRSIEnabled.has(ticker)) {
+        _ciRSIEnabled.delete(ticker);
+        if (btn)   { btn.textContent = '📈 RSI Off'; btn.style.background = 'rgba(251,146,60,0.12)'; btn.style.borderColor = 'rgba(251,146,60,0.4)'; }
+        if (panel) panel.style.display = 'none';
+        // Destroy RSI chart instance
+        const rc = document.getElementById(`ciRSIChart_${ticker}`);
+        if (rc && rc._ciRSIInstance) { rc._ciRSIInstance.destroy(); rc._ciRSIInstance = null; }
+    } else {
+        _ciRSIEnabled.add(ticker);
+        if (btn)   { btn.textContent = '📈 RSI On'; btn.style.background = 'rgba(251,146,60,0.3)'; btn.style.borderColor = '#fb923c'; }
+        if (panel) panel.style.display = 'block';
+        const canvas = document.getElementById(`ciChart_${ticker}`);
+        if (canvas && canvas._ciCandleData) {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            drawRSIChart(ticker, canvas._ciCandleData, isDark);
+        }
+    }
+}
+
+function calcRSI(closes, period) {
+    // Wilder's smoothed RSI
+    const rsi = new Array(closes.length).fill(null);
+    if (closes.length < period + 1) return rsi;
+
+    // First average gain/loss over first `period` changes
+    let avgGain = 0, avgLoss = 0;
+    for (let i = 1; i <= period; i++) {
+        const change = closes[i] - closes[i - 1];
+        if (change > 0) avgGain += change;
+        else            avgLoss += Math.abs(change);
+    }
+    avgGain /= period;
+    avgLoss /= period;
+
+    rsi[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+
+    // Wilder smoothing for remaining bars
+    for (let i = period + 1; i < closes.length; i++) {
+        const change = closes[i] - closes[i - 1];
+        const gain = change > 0 ? change : 0;
+        const loss = change < 0 ? Math.abs(change) : 0;
+        avgGain = (avgGain * (period - 1) + gain) / period;
+        avgLoss = (avgLoss * (period - 1) + loss) / period;
+        rsi[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+    }
+    return rsi;
+}
+
+function drawRSIChart(ticker, candles, isDark) {
+    const rsiCanvas = document.getElementById(`ciRSIChart_${ticker}`);
+    const valEl     = document.getElementById(`ciRSIVal_${ticker}`);
+    if (!rsiCanvas) return;
+
+    if (!candles || !candles.t || candles.t.length < 16) {
+        if (valEl) valEl.textContent = 'insufficient data';
+        return;
+    }
+
+    const validPairs = candles.t.map((ts, i) => ({ ts, c: candles.c[i] })).filter(p => p.c != null);
+    const allDates   = validPairs.map(p => new Date(p.ts * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+    const allClose   = validPairs.map(p => p.c);
+
+    // Compute full RSI then slice to same window as price chart (first valid 200-MA point)
+    const fullRSI = calcRSI(allClose, 14);
+
+    // Match the same sliceFrom as the price chart (200-MA first valid index)
+    const ma200 = allClose.map((_, i) => {
+        if (i < 199) return null;
+        return allClose.slice(i - 199, i + 1).reduce((s, v) => s + v, 0) / 200;
+    });
+    const firstValid200 = ma200.findIndex(v => v !== null);
+    const sliceFrom = firstValid200 >= 0 ? firstValid200 : 0;
+
+    const labels  = allDates.slice(sliceFrom);
+    const rsiData = fullRSI.slice(sliceFrom);
+
+    // Current RSI value (last non-null)
+    const lastRSI = [...rsiData].reverse().find(v => v !== null);
+    if (valEl && lastRSI != null) {
+        const rsiColor = lastRSI >= 70 ? '#f87171' : lastRSI <= 30 ? '#4ade80' : '#fb923c';
+        valEl.textContent = lastRSI.toFixed(1);
+        valEl.style.color  = rsiColor;
+    }
+
+    const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const labelColor = isDark ? '#94a3b8' : '#64748b';
+    const tooltipBg  = isDark ? '#1e293b' : '#ffffff';
+
+    if (rsiCanvas._ciRSIInstance) { rsiCanvas._ciRSIInstance.destroy(); }
+
+    // Overbought/oversold reference lines as datasets
+    const ob = new Array(labels.length).fill(70);
+    const os = new Array(labels.length).fill(30);
+    const mid = new Array(labels.length).fill(50);
+
+    rsiCanvas._ciRSIInstance = new Chart(rsiCanvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'RSI (14)',
+                    data: rsiData,
+                    borderColor: '#fb923c',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.2,
+                    order: 1,
+                },
+                {
+                    label: 'Overbought (70)',
+                    data: ob,
+                    borderColor: 'rgba(248,113,113,0.6)',
+                    borderWidth: 1,
+                    borderDash: [4, 3],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 2,
+                },
+                {
+                    label: 'Midline (50)',
+                    data: mid,
+                    borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+                    borderWidth: 1,
+                    borderDash: [2, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 3,
+                },
+                {
+                    label: 'Oversold (30)',
+                    data: os,
+                    borderColor: 'rgba(74,222,128,0.6)',
+                    borderWidth: 1,
+                    borderDash: [4, 3],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 4,
+                },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            animation: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: labelColor, boxWidth: 14, font: { size: 9 }, padding: 6,
+                        filter: item => item.text === 'RSI (14)',
+                    }
+                },
+                tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: isDark ? '#f8fafc' : '#0f172a',
+                    bodyColor: isDark ? '#f8fafc' : '#0f172a',
+                    borderColor: '#fb923c',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => {
+                            if (ctx.dataset.label !== 'RSI (14)') return null;
+                            const v = ctx.parsed.y;
+                            const zone = v >= 70 ? ' ⚠ Overbought' : v <= 30 ? ' ✓ Oversold' : '';
+                            return ` RSI: ${v != null ? v.toFixed(1) : '—'}${zone}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: labelColor, maxTicksLimit: 6, font: { size: 9 }, maxRotation: 0 },
+                    grid: { color: gridColor }
+                },
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: labelColor,
+                        font: { size: 9 },
+                        stepSize: 20,
+                        callback: v => v
+                    },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+}
+
 function drawCompanyPriceChart(ticker, candles, isDark) {
     const canvas = document.getElementById(`ciChart_${ticker}`);
     if (!canvas) return;
+
+    // Store candle data on the canvas so toggleCiBB can redraw
+    canvas._ciCandleData = candles;
 
     if (!candles || !candles.t || candles.t.length < 2) {
         const ctx = canvas.getContext('2d');
@@ -10169,13 +10834,25 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
         return slice.reduce((s, v) => s + v, 0) / period;
     });
 
+    // Standard deviation helper (population, same window as MA)
+    const stddev = (arr, period) => arr.map((_, i) => {
+        if (i < period - 1) return null;
+        const slice = arr.slice(i - period + 1, i + 1);
+        const avg = slice.reduce((s, v) => s + v, 0) / period;
+        const variance = slice.reduce((s, v) => s + (v - avg) ** 2, 0) / period;
+        return Math.sqrt(variance);
+    });
+
     const ma20  = ma(validClose, 20);
     const ma200 = ma(validClose, 200);
+    const sd20  = stddev(validClose, 20);
+
+    // Bollinger Bands: upper = MA20 + 2σ, lower = MA20 − 2σ
+    const bbUpper = ma20.map((v, i) => (v !== null && sd20[i] !== null) ? v + 2 * sd20[i] : null);
+    const bbLower = ma20.map((v, i) => (v !== null && sd20[i] !== null) ? v - 2 * sd20[i] : null);
 
     // Show the full dataset — the chart displays from the first point where the
     // 200-day MA becomes valid, so both MAs are visible across the entire chart.
-    // The 200-day MA needs 200 data points before it's meaningful, so trim the
-    // display to start exactly where the 200-day MA first has a value.
     const firstValid200 = ma200.findIndex(v => v !== null);
     const sliceFrom = firstValid200 >= 0 ? firstValid200 : 0;
 
@@ -10183,53 +10860,83 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
     const prices  = validClose.slice(sliceFrom);
     const line20  = ma20.slice(sliceFrom);
     const line200 = ma200.slice(sliceFrom);
+    const bbUp    = bbUpper.slice(sliceFrom);
+    const bbLow   = bbLower.slice(sliceFrom);
 
     const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
     const labelColor = isDark ? '#94a3b8' : '#64748b';
     const tooltipBg  = isDark ? '#1e293b' : '#ffffff';
+    const showBB = _ciBBEnabled.has(ticker);
 
     // Destroy existing chart instance if any
     if (canvas._ciChartInstance) { canvas._ciChartInstance.destroy(); }
 
+    const datasets = [
+        {
+            label: 'Close',
+            data: prices,
+            borderColor: '#8b5cf6',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.3,
+            order: 3,
+        },
+        {
+            label: '20-Day MA',
+            data: line20,
+            borderColor: '#f59e0b',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            borderDash: [],
+            fill: false,
+            tension: 0.3,
+            order: 2,
+        },
+        {
+            label: '200-Day MA',
+            data: line200,
+            borderColor: '#22c55e',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            borderDash: [5, 3],
+            fill: false,
+            tension: 0.3,
+            order: 1,
+        },
+    ];
+
+    if (showBB) {
+        // Upper band — fills down to lower band
+        datasets.push({
+            label: 'BB Upper',
+            data: bbUp,
+            borderColor: 'rgba(56,189,248,0.7)',
+            borderWidth: 1,
+            borderDash: [3, 3],
+            pointRadius: 0,
+            fill: '+1',  // fill between this dataset and the next (BB Lower)
+            backgroundColor: 'rgba(56,189,248,0.07)',
+            tension: 0.3,
+            order: 4,
+        });
+        // Lower band
+        datasets.push({
+            label: 'BB Lower',
+            data: bbLow,
+            borderColor: 'rgba(56,189,248,0.7)',
+            borderWidth: 1,
+            borderDash: [3, 3],
+            pointRadius: 0,
+            fill: false,
+            tension: 0.3,
+            order: 5,
+        });
+    }
+
     canvas._ciChartInstance = new Chart(canvas.getContext('2d'), {
         type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Close',
-                    data: prices,
-                    borderColor: '#8b5cf6',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    fill: false,
-                    tension: 0.3,
-                    order: 3,
-                },
-                {
-                    label: '20-Day MA',
-                    data: line20,
-                    borderColor: '#f59e0b',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    borderDash: [],
-                    fill: false,
-                    tension: 0.3,
-                    order: 2,
-                },
-                {
-                    label: '200-Day MA',
-                    data: line200,
-                    borderColor: '#22c55e',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    borderDash: [5, 3],
-                    fill: false,
-                    tension: 0.3,
-                    order: 1,
-                },
-            ]
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: true,
@@ -10239,7 +10946,10 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
                 legend: {
                     display: true,
                     position: 'top',
-                    labels: { color: labelColor, boxWidth: 20, font: { size: 10 }, padding: 8 }
+                    labels: {
+                        color: labelColor, boxWidth: 20, font: { size: 10 }, padding: 8,
+                        filter: item => item.text !== 'BB Lower',  // hide redundant lower label
+                    }
                 },
                 tooltip: {
                     backgroundColor: tooltipBg,
@@ -10248,31 +10958,30 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
                     borderColor: '#8b5cf6',
                     borderWidth: 1,
                     callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}`
+                        label: ctx => {
+                            if (ctx.dataset.label === 'BB Lower') return null;
+                            return ` ${ctx.dataset.label}: $${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}`;
+                        }
                     }
                 }
             },
             scales: {
                 x: {
-                    ticks: {
-                        color: labelColor,
-                        maxTicksLimit: 6,
-                        font: { size: 10 },
-                        maxRotation: 0,
-                    },
+                    ticks: { color: labelColor, maxTicksLimit: 6, font: { size: 10 }, maxRotation: 0 },
                     grid: { color: gridColor }
                 },
                 y: {
-                    ticks: {
-                        color: labelColor,
-                        font: { size: 10 },
-                        callback: v => '$' + v.toFixed(0)
-                    },
+                    ticks: { color: labelColor, font: { size: 10 }, callback: v => '$' + v.toFixed(0) },
                     grid: { color: gridColor }
                 }
             }
         }
     });
+
+    // If RSI is enabled for this ticker, redraw RSI chart too
+    if (_ciRSIEnabled.has(ticker)) {
+        drawRSIChart(ticker, candles, isDark);
+    }
 }
 
 async function fetchEarningsDates() {
@@ -10643,6 +11352,7 @@ const _modalCloseMap = {
     riskModal:             'closePortfolioRisk',
     calendarModal:         'closeExpirationCalendar',
     spyModal:              'closeSpyBenchmark',
+    ciLookupModal:         'closeCiLookup',
 };
 
 document.addEventListener('keydown', function(ev) {
