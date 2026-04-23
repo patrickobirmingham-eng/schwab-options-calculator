@@ -3178,7 +3178,7 @@ const TRADIER_API_KEY = "SX80wDUwoNv3uWWsx7MY6ci9ncA3";
 let ocSortKey = 'dte';
 let ocSortDir = 1;
 let ocSearchValue = '';
-let ocRiskFilter = null;  // null = no filter, or 'itm'|'danger'|'caution'|'safe'|'unpriced'
+let ocRiskFilter = null;  // null = no filter, or 'itm'|'danger'|'caution'|'safe'|'verySafe'|'extremelySafe'|'unpriced'
 let ocParsedRows = [];
 let ocStockPrices = {};   // { TICKER: { price, change, changePct, loading, error } }
 let ocOptionPrices = {};  // { SYMBOL: { price, loading, error } }
@@ -3540,10 +3540,12 @@ function renderOpenCommitmentsTable() {
             const pct = parsed.type === 'P'
                 ? (pd.price / parsed.strike - 1) * 100
                 : (1 - pd.price / parsed.strike) * 100;
-            if (pct < 0)      bucket = 'itm';
-            else if (pct < 3) bucket = 'danger';
-            else if (pct < 7) bucket = 'caution';
-            else              bucket = 'safe';
+            if (pct < 0)       bucket = 'itm';
+            else if (pct < 3)  bucket = 'danger';
+            else if (pct < 7)  bucket = 'caution';
+            else if (pct < 15) bucket = 'safe';
+            else if (pct < 25) bucket = 'verySafe';
+            else               bucket = 'extremelySafe';
         }
         symbolRiskBucket.set(op.symbol, bucket);
     });
@@ -4000,7 +4002,7 @@ function renderOpenCommitmentsTable() {
     // ── Margin of Safety Summary ───────────────────────────────────────────
     // Derive counts and ITM tickers from the symbolRiskBucket map already built
     // at the top of this function — no need to re-iterate openPositions.
-    const riskBuckets = { itm: 0, danger: 0, caution: 0, safe: 0, unpriced: 0 };
+    const riskBuckets = { itm: 0, danger: 0, caution: 0, safe: 0, verySafe: 0, extremelySafe: 0, unpriced: 0 };
     const itmTickers = new Set();
     symbolRiskBucket.forEach((bucket, sym) => {
         riskBuckets[bucket]++;
@@ -4011,7 +4013,7 @@ function renderOpenCommitmentsTable() {
     });
     const riskEl = document.getElementById('ocRiskSummary');
     if (riskEl) {
-        const totalRisky = riskBuckets.itm + riskBuckets.danger + riskBuckets.caution + riskBuckets.safe;
+        const totalRisky = riskBuckets.itm + riskBuckets.danger + riskBuckets.caution + riskBuckets.safe + riskBuckets.verySafe + riskBuckets.extremelySafe;
         if (totalRisky === 0 && riskBuckets.unpriced === 0) {
             riskEl.style.display = 'none';
         } else {
@@ -4035,9 +4037,11 @@ function renderOpenCommitmentsTable() {
                     <div style="font-size:0.7rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;">In the Money</div>
                     ${itmActive ? '<div style="font-size:0.62rem;color:var(--text-secondary);margin-top:3px;">click to clear</div>' : ''}
                 </div>` +
-                pill('rgba(251,146,60,0.15)', 'rgba(251,146,60,0.5)', '#fb923c', riskBuckets.danger,  'Within 3%',   'danger') +
-                pill('rgba(250,204,21,0.15)', 'rgba(250,204,21,0.5)', '#eab308', riskBuckets.caution, 'Within 3-7%', 'caution') +
-                pill('rgba(74,222,128,0.12)', 'rgba(74,222,128,0.45)', '#22c55e', riskBuckets.safe,   'Safe (7%+)',   'safe') +
+                pill('rgba(251,146,60,0.15)', 'rgba(251,146,60,0.5)', '#fb923c', riskBuckets.danger,        'Within 3%',          'danger') +
+                pill('rgba(250,204,21,0.15)', 'rgba(250,204,21,0.5)', '#eab308', riskBuckets.caution,       'Within 3–7%',        'caution') +
+                pill('rgba(74,222,128,0.12)', 'rgba(74,222,128,0.45)', '#22c55e', riskBuckets.safe,          'Safe (7%–14%)',       'safe') +
+                pill('rgba(56,189,248,0.12)', 'rgba(56,189,248,0.45)', '#38bdf8', riskBuckets.verySafe,      'Very Safe (15%–24%)', 'verySafe') +
+                pill('rgba(167,139,250,0.15)', 'rgba(167,139,250,0.5)', '#a78bfa', riskBuckets.extremelySafe, 'Extremely Safe (25%+)', 'extremelySafe') +
                 (riskBuckets.unpriced > 0 ? pill('var(--bg-primary)', 'var(--border-color)', 'var(--text-secondary)', riskBuckets.unpriced, 'Awaiting Price', 'unpriced') : '');
         }
     }
