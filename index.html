@@ -10031,7 +10031,7 @@ function renderTickerSummaryPills(rows) {
         (overallAvgLoss !== null ? pill('Avg Loss', '-$'+overallAvgLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), '#f87171') : '') +
         (topStrats ? `<div title="${stratTooltip.replace(/"/g,'&quot;')}" style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:8px; padding:7px 8px; text-align:center; cursor:help; flex:1; min-width:0;">
             <div style="font-size:0.65rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Strategy Mix <span style="opacity:0.6;">ⓘ</span></div>
-            <div style="font-size:0.92rem; font-weight:700; color:#a78bfa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${topStrats}</div>
+            <div style="font-size:0.88rem; font-weight:700; color:#a78bfa; white-space:normal; word-break:break-word; line-height:1.3;">${topStrats}</div>
         </div>` : '') +
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
@@ -11346,6 +11346,8 @@ async function lookupStockInfo(ticker) {
                     const q = d?.quotes?.quote || {};
                     r.priceTarget = {
                         currentPrice: q.last || q.close || null,
+                        change:       q.change != null ? q.change : null,
+                        changePct:    q.change_percentage != null ? q.change_percentage : null,
                         high52: q.week_52_high || q['52_week_high'] || null,
                         low52:  q.week_52_low  || q['52_week_low']  || null,
                     };
@@ -11588,9 +11590,11 @@ async function fetchCompanyInfo() {
                         const q = d?.quotes?.quote || {};
                         r.priceTarget = {
                             currentPrice:     q.last || q.close || null,
+                            change:           q.change != null ? q.change : null,
+                            changePct:        q.change_percentage != null ? q.change_percentage : null,
                             high52:           q.week_52_high || q['52_week_high'] || null,
                             low52:            q.week_52_low  || q['52_week_low']  || null,
-                            targetMean:       null,  // not in free Tradier
+                            targetMean:       null,
                             targetHigh:       null,
                             targetLow:        null,
                             numberOfAnalysts: null,
@@ -11669,7 +11673,19 @@ function renderCompanyInfo(results, openTickers) {
             <span style="font-size:0.7rem;color:${muted};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;white-space:nowrap;margin-right:4px;">Jump to:</span>
             ${tickers.map(t => {
                 const isOpen = openTickers.has(t);
-                return `<button onclick="(function(){ const card = document.getElementById('ci_ticker_${t}'); const nav = document.getElementById('ciTickerNav'); if(!card) return; const container = document.getElementById('companyInfoInner'); const navH = nav ? nav.offsetHeight : 0; const cardTop = card.offsetTop - container.offsetTop; container.scrollTo({top: cardTop - navH + 20, behavior:'smooth'}); })()" style="background:${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'};color:${isOpen ? '#0ea5e9' : 'var(--text-primary)'};border:1px solid ${isOpen ? 'rgba(14,165,233,0.5)' : borderColor};border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='${isOpen ? 'rgba(14,165,233,0.25)' : (isDark ? '#334155' : '#e2e8f0')}'" onmouseout="this.style.background='${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'}'">${t}</button>`;
+                const r = results[t] || {};
+                const price = r.priceTarget?.currentPrice;
+                // Use Tradier's pre-computed daily change fields directly
+                const change    = r.priceTarget?.change    ?? null;
+                const changePct = r.priceTarget?.changePct ?? null;
+                const changeColor = (change === null || change === 0) ? muted : change > 0 ? '#4ade80' : '#f87171';
+                const priceHtml = price
+                    ? `<span style="display:block;font-size:0.76rem;color:var(--text-primary);font-weight:600;line-height:1.3;">$${parseFloat(price).toFixed(2)}</span>` +
+                      (change !== null && changePct !== null
+                        ? `<span style="display:block;font-size:0.72rem;color:${changeColor};line-height:1.2;font-weight:700;">${change >= 0 ? '+' : ''}${parseFloat(changePct).toFixed(2)}%</span>`
+                        : '')
+                    : '';
+                return `<button onclick="(function(){ const card = document.getElementById('ci_ticker_${t}'); const nav = document.getElementById('ciTickerNav'); if(!card) return; const container = document.getElementById('companyInfoInner'); const navH = nav ? nav.offsetHeight : 0; const cardTop = card.offsetTop - container.offsetTop; container.scrollTo({top: cardTop - navH + 20, behavior:'smooth'}); })()" style="background:${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'};color:${isOpen ? '#0ea5e9' : 'var(--text-primary)'};border:1px solid ${isOpen ? 'rgba(14,165,233,0.5)' : borderColor};border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.15s;text-align:center;line-height:1.1;" onmouseover="this.style.background='${isOpen ? 'rgba(14,165,233,0.25)' : (isDark ? '#334155' : '#e2e8f0')}'" onmouseout="this.style.background='${isOpen ? 'rgba(14,165,233,0.15)' : 'var(--bg-primary)'}'">${t}${priceHtml ? '<br>' + priceHtml : ''}</button>`;
             }).join('')}
             <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0;align-items:center;">
                 <form onsubmit="event.preventDefault(); const v=document.getElementById('ciLookupInput').value.trim().toUpperCase(); if(v) lookupStockInfo(v);" style="display:flex;gap:0;">
