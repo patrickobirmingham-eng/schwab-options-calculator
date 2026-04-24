@@ -744,8 +744,8 @@ th.oc-drop-target {
                     <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Strategy</div>
                     <select id="tickerStrategyFilter" onchange="tickerRefresh()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
                         <option value="all">All Strategies</option>
-                        <option value="CSP">Cash-Secured Put</option>
-                        <option value="CC">Covered Call</option>
+                        <option value="CSP">Short Put</option>
+                        <option value="CC">Short Call</option>
                         <option value="BPS">Bull Put Spread</option>
                         <option value="BCS">Bear Call Spread</option>
                         <option value="BULL_CALL">Bull Call Spread</option>
@@ -1077,6 +1077,7 @@ th.oc-drop-target {
                         Expand All
                     </label>
                     <button id="refreshPricesBtn" onclick="refreshStockPrices()" style="background:#0ea5e9;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh Prices</button>
+                    <button onclick="showRollPlanner()" style="background:#8b5cf6;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;" title="Expiring Positions &amp; Roll Planner">🔁 Roll Planner</button>
                     <button onclick="downloadOpenCommitments()" style="background:#10b981;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><svg xmlns='http://www.w3.org/2000/svg' width='1.1em' height='1.1em' viewBox='0 0 24 24' style='vertical-align:middle;'><circle cx='12' cy='12' r='12' fill='#10b981'/><path d='M12 7v7m0 0l-3-3m3 3l3-3M8 17h8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg> Download</button>
                     <button onclick="resetOcColumnOrder()" title="Restore default column order" style="background:#334155;color:#94a3b8;border:1px solid #475569;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.8rem;">↺ Reset Columns</button>
                     <button onclick="closeOpenCommitments()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
@@ -1085,6 +1086,21 @@ th.oc-drop-target {
 
             <div id="priceTimestamp" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:8px;text-align:right;"></div>
             <div id="openCommitmentsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Roll Planner Modal -->
+    <div id="rollPlannerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); z-index:2000; justify-content:center; align-items:center;">
+        <div id="rollPlannerInner" style="width:99vw; max-width:1400px; background:var(--bg-secondary); border:1px solid #8b5cf6; border-radius:16px; padding:24px; max-height:92vh; overflow-y:auto; position:relative;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+                <h2 style="flex:1; font-size:1.15rem; color:var(--text-primary); display:flex; align-items:center; gap:8px; margin:0;">🔁 <span style="color:#a78bfa;">Expiring Positions &amp; Roll Planner</span> <span id="rollPlannerCacheNote" style="font-size:0.72rem;color:var(--text-secondary);font-weight:400;"></span></h2>
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--text-secondary);font-weight:600;white-space:nowrap;">
+                    DTE threshold: <input id="rollDteThreshold" type="number" min="1" max="60" value="21" style="width:52px;padding:4px 8px;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:0.85rem;" oninput="renderRollPlanner()">
+                </label>
+                <button onclick="window._rollPlannerCache=null; document.getElementById('rollPlannerCacheNote').textContent=''; showRollPlanner();" style="background:#8b5cf6;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:0.85rem;">🔄 Refresh</button>
+                <button onclick="closeRollPlanner()" style="background:#ef4444;color:white;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:1rem;">✕ Close</button>
+            </div>
+            <div id="rollPlannerContent"><div style="text-align:center;padding:40px;color:var(--text-secondary);">Loading…</div></div>
         </div>
     </div>
 
@@ -1585,7 +1601,7 @@ async function handleFiles(files) {
     window._pricesRefreshedOC = false;
     window._pricesRefreshedAssign = false;
     ocStockPrices = {}; ocOptionPrices = {}; _ocEarningsMap = {};
-    window._ciCache = null; window._earningsCache = null;
+    window._ciCache = null; window._earningsCache = null; window._rollPlannerCache = null;
 
     const fnEl = document.getElementById('uploadedFileName');
     const mainFn = document.getElementById('mainFilename');
@@ -1670,7 +1686,7 @@ async function handleFile(file) {
     window._pricesRefreshedOC = false;
     window._pricesRefreshedAssign = false; // reset so prices refresh on next open
     ocStockPrices = {}; ocOptionPrices = {}; _ocEarningsMap = {};
-    window._ciCache = null; window._earningsCache = null;
+    window._ciCache = null; window._earningsCache = null; window._rollPlannerCache = null;
     const fnEl = document.getElementById('uploadedFileName');
     fnEl.textContent = 'Filename: ' + file.name;
     fnEl.style.display = 'block';
@@ -3920,6 +3936,294 @@ function closeOpenCommitments() {
         delete modalInner._ocScrollHandler;
     }
     ocRiskFilter = null;
+}
+
+// ── Roll Planner ─────────────────────────────────────────────────────────────
+function closeRollPlanner() {
+    document.getElementById('rollPlannerModal').style.display = 'none';
+}
+
+async function showRollPlanner() {
+    if (!ocParsedRows || !ocParsedRows.length) {
+        alert('Open Positions must be loaded first. Please open the Open Positions page.');
+        return;
+    }
+    const modal = document.getElementById('rollPlannerModal');
+    const content = document.getElementById('rollPlannerContent');
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) closeRollPlanner(); };
+
+    const dteThreshold = parseInt(document.getElementById('rollDteThreshold')?.value, 10) || 21;
+
+    // Use cached data if available and < 15 minutes old
+    const cache = window._rollPlannerCache;
+    const CACHE_TTL = 15 * 60 * 1000;
+    if (cache && cache.rollData && cache.dteThreshold === dteThreshold && (Date.now() - cache.ts) < CACHE_TTL) {
+        const age = Math.round((Date.now() - cache.ts) / 60000);
+        const cacheNote = document.getElementById('rollPlannerCacheNote');
+        if (cacheNote) cacheNote.textContent = `· cached ${age}m ago`;
+        renderRollPlannerResults(cache.rollData, dteThreshold);
+        return;
+    }
+
+    content.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-secondary);font-size:0.95rem;">⏳ Fetching options chains…</div>`;
+
+    // Find all STO legs expiring within threshold, excluding BTO legs
+    const expiringSTOs = ocParsedRows.filter(r => r.action === 'STO' && typeof r.dte === 'number' && r.dte <= dteThreshold && r.dte >= 0);
+
+    if (!expiringSTOs.length) {
+        content.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-secondary);">
+            No expiring positions within ${dteThreshold} DTE found.<br>
+            <span style="font-size:0.85rem;">Try increasing the DTE threshold above.</span>
+        </div>`;
+        return;
+    }
+
+    // For each expiring STO, fetch the options chain to find roll candidates
+    const rollData = [];
+    for (const r of expiringSTOs) {
+        const ticker = extractTicker(r.symbol);
+        const optType = r.type === 'Put' ? 'put' : 'call';
+        const currentPrice = ocStockPrices[ticker]?.price || null;
+
+        // Fetch options chain: next 2 expiry dates beyond current
+        let chainData = null;
+        try {
+            // Get available expirations first
+            const expRes = await fetch(
+                `https://api.tradier.com/v1/markets/options/expirations?symbol=${encodeURIComponent(ticker)}&includeAllRoots=false&strikes=false`,
+                { headers: { 'Authorization': `Bearer ${TRADIER_API_KEY}`, 'Accept': 'application/json' } }
+            );
+            const expJson = await expRes.json();
+            const expirations = expJson?.expirations?.date || [];
+            const expArr = Array.isArray(expirations) ? expirations : [expirations];
+
+            // Find expirations 21–60 DTE out (ideal roll target window)
+            const today = new Date(); today.setHours(0,0,0,0);
+            const targetExps = expArr.filter(d => {
+                const dt = new Date(d + 'T12:00:00');
+                const days = Math.round((dt - today) / 86400000);
+                return days >= 21 && days <= 75;
+            }).slice(0, 2);
+
+            if (targetExps.length > 0) {
+                // Fetch chain for first target expiry
+                const chainRes = await fetch(
+                    `https://api.tradier.com/v1/markets/options/chains?symbol=${encodeURIComponent(ticker)}&expiration=${targetExps[0]}&greeks=true`,
+                    { headers: { 'Authorization': `Bearer ${TRADIER_API_KEY}`, 'Accept': 'application/json' } }
+                );
+                const chainJson = await chainRes.json();
+                const options = chainJson?.options?.option || [];
+                const optArr = Array.isArray(options) ? options : [options];
+                // Tradier returns option_type as full word: "put" or "call"
+                chainData = { expiry: targetExps[0], options: optArr.filter(o => o.option_type === optType) };
+            }
+        } catch(e) { /* silently skip */ }
+
+        // Find best roll candidate: closest to 0.20 delta (absolute), or nearest OTM to stock price
+        let rollCandidate = null;
+        if (chainData && chainData.options.length > 0) {
+            const opts = chainData.options;
+            const targetDelta = 0.20;
+            const withDelta = opts.filter(o => o.greeks && o.greeks.delta != null);
+            if (withDelta.length > 0) {
+                rollCandidate = withDelta.reduce((best, o) => {
+                    const d = Math.abs(o.greeks.delta);
+                    const bestD = Math.abs(best.greeks.delta);
+                    return Math.abs(d - targetDelta) < Math.abs(bestD - targetDelta) ? o : best;
+                });
+            } else if (currentPrice) {
+                // Fallback: nearest OTM strike when no greeks available
+                const otmOpts = r.type === 'Put'
+                    ? opts.filter(o => parseFloat(o.strike) < currentPrice)
+                    : opts.filter(o => parseFloat(o.strike) > currentPrice);
+                if (otmOpts.length > 0) {
+                    rollCandidate = otmOpts.reduce((best, o) =>
+                        Math.abs(parseFloat(o.strike) - currentPrice) < Math.abs(parseFloat(best.strike) - currentPrice) ? o : best
+                    );
+                } else if (opts.length > 0) {
+                    // Last resort: just pick the first available strike
+                    rollCandidate = opts[0];
+                }
+            } else if (opts.length > 0) {
+                // No stock price available — pick the strike with the best mid price (highest premium)
+                rollCandidate = opts.reduce((best, o) => {
+                    const mid = ((o.bid || 0) + (o.ask || 0)) / 2;
+                    const bestMid = ((best.bid || 0) + (best.ask || 0)) / 2;
+                    return mid > bestMid ? o : best;
+                });
+            }
+        }
+
+        // Get current option mid price (to calculate close cost)
+        const occ = buildOCCSymbol(r.symbol);
+        const currentOp = occ ? ocOptionPrices[occ] : null;
+        const closeCost = (currentOp && !currentOp.loading && !currentOp.error && currentOp.price)
+            ? currentOp.price * r.contracts * 100 : null;
+
+        // Roll credit = new premium collected - cost to close current
+        const newMid = rollCandidate
+            ? ((rollCandidate.bid || 0) + (rollCandidate.ask || 0)) / 2 : null;
+        const rollCredit = (newMid !== null && closeCost !== null)
+            ? (newMid * r.contracts * 100) - closeCost : null;
+
+        // Target DTE for roll
+        let rollDte = null;
+        if (chainData?.expiry) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const dt = new Date(chainData.expiry + 'T12:00:00');
+            rollDte = Math.round((dt - today) / 86400000);
+        }
+
+        rollData.push({ r, ticker, currentPrice, chainData, rollCandidate, closeCost, newMid, rollCredit, rollDte });
+        await new Promise(res => setTimeout(res, 80)); // small delay to avoid rate limits
+    }
+
+    // Cache the results so reopening doesn't require a re-fetch
+    window._rollPlannerCache = { rollData, dteThreshold, ts: Date.now() };
+    renderRollPlannerResults(rollData, dteThreshold);
+}
+
+function renderRollPlanner() {
+    // Re-render with current threshold (no re-fetch — just filter)
+    const content = document.getElementById('rollPlannerContent');
+    if (!content || content.innerHTML.includes('Fetching')) return;
+    // Trigger a fresh fetch
+    showRollPlanner();
+}
+
+function renderRollPlannerResults(rollData, dteThreshold) {
+    const content = document.getElementById('rollPlannerContent');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const borderColor = isDark ? '#334155' : '#cbd5e1';
+    const thBg = isDark ? '#0f172a' : '#f1f5f9';
+    const muted = 'var(--text-secondary)';
+
+    const fmt$ = v => v == null ? '—' : (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const urgencyColor = dte => dte <= 5 ? '#ef4444' : dte <= 10 ? '#fb923c' : '#eab308';
+    const urgencyBg    = dte => dte <= 5 ? 'rgba(239,68,68,0.1)' : dte <= 10 ? 'rgba(251,146,60,0.1)' : 'rgba(234,179,8,0.1)';
+
+    if (!rollData.length) {
+        content.innerHTML = `<div style="text-align:center;padding:40px;color:${muted};">No positions found within DTE threshold.</div>`;
+        return;
+    }
+
+    // Sort by DTE ascending (most urgent first)
+    rollData.sort((a, b) => (a.r.dte || 0) - (b.r.dte || 0));
+
+    const thStyle = `padding:10px 8px;background:${thBg};color:#a78bfa;font-size:0.75rem;letter-spacing:0.04em;border-bottom:2px solid #8b5cf6;text-align:center;white-space:nowrap;`;
+    const tdStyle = `padding:10px 8px;border-bottom:1px solid ${borderColor};text-align:center;font-size:0.85rem;`;
+
+    const rows = rollData.map(({ r, ticker, currentPrice, chainData, rollCandidate, closeCost, newMid, rollCredit, rollDte }) => {
+        const dte = r.dte;
+        const uColor = urgencyColor(dte);
+        const uBg    = urgencyBg(dte);
+        const urgency = dte <= 5 ? '🔴 Urgent' : dte <= 10 ? '🟠 Soon' : '🟡 Watch';
+
+        // Current position
+        const curStrike = r.strike ? `$${r.strike.toFixed(2)}` : '—';
+        const curPremium = r.premiumReceived > 0 ? `$${r.premiumReceived.toFixed(2)}` : '—';
+        const curDelta = (() => {
+            const occ = buildOCCSymbol(r.symbol);
+            const op = occ ? ocOptionPrices[occ] : null;
+            return (op && !op.loading && !op.error && op.delta != null)
+                ? op.delta.toFixed(2) : '—';
+        })();
+        const curIV = (() => {
+            const occ = buildOCCSymbol(r.symbol);
+            const op = occ ? ocOptionPrices[occ] : null;
+            return (op && !op.loading && !op.error && op.iv != null)
+                ? (op.iv * 100).toFixed(0) + '%' : '—';
+        })();
+        const stockPriceHtml = currentPrice ? `$${currentPrice.toFixed(2)}` : '—';
+
+        // Distance from current stock price to strike
+        const distHtml = (() => {
+            if (!currentPrice || !r.strike) return '—';
+            const pct = r.type === 'Put'
+                ? ((currentPrice - r.strike) / currentPrice * 100)
+                : ((r.strike - currentPrice) / currentPrice * 100);
+            const color = pct < 3 ? '#ef4444' : pct < 7 ? '#fb923c' : '#4ade80';
+            return `<span style="color:${color};font-weight:700;">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</span>`;
+        })();
+
+        // Roll suggestion
+        let rollHtml;
+        if (!rollCandidate || !chainData) {
+            rollHtml = `<td colspan="5" style="${tdStyle}color:${muted};">Chain data unavailable</td>`;
+        } else {
+            const rStrike = `$${parseFloat(rollCandidate.strike).toFixed(2)}`;
+            const rExpiry = chainData.expiry;
+            const rDelta = rollCandidate.greeks?.delta != null ? rollCandidate.greeks.delta.toFixed(2) : '—';
+            const rMid = newMid != null ? `$${newMid.toFixed(2)}` : '—';
+            const rCredit = rollCredit != null
+                ? `<span style="font-weight:700;color:${rollCredit >= 0 ? '#4ade80' : '#f87171'}">${fmt$(rollCredit)}</span>`
+                : '—';
+            const closeCostHtml = closeCost != null
+                ? `<span style="color:#f87171;">-$${closeCost.toFixed(2)}</span>` : '—';
+            rollHtml = `
+                <td style="${tdStyle}">${rExpiry}<br><span style="font-size:0.75rem;color:${muted};">${rollDte} DTE</span></td>
+                <td style="${tdStyle}">${rStrike}</td>
+                <td style="${tdStyle}">${rDelta}<br><span style="font-size:0.72rem;color:${muted};">delta</span></td>
+                <td style="${tdStyle}">${closeCostHtml}<br><span style="font-size:0.72rem;color:${muted};">to close</span><br>${rMid ? `+$${(newMid * r.contracts * 100).toFixed(2)}` : '—'}<br><span style="font-size:0.72rem;color:${muted};">new credit</span></td>
+                <td style="${tdStyle};font-size:1rem;">${rCredit}<br><span style="font-size:0.72rem;color:${muted};">net P&L</span></td>`;
+        }
+
+        return `<tr style="background:${uBg};">
+            <td style="${tdStyle}border-left:3px solid ${uColor};text-align:left;padding-left:12px;">
+                <span style="font-weight:700;color:var(--text-primary);">${ticker}</span>
+                <span style="font-size:0.72rem;color:${muted};margin-left:4px;">${r.type}</span><br>
+                <span style="font-size:0.75rem;color:${muted};">${r.contracts} contract${r.contracts !== 1 ? 's' : ''}</span>
+            </td>
+            <td style="${tdStyle}"><span style="color:${uColor};font-weight:700;">${dte}d</span><br><span style="font-size:0.75rem;">${urgency}</span></td>
+            <td style="${tdStyle};font-size:0.82rem;">${r.strikeDate || '—'}</td>
+            <td style="${tdStyle}">${curStrike}<br><span style="font-size:0.72rem;color:${muted};">strike</span></td>
+            <td style="${tdStyle}">${stockPriceHtml}<br><span style="font-size:0.72rem;color:${muted};">stock</span></td>
+            <td style="${tdStyle}">${distHtml}<br><span style="font-size:0.72rem;color:${muted};">OTM</span></td>
+            <td style="${tdStyle}">${curPremium}<br><span style="font-size:0.72rem;color:${muted};">orig premium</span></td>
+            <td style="${tdStyle}">${curDelta} / ${curIV}<br><span style="font-size:0.72rem;color:${muted};">Δ / IV</span></td>
+            ${rollHtml}
+        </tr>`;
+    }).join('');
+
+    const urgencyLegend = `
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:0.8rem;color:${muted};">
+            <span>🔴 <strong style="color:#ef4444;">Urgent</strong> ≤5 DTE</span>
+            <span>🟠 <strong style="color:#fb923c;">Soon</strong> 6–10 DTE</span>
+            <span>🟡 <strong style="color:#eab308;">Watch</strong> 11–${dteThreshold} DTE</span>
+            <span style="margin-left:auto;font-size:0.75rem;">Roll target: ~0.20 delta · 21–75 DTE · Net P&amp;L = new credit − close cost</span>
+        </div>`;
+
+    const note = `<div style="font-size:0.75rem;color:${muted};margin-top:12px;padding:10px;background:var(--bg-primary);border-radius:8px;border:1px solid ${borderColor};">
+        ⚠ Roll candidates are suggestions based on ~0.20 delta targeting. Always verify live prices before placing orders. 
+        Net P&amp;L uses mid-price estimates — actual fills may differ. Spread positions show STO leg only; roll both legs together.
+    </div>`;
+
+    content.innerHTML = urgencyLegend + `
+        <div style="overflow-x:auto;border:1px solid ${borderColor};border-radius:8px;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;min-width:900px;">
+            <thead><tr>
+                <th style="${thStyle}text-align:left;padding-left:12px;">Position</th>
+                <th style="${thStyle}">DTE</th>
+                <th style="${thStyle}">Expiry</th>
+                <th style="${thStyle}">Strike</th>
+                <th style="${thStyle}">Stock Price</th>
+                <th style="${thStyle}">OTM %</th>
+                <th style="${thStyle}">Orig Premium</th>
+                <th style="${thStyle}">Δ / IV</th>
+                <th style="${thStyle}" colspan="5">── Roll Suggestion ─────────────────────────</th>
+            </tr>
+            <tr style="background:${thBg};">
+                <th colspan="8" style="padding:4px;border-bottom:1px solid ${borderColor};"></th>
+                <th style="${thStyle}border-top:none;padding-top:4px;">Target Expiry</th>
+                <th style="${thStyle}border-top:none;padding-top:4px;">Target Strike</th>
+                <th style="${thStyle}border-top:none;padding-top:4px;">Target Δ</th>
+                <th style="${thStyle}border-top:none;padding-top:4px;">Economics</th>
+                <th style="${thStyle}border-top:none;padding-top:4px;">Net Roll P&amp;L</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        </div>` + note;
 }
 
 // Finnhub API key (embedded)
@@ -9037,7 +9341,7 @@ const tickerFilterState = { datePreset: 'currentMonth', dateFrom: '', dateTo: ''
 //   OTHER = unrecognized shape
 // ------------------------------------------------------------
 const STRATEGY_LABELS = {
-    CSP: 'Cash-Secured Put', CC: 'Covered Call',
+    CSP: 'Short Put', CC: 'Short Call',
     BPS: 'Bull Put Spread',  BCS: 'Bear Call Spread',
     BULL_CALL: 'Bull Call Spread', BEAR_PUT: 'Bear Put Spread',
     IC: 'Iron Condor',
@@ -9637,10 +9941,37 @@ function renderTickerSummaryPills(rows) {
         stratCounts[s.strategy] = (stratCounts[s.strategy] || 0) + 1;
         stratTotal++;
     });
+    // Short display abbreviations for the strategy mix pill
+    const STRATEGY_ABBREV = {
+        CSP:      'SP',
+        CC:       'SC',
+        BPS:      'BPS',
+        BCS:      'BCS',
+        BULL_CALL:'BuCS',
+        BEAR_PUT: 'BePD',
+        IC:       'IC',
+        LP:       'LP',
+        LC:       'LC',
+        OTHER:    'Other',
+    };
+    // Full tooltip descriptions
+    const STRATEGY_DESC = {
+        CSP:      'SP — Short Put (sold put, no long leg)',
+        CC:       'SC — Short Call (sold call, no long leg)',
+        BPS:      'BPS — Bull Put Spread (short higher put + long lower put)',
+        BCS:      'BCS — Bear Call Spread (short lower call + long higher call)',
+        BULL_CALL:'BuCS — Bull Call Spread (long lower call + short higher call)',
+        BEAR_PUT: 'BePD — Bear Put Spread (long higher put + short lower put)',
+        IC:       'IC — Iron Condor (BPS + BCS combined)',
+        LP:       'LP — Long Put (bought put)',
+        LC:       'LC — Long Call (bought call)',
+        OTHER:    'Other — unrecognized structure',
+    };
+
     const topStrats = Object.entries(stratCounts)
         .sort((a,b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([k,v]) => `${k} ${Math.round(v/stratTotal*100)}%`)
+        .map(([k,v]) => `${STRATEGY_ABBREV[k] || k} ${Math.round(v/stratTotal*100)}%`)
         .join(' · ');
 
     const pill = (label, val, color) =>
@@ -9649,15 +9980,13 @@ function renderTickerSummaryPills(rows) {
             <div style="font-size:1.1rem; font-weight:700; color:${color};">${val}</div>
         </div>`;
 
-    // Build a tooltip that expands ONLY the abbreviations currently visible,
-    // so the hint stays short and relevant. STRATEGY_LABELS is the source of
-    // truth (CSP → "Cash-Secured Put", etc).
+    // Tooltip: show abbrev = full description for each visible strategy
     const topStratKeys = Object.entries(stratCounts)
         .sort((a,b) => b[1] - a[1])
         .slice(0, 3)
         .map(([k]) => k);
     const stratTooltip = topStratKeys
-        .map(k => `${k} = ${STRATEGY_LABELS[k] || k}`)
+        .map(k => STRATEGY_DESC[k] || `${k} = ${STRATEGY_LABELS[k] || k}`)
         .join('\n');
 
     document.getElementById('tickerSummaryPills').innerHTML =
@@ -9889,6 +10218,18 @@ function renderTaxPreview() {
             ${sub ? `<div style="font-size:0.72rem; color:${muted}; margin-top:4px;">${sub}</div>` : ''}
         </div>`;
 
+    // Profit after tax = total net gains - estimated tax owed
+    const totalNetGains = netShortTerm + netLongTerm;
+    const longTermTaxRate = bracket !== null && !isNaN(bracket)
+        ? (bracket <= 22 ? 0 : bracket <= 35 ? 15 : 20)  // 2024 LTCG rates
+        : null;
+    const longTermTax = (longTermTaxRate !== null && netLongTerm > 0)
+        ? netLongTerm * (longTermTaxRate / 100) : 0;
+    const totalTaxEstimate = estimatedTax !== null
+        ? Math.max(estimatedTax, 0) + longTermTax : null;
+    const profitAfterTax = totalTaxEstimate !== null
+        ? totalNetGains - totalTaxEstimate : null;
+
     let taxCardHtml;
     if (estimatedTax === null) {
         taxCardHtml = card('Estimated Federal Tax', '—', muted, 'Enter a marginal bracket above');
@@ -9897,8 +10238,17 @@ function renderTaxPreview() {
         taxCardHtml = card('Estimated Federal Tax', fmt$(estimatedTax), '#f59e0b', bracketNote);
     } else {
         const bracketNote = isAutoBracket ? `at ${bracket}% — auto-selected from 2024 brackets` : `at ${bracket}% marginal rate`;
-        taxCardHtml = card('Estimated Tax Savings', fmt$(estimatedTax), posColor, bracketNote);
+        taxCardHtml = card('Estimated Tax Savings', fmt$(Math.abs(estimatedTax)), posColor, bracketNote);
     }
+
+    const profitAfterTaxCard = profitAfterTax !== null
+        ? card('Profit After Tax',
+            fmt$(profitAfterTax),
+            profitAfterTax >= 0 ? posColor : negColor,
+            longTermTax > 0
+                ? `Short-term tax + ${longTermTaxRate}% LTCG on long-term gains`
+                : `After ${bracket}% short-term tax`)
+        : card('Profit After Tax', '—', muted, 'Enter a marginal bracket above');
 
     const closedCount = tradesInYear.length;
     document.getElementById('taxResults').innerHTML = `
@@ -9912,6 +10262,7 @@ function renderTaxPreview() {
             ${taxCardHtml}
             ${netShortTerm < 0 ? card('Deductible This Year', fmt$(deductibleLoss), negColor, carryforward < 0 ? `$3,000 annual limit` : 'within annual limit') : ''}
             ${carryforward < 0 ? card('Loss Carryforward', fmt$(carryforward), muted, 'Carries to future years') : ''}
+            ${profitAfterTaxCard}
         </div>
         ${tradesInYear.length === 0 ? `<div style="text-align:center; padding:20px; color:${muted}; font-size:0.9rem;">No closed trades in ${year}.</div>` : ''}
     `;
@@ -12146,6 +12497,7 @@ const _modalCloseMap = {
     calendarModal:         'closeExpirationCalendar',
     spyModal:              'closeSpyBenchmark',
     ciLookupModal:         'closeCiLookup',
+    rollPlannerModal:      'closeRollPlanner',
 };
 
 document.addEventListener('keydown', function(ev) {
