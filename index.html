@@ -4667,6 +4667,30 @@ function renderOpenCommitmentsTable() {
             };
             v1 = getVal(a, ga, pa); v2 = getVal(b, gb, pb);
         }
+        else if (ocSortKey === 'delta') {
+            const getGreek = (r, pair) => {
+                const occ = pair ? buildOCCSymbol(pair.sto.symbol) : buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                return (op && !op.loading && !op.error && op.delta != null) ? Math.abs(op.delta) : -Infinity;
+            };
+            v1 = getGreek(a, pa); v2 = getGreek(b, pb);
+        }
+        else if (ocSortKey === 'theta') {
+            const getGreek = (r, pair) => {
+                const occ = pair ? buildOCCSymbol(pair.sto.symbol) : buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                return (op && !op.loading && !op.error && op.theta != null) ? op.theta : -Infinity;
+            };
+            v1 = getGreek(a, pa); v2 = getGreek(b, pb);
+        }
+        else if (ocSortKey === 'iv') {
+            const getGreek = (r, pair) => {
+                const occ = pair ? buildOCCSymbol(pair.sto.symbol) : buildOCCSymbol(r.symbol);
+                const op = occ ? ocOptionPrices[occ] : null;
+                return (op && !op.loading && !op.error && op.iv != null) ? op.iv : -Infinity;
+            };
+            v1 = getGreek(a, pa); v2 = getGreek(b, pb);
+        }
         if (v1 < v2) return -ocSortDir;
         if (v1 > v2) return ocSortDir;
         return 0;
