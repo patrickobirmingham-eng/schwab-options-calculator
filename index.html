@@ -9615,6 +9615,9 @@ function tickerRefresh() {
     renderTickerLeaderboard(rows);
     renderTickerChart(rows);
     renderTickerTable(rows);
+    // Re-trigger scroll handler so float header resizes after content changes
+    const inner = document.getElementById('tickerInner');
+    if (inner && inner._tickerScrollHandler) inner._tickerScrollHandler();
 }
 
 function sortTickerTable(key) {
@@ -10088,13 +10091,63 @@ function showTickerBreakdown() {
     setTickerChartMode(tickerChartMode);
     tickerRefresh();
     initDraggableModal('tickerInner', '#e11d48', 1600);
+
+    // ── Floating sticky header for ticker table ───────────────────────────
+    setTimeout(() => {
+        const inner  = document.getElementById('tickerInner');
+        const table  = document.getElementById('tickerTable');
+        const thead  = table ? table.querySelector('thead') : null;
+        if (!inner || !table || !thead) return;
+
+        // Remove any stale float header
+        const old = document.getElementById('tickerFloatHeader');
+        if (old) old.remove();
+
+        const floatDiv = document.createElement('div');
+        floatDiv.id = 'tickerFloatHeader';
+        floatDiv.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;z-index:50;display:none;box-sizing:border-box;';
+        const floatTbl = document.createElement('table');
+        floatTbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.88rem;';
+        floatTbl.innerHTML = thead.outerHTML;
+        floatDiv.appendChild(floatTbl);
+        inner.appendChild(floatDiv);
+
+        const onScroll = () => {
+            const innerRect = inner.getBoundingClientRect();
+            const theadRect = thead.getBoundingClientRect();
+            const tableRect = table.getBoundingClientRect();
+            const theadH    = thead.offsetHeight;
+            const tableWrapper = table.closest('.ticker-table-desktop');
+            const wrapLeft = tableWrapper ? tableWrapper.getBoundingClientRect().left - innerRect.left + inner.scrollLeft : 0;
+            if (theadRect.top < innerRect.top && tableRect.bottom > innerRect.top + theadH) {
+                floatDiv.style.display = 'block';
+                floatDiv.style.top     = inner.scrollTop + 'px';
+                floatDiv.style.left    = wrapLeft + 'px';
+                floatDiv.style.width   = table.offsetWidth + 'px';
+            } else {
+                floatDiv.style.display = 'none';
+            }
+        };
+
+        if (inner._tickerScrollHandler) inner.removeEventListener('scroll', inner._tickerScrollHandler);
+        inner._tickerScrollHandler = onScroll;
+        inner.addEventListener('scroll', onScroll);
+    }, 150);
 }
 
 function closeTickerBreakdown() {
     document.getElementById('tickerModal').style.display = 'none';
     if (tickerChartInstance) { tickerChartInstance.destroy(); tickerChartInstance = null; }
     const inner = document.getElementById('tickerInner');
-    if (inner && inner._dragCleanup) inner._dragCleanup();
+    if (inner) {
+        if (inner._tickerScrollHandler) {
+            inner.removeEventListener('scroll', inner._tickerScrollHandler);
+            delete inner._tickerScrollHandler;
+        }
+        if (inner._dragCleanup) inner._dragCleanup();
+    }
+    const floatHdr = document.getElementById('tickerFloatHeader');
+    if (floatHdr) floatHdr.remove();
 }
 
 // ============================================================
