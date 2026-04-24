@@ -10209,10 +10209,12 @@ function showTaxPreview() {
 
     document.getElementById('taxModal').style.display = 'flex';
     renderTaxPreview();
+    initDraggableModal('taxInner', '#64748b', 780);
 }
 
 function closeTaxPreview() {
     document.getElementById('taxModal').style.display = 'none';
+    const _di = document.getElementById('taxInner'); if (_di) _di._dragInit = false;
 }
 
 function renderTaxPreview() {
@@ -10744,11 +10746,13 @@ function showPortfolioRisk() {
     }
     document.getElementById('riskModal').style.display = 'flex';
     renderPortfolioRisk();
+    initDraggableModal('riskInner', '#dc2626', 1100);
 }
 
 function closePortfolioRisk() {
     document.getElementById('riskModal').style.display = 'none';
     if (riskChartInstance) { riskChartInstance.destroy(); riskChartInstance = null; }
+    const _di = document.getElementById('riskInner'); if (_di) _di._dragInit = false;
 }
 
 function renderPortfolioRisk() {
@@ -10866,10 +10870,12 @@ function showExpirationCalendar() {
     }
     document.getElementById('calendarModal').style.display = 'flex';
     renderExpirationCalendar();
+    initDraggableModal('calendarInner', '#0891b2', 1000);
 }
 
 function closeExpirationCalendar() {
     document.getElementById('calendarModal').style.display = 'none';
+    const _di = document.getElementById('calendarInner'); if (_di) _di._dragInit = false;
 }
 
 function renderExpirationCalendar() {
@@ -11192,6 +11198,7 @@ async function showSpyBenchmark() {
         return;
     }
     document.getElementById('spyModal').style.display = 'flex';
+    initDraggableModal('spyInner', '#16a34a', 1100);
     document.getElementById('spyStatus').style.display = 'block';
     document.getElementById('spySummary').style.display = 'none';
     document.getElementById('spyChartContainer').style.display = 'none';
@@ -11234,6 +11241,7 @@ async function showSpyBenchmark() {
 function closeSpyBenchmark() {
     document.getElementById('spyModal').style.display = 'none';
     if (spyChartInstance) { spyChartInstance.destroy(); spyChartInstance = null; }
+    const _di = document.getElementById('spyInner'); if (_di) _di._dragInit = false;
 }
 
 // ============================================================
@@ -11248,6 +11256,7 @@ function showEarningsDates() {
     }
     document.getElementById('earningsModal').style.display = 'flex';
     document.getElementById('earningsModal').onclick = e => { if (e.target === document.getElementById('earningsModal')) closeEarningsModal(); };
+    initDraggableModal('earningsInner', '#f59e0b', 1100);
     // Use cached results if same daysAhead and < 30 minutes old
     const daysAhead = parseInt(document.getElementById('earningsDaysAhead')?.value, 10) || 60;
     const cache = window._earningsCache;
@@ -11261,6 +11270,7 @@ function showEarningsDates() {
 
 function closeEarningsModal() {
     document.getElementById('earningsModal').style.display = 'none';
+    const _di = document.getElementById('earningsInner'); if (_di) _di._dragInit = false;
 }
 
 // ============================================================
