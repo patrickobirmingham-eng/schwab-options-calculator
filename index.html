@@ -4553,7 +4553,10 @@ function showOpenCommitments() {
         const isCall = !!callMatch;
         const strike = isPut ? parseFloat(putMatch[1]) : isCall ? parseFloat(callMatch[1]) : null;
         const contracts = parseFloat(p.contracts) || 0;
-        const commitment = strike !== null ? strike * contracts * 100 : 0;
+        const action = (p.status || '').toLowerCase().includes('buy') ? 'BTO' : 'STO';
+        // Only STO positions carry a capital commitment (obligation to buy/sell shares).
+        // BTO positions (long options) are a paid debit — no commitment beyond premium paid.
+        const commitment = (action === 'STO' && strike !== null) ? strike * contracts * 100 : 0;
         const putCommitment = isPut ? commitment : 0;
         const callCommitment = isCall ? commitment : 0;
         const type = isPut ? 'Put' : isCall ? 'Call' : '—';
@@ -4562,9 +4565,7 @@ function showOpenCommitments() {
         const date = dateObj ? fmtDateMMDDYYYY(dateObj) : '—';
         const dte = calcDTE(p.symbol);
         const premiumReceived = Math.abs(p.openingPremium || 0);
-        const action = (p.status || '').toLowerCase().includes('buy') ? 'BTO' : 'STO';
-        const strikeDateMatch = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
-        const strikeDate = strikeDateMatch ? strikeDateMatch[1] : '—';
+        const strikeDate = sym.match(/(\d{1,2}\/\d{1,2}\/\d{4})/)?.[1] || '—';
         return { dateObj, date, symbol: p.symbol, strikeDate, action, strike, strikeDisplay, type, contracts, putCommitment, callCommitment, dte, premiumReceived };
     });
 
@@ -10671,11 +10672,11 @@ function _computeCapitalTied(positions) {
         const a = rows[i];
         let matched = -1;
 
-        if (a.type === 'Put') {
+        if (a.type === 'Put' || a.type === 'Call') {
             for (let j = i + 1; j < rows.length; j++) {
                 if (usedIdx.has(j)) continue;
                 const b = rows[j];
-                if (b.type !== 'Put') continue;
+                if (b.type !== a.type) continue;
                 if (b.ticker !== a.ticker) continue;
                 if (b.expiry !== a.expiry) continue;
                 if (b.contracts !== a.contracts) continue;
@@ -10697,8 +10698,11 @@ function _computeCapitalTied(positions) {
             usedIdx.add(i);
             usedIdx.add(matched);
         } else {
-            // Standalone: full notional (puts, calls, longs)
-            total += a.strike * a.contracts * 100;
+            // Standalone position — only STO legs carry a capital commitment.
+            // BTO (long options) have no capital obligation beyond the premium paid.
+            if (a.action === 'STO') {
+                total += a.strike * a.contracts * 100;
+            }
             usedIdx.add(i);
         }
     }
