@@ -212,6 +212,31 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-f
     .ticker-table-desktop { display: none !important; }
     .ticker-cards-mobile  { display: block !important; }
 }
+@media (max-width: 768px) {
+    /* Modal sizing */
+    #tickerInner { padding: 14px !important; min-height: unset !important; max-height: 98vh !important; }
+
+    /* Header buttons — wrap and shrink on mobile */
+    #tickerInner > div:first-child { flex-direction: column !important; align-items: flex-start !important; }
+    #tickerInner > div:first-child > div { flex-wrap: wrap !important; gap: 6px !important; }
+    #tickerInner > div:first-child button { padding: 6px 10px !important; font-size: 0.78rem !important; }
+
+    /* Filter bar — stack vertically */
+    .ticker-filter-bar { flex-direction: column !important; padding: 10px !important; gap: 8px !important; }
+    .ticker-filter-bar > div { width: 100% !important; }
+    .ticker-filter-bar select,
+    .ticker-filter-bar input { width: 100% !important; box-sizing: border-box !important; }
+
+    /* Summary pills — 2 rows of 5 */
+    #tickerSummaryPills { flex-wrap: wrap !important; gap: 5px !important; }
+    #tickerSummaryPills > div { flex: 1 1 calc(20% - 5px) !important; min-width: 60px !important; }
+
+    /* Leaderboard — stack vertically */
+    #tickerLeaderboard > div { grid-template-columns: 1fr !important; }
+
+    /* Chart buttons — wrap */
+    #tickerInner .ticker-chart-mode-btn { font-size: 0.75rem !important; padding: 5px 10px !important; }
+}
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .stats-section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 8px; padding-left: 4px; display: flex; align-items: center; gap: 8px; }
 .stats-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border-color); opacity: 0.6; }
@@ -712,7 +737,7 @@ th.oc-drop-target {
                 </div>
             </div>
             <!-- Date Filters -->
-            <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; justify-content:center;">
+            <div class="ticker-filter-bar" style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; justify-content:center;">
                 <div>
                     <div style="font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Quick Range</div>
                     <select id="tickerDatePreset" onchange="tickerApplyDatePreset()" style="padding:7px 10px; border-radius:8px; border:2px solid var(--border-color); background:var(--bg-input); color:var(--text-primary); font-size:0.85rem;">
@@ -760,7 +785,7 @@ th.oc-drop-target {
                 <div id="tickerDateRangeBar" style="font-size:0.8rem; color:var(--text-secondary); align-self:center; font-style:italic;"></div>
             </div>
             <!-- Summary pills row -->
-            <div id="tickerSummaryPills" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
+            <div id="tickerSummaryPills" style="display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:14px;"></div>
             <!-- Best / Worst leaderboard -->
             <div id="tickerLeaderboard" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px; margin-bottom:24px;"></div>
             <!-- Chart -->
@@ -9978,9 +10003,9 @@ function renderTickerSummaryPills(rows) {
         .join(' · ');
 
     const pill = (label, val, color) =>
-        `<div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center;">
-            <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">${label}</div>
-            <div style="font-size:1.1rem; font-weight:700; color:${color};">${val}</div>
+        `<div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:8px; padding:7px 8px; text-align:center; flex:1; min-width:0;">
+            <div style="font-size:0.65rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</div>
+            <div style="font-size:0.92rem; font-weight:700; color:${color}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${val}</div>
         </div>`;
 
     // Tooltip: show abbrev = full description for each visible strategy
@@ -9997,15 +10022,15 @@ function renderTickerSummaryPills(rows) {
         pill('Overall Win Rate', overallWinRate.toFixed(1)+'%', overallWinRate>=50?'#4ade80':'#f87171') +
         pill('Avg Premium / Trade', overallAvgPremium !== null ? '$'+overallAvgPremium.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—', '#4ade80') +
         pill('% Premium Captured', overallPremCaptured !== null ? overallPremCaptured.toFixed(1)+'%' : '—', overallPremCaptured !== null ? (overallPremCaptured>=50?'#4ade80':'#f87171') : 'var(--text-secondary)') +
-        (overallPF !== null ? `<div title="Gross wins ÷ gross losses. Above 1.5 is healthy — means you make more on winners than you give back on losers." style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center; cursor:help;">
-            <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Profit Factor <span style="opacity:0.6;">ⓘ</span></div>
-            <div style="font-size:1.1rem; font-weight:700; color:${overallPF>=1.5?'#4ade80':overallPF>=1?'#facc15':'#f87171'};">${overallPF.toFixed(2)}</div>
+        (overallPF !== null ? `<div title="Gross wins ÷ gross losses. Above 1.5 is healthy — means you make more on winners than you give back on losers." style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:8px; padding:7px 8px; text-align:center; cursor:help; flex:1; min-width:0;">
+            <div style="font-size:0.65rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Profit Factor <span style="opacity:0.6;">ⓘ</span></div>
+            <div style="font-size:0.92rem; font-weight:700; color:${overallPF>=1.5?'#4ade80':overallPF>=1?'#facc15':'#f87171'}; white-space:nowrap;">${overallPF.toFixed(2)}</div>
         </div>` : '') +
         (overallAvgWin !== null ? pill('Avg Win', '+$'+overallAvgWin.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), '#4ade80') : '') +
         (overallAvgLoss !== null ? pill('Avg Loss', '-$'+overallAvgLoss.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), '#f87171') : '') +
-        (topStrats ? `<div title="${stratTooltip.replace(/"/g,'&quot;')}" style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:10px; padding:10px 16px; text-align:center; cursor:help;">
-            <div style="font-size:0.72rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">Strategy Mix <span style="opacity:0.6;">ⓘ</span></div>
-            <div style="font-size:1.1rem; font-weight:700; color:#a78bfa;">${topStrats}</div>
+        (topStrats ? `<div title="${stratTooltip.replace(/"/g,'&quot;')}" style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:8px; padding:7px 8px; text-align:center; cursor:help; flex:1; min-width:0;">
+            <div style="font-size:0.65rem; color:var(--text-secondary); text-transform:uppercase; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Strategy Mix <span style="opacity:0.6;">ⓘ</span></div>
+            <div style="font-size:0.92rem; font-weight:700; color:#a78bfa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${topStrats}</div>
         </div>` : '') +
         pill('Tickers Traded', rows.length, 'var(--text-primary)') +
         (worstTicker && worstTicker.totalPL < 0 ? pill('Worst Ticker', worstTicker.ticker + ' (-$'+Math.abs(worstTicker.totalPL).toLocaleString(undefined,{maximumFractionDigits:0})+')', '#f87171') : '');
@@ -10018,43 +10043,44 @@ function renderTickerLeaderboard(rows) {
     const el = document.getElementById('tickerLeaderboard');
     if (!el) return;
 
-    // Split by sign, skip exact zeros (they're noise on both lists)
     const winners = rows.filter(r => r.totalPL > 0).sort((a, b) => b.totalPL - a.totalPL).slice(0, 5);
     const losers  = rows.filter(r => r.totalPL < 0).sort((a, b) => a.totalPL - b.totalPL).slice(0, 5);
 
     const fmt$ = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-    const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="display:inline-block; width:40px; text-align:center; font-size:1.7rem; color:var(--text-secondary); font-weight:600;">${i+1}</span>`;
+    const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i === 3 ? '4️⃣' : '5️⃣';
 
     const buildList = (list, accentColor) => {
-        if (!list.length) {
-            return `<div style="padding:16px 14px; text-align:center; color:var(--text-secondary); font-size:0.85rem; font-style:italic;">No tickers in this category for the current filters.</div>`;
-        }
-        return list.map((r, i) => {
-            const isLast = i === list.length - 1;
-            return `
-            <div style="display:flex; align-items:center; gap:12px; padding:10px 14px;${isLast ? '' : ' border-bottom:1px solid var(--border-color);'}">
-                <div style="flex:0 0 48px; font-size:1.95rem; text-align:center;">${medal(i)}</div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">${r.ticker}</div>
-                    <div style="font-size:0.72rem; color:var(--text-secondary); margin-top:2px;">${r.trades} ${r.trades === 1 ? 'trade' : 'trades'}</div>
-                </div>
-                <div style="text-align:right; font-weight:700; font-size:1rem; color:${accentColor}; white-space:nowrap;">${fmt$(r.totalPL)}</div>
-            </div>`;
-        }).join('');
+        if (!list.length) return `<div style="padding:8px 10px;color:var(--text-secondary);font-size:0.8rem;font-style:italic;">None in current filters.</div>`;
+        return list.map((r, i) => `
+            <div style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:${i%2===0?'transparent':'rgba(255,255,255,0.02)'};">
+                <span style="font-size:1rem;flex-shrink:0;">${medal(i)}</span>
+                <span style="font-weight:700;color:var(--text-primary);font-size:0.88rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.ticker}</span>
+                <span style="font-size:0.72rem;color:var(--text-secondary);flex-shrink:0;white-space:nowrap;">${r.trades}t</span>
+                <span style="font-weight:700;font-size:0.88rem;color:${accentColor};flex-shrink:0;white-space:nowrap;">${fmt$(r.totalPL)}</span>
+            </div>`).join('');
     };
 
-    const card = (title, icon, list, accentColor, borderColor) => `
-        <div style="background:var(--bg-primary); border:1px solid ${borderColor}; border-radius:12px; overflow:hidden;">
-            <div style="padding:12px 16px; background:${borderColor === '#4ade80' ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)'}; border-bottom:1px solid ${borderColor}; display:flex; align-items:center; gap:8px;">
-                <span style="font-size:1.1rem;">${icon}</span>
-                <span style="font-size:0.78rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:${accentColor};">${title}</span>
+    el.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:var(--bg-primary);border:1px solid rgba(74,222,128,0.4);border-radius:10px;padding:8px 10px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(74,222,128,0.25);">
+                    <span style="font-size:0.9rem;">🏆</span>
+                    <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:#4ade80;">Top 5 Profitable</span>
+                </div>
+                ${buildList(winners, '#4ade80')}
             </div>
-            <div>${list}</div>
+            <div style="background:var(--bg-primary);border:1px solid rgba(248,113,113,0.4);border-radius:10px;padding:8px 10px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(248,113,113,0.25);">
+                    <span style="font-size:0.9rem;">📉</span>
+                    <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:#f87171;">Top 5 Damaging</span>
+                </div>
+                ${buildList(losers, '#f87171')}
+            </div>
         </div>`;
 
-    el.innerHTML =
-        card('Top 5 Most Profitable', '🏆', buildList(winners, '#4ade80'), '#4ade80', '#4ade80') +
-        card('Top 5 Most Damaging', '📉', buildList(losers, '#f87171'), '#f87171', '#f87171');
+    // Update container to not use auto-fit grid (we handle layout ourselves)
+    el.style.display = 'block';
+    el.style.marginBottom = '14px';
 }
 
 function showTickerBreakdown() {
