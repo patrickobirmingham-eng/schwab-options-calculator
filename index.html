@@ -11369,6 +11369,19 @@ async function lookupStockInfo(ticker) {
                     };
                 }).catch(() => { r.candles = null; }),
         ]);
+        // Append today's live price as a synthetic candle if history ends before today
+        if (r.candles && r.priceTarget?.currentPrice) {
+            const now = new Date();
+            const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            const lastTs   = r.candles.t[r.candles.t.length - 1];
+            const lastD    = new Date(lastTs * 1000);
+            const lastLocal = `${lastD.getFullYear()}-${String(lastD.getMonth()+1).padStart(2,'0')}-${String(lastD.getDate()).padStart(2,'0')}`;
+            if (lastLocal < localToday) {
+                r.candles.t.push(Math.floor(new Date(localToday + 'T12:00:00').getTime() / 1000));
+                r.candles.c.push(parseFloat(r.priceTarget.currentPrice));
+                r.candles._todayInjected = true;
+            }
+        }
     } catch(e) {
         content.innerHTML = `<div style="text-align:center;padding:40px;color:#f87171;">Failed to fetch data for <strong>${ticker}</strong>. Check the symbol and try again.</div>`;
         return;
@@ -11603,6 +11616,20 @@ async function fetchCompanyInfo() {
                         };
                     }).catch(() => { r.candles = null; }),
             ]);
+            // Append today's live price as a synthetic candle if history ends before today
+            if (r.candles && r.priceTarget?.currentPrice) {
+                const now = new Date();
+                const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                const lastTs   = r.candles.t[r.candles.t.length - 1];
+                const lastD    = new Date(lastTs * 1000);
+                const lastLocal = `${lastD.getFullYear()}-${String(lastD.getMonth()+1).padStart(2,'0')}-${String(lastD.getDate()).padStart(2,'0')}`;
+                if (lastLocal < localToday) {
+                    // Use noon local time to avoid DST/timezone edge cases
+                    r.candles.t.push(Math.floor(new Date(localToday + 'T12:00:00').getTime() / 1000));
+                    r.candles.c.push(parseFloat(r.priceTarget.currentPrice));
+                    r.candles._todayInjected = true;
+                }
+            }
             results[ticker] = r;
         }));
 
@@ -12047,7 +12074,12 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
     const allTs = candles.t;
     const allClose = candles.c;
     const validPairs = allTs.map((ts, i) => ({ ts, c: allClose[i] })).filter(p => p.c != null);
-    const allDates = validPairs.map(p => new Date(p.ts * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+    const todayInjected = !!candles._todayInjected;
+    const allDates = validPairs.map((p, i) => {
+        const isToday = todayInjected && i === validPairs.length - 1;
+        if (isToday) return 'Today';
+        return new Date(p.ts * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    });
     const validClose = validPairs.map(p => p.c);
 
     // Moving average helper
@@ -12100,7 +12132,10 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
             data: prices,
             borderColor: '#8b5cf6',
             borderWidth: 1.5,
-            pointRadius: 0,
+            pointRadius: prices.map((_, i) => (todayInjected && i === prices.length - 1) ? 5 : 0),
+            pointBackgroundColor: '#8b5cf6',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1.5,
             fill: false,
             tension: 0.3,
             order: 3,
@@ -12183,7 +12218,9 @@ function drawCompanyPriceChart(ticker, candles, isDark) {
                     callbacks: {
                         label: ctx => {
                             if (ctx.dataset.label === 'BB Lower') return null;
-                            return ` ${ctx.dataset.label}: $${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}`;
+                            const isToday = todayInjected && ctx.dataIndex === prices.length - 1 && ctx.dataset.label === 'Close';
+                            const prefix = isToday ? ' Live Price' : ` ${ctx.dataset.label}`;
+                            return `${prefix}: $${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) : '—'}`;
                         }
                     }
                 }
