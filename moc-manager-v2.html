@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOC Manager — Savannah Site</title>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google API client -->
+<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:        #F0F2F5;
+    --surface:   #FFFFFF;
+    --border:    #D8DCE3;
+    --text:      #1A1D23;
+    --muted:     #6B7280;
+    --accent:    #1B4F8A;
+    --accent-lt: #E8EFF8;
+    --green:     #15803D;
+    --green-lt:  #DCFCE7;
+    --yellow:    #B45309;
+    --yellow-lt: #FEF3C7;
+    --red:       #B91C1C;
+    --red-lt:    #FEE2E2;
+    --grey-lt:   #F3F4F6;
+    --radius:    6px;
+    --shadow:    0 1px 3px rgba(0,0,0,.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  /* ── SETUP SCREEN ── */
+  #setup-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--accent); }
+  .setup-box { background:var(--surface); border-radius:10px; padding:40px 36px; width:420px; box-shadow:0 8px 32px rgba(0,0,0,.18); }
+  .setup-box h1 { font-size:20px; font-weight:600; color:var(--accent); margin-bottom:4px; }
+  .setup-box p { color:var(--muted); font-size:13px; margin-bottom:24px; }
+  .site-badge { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:16px; letter-spacing:.08em; text-transform:uppercase; }
+  .setup-step { background:var(--grey-lt); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px; }
+  .setup-step label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:6px; }
+  .setup-step input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:inherit; outline:none; }
+  .setup-step input:focus { border-color:var(--accent); }
+  .setup-step .hint { font-size:11px; color:var(--muted); margin-top:5px; line-height:1.5; }
+  .setup-step .hint a { color:var(--accent); }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen { display:none; align-items:center; justify-content:center; min-height:100vh; background:var(--accent); }
+  .login-box { background:var(--surface); border-radius:10px; padding:40px 36px; width:380px; box-shadow:0 8px 32px rgba(0,0,0,.18); }
+  .login-box h1 { font-size:20px; font-weight:600; margin-bottom:4px; color:var(--accent); }
+  .login-box p { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .google-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:11px 16px; border:1px solid var(--border); border-radius:var(--radius); background:#fff; cursor:pointer; font-size:14px; font-family:inherit; font-weight:500; transition:box-shadow .15s; margin-bottom:16px; }
+  .google-btn:hover { box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .google-btn svg { width:18px; height:18px; }
+  .divider { display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--muted); font-size:12px; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .login-box label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:4px; }
+  .login-box select, .login-box input[type=text], .login-box input[type=password] { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius); font-size:14px; font-family:inherit; margin-bottom:12px; outline:none; }
+  .login-box select:focus, .login-box input:focus { border-color:var(--accent); }
+  .btn-primary { background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:var(--radius); cursor:pointer; font-size:14px; font-weight:500; font-family:inherit; width:100%; transition:opacity .15s; }
+  .btn-primary:hover { opacity:.88; }
+  #login-error { color:var(--red); font-size:13px; margin-top:8px; display:none; }
+  .google-user-info { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--green-lt); border-radius:var(--radius); margin-bottom:14px; font-size:13px; }
+  .google-user-info img { width:32px; height:32px; border-radius:50%; }
+  .google-user-info .gname { font-weight:600; color:var(--green); }
+  .google-user-info .gemail { color:var(--muted); font-size:11px; }
+
+  /* ── SHELL ── */
+  #app { display:none; min-height:100vh; }
+  header { background:var(--accent); color:#fff; padding:0 24px; display:flex; align-items:center; justify-content:space-between; height:52px; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .header-left h1 { font-size:16px; font-weight:600; }
+  .header-left span { font-size:11px; opacity:.65; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.08em; }
+  .user-badge { display:flex; align-items:center; gap:10px; font-size:13px; opacity:.9; }
+  .user-badge img { width:28px; height:28px; border-radius:50%; border:2px solid rgba(255,255,255,.4); }
+  .role-pill { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; padding:2px 8px; border-radius:20px; background:rgba(255,255,255,.2); }
+  .sync-indicator { font-size:11px; opacity:.7; display:flex; align-items:center; gap:5px; }
+  .btn-logout { background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff; padding:4px 12px; border-radius:var(--radius); cursor:pointer; font-size:12px; font-family:inherit; transition:background .15s; }
+  .btn-logout:hover { background:rgba(255,255,255,.15); }
+
+  nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; display:flex; gap:0; }
+  .nav-tab { padding:12px 18px; cursor:pointer; font-size:13px; font-weight:500; border-bottom:2px solid transparent; color:var(--muted); transition:all .15s; user-select:none; }
+  .nav-tab:hover { color:var(--accent); }
+  .nav-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  main { padding:24px; max-width:1300px; margin:0 auto; }
+
+  /* ── KPI ── */
+  .kpi-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:24px; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow); }
+  .kpi-val { font-size:32px; font-weight:600; font-family:'IBM Plex Mono',monospace; line-height:1; }
+  .kpi-label { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-top:6px; }
+  .kpi.accent .kpi-val { color:var(--accent); }
+  .kpi.green  .kpi-val { color:var(--green); }
+  .kpi.yellow .kpi-val { color:var(--yellow); }
+  .kpi.red    .kpi-val { color:var(--red); }
+
+  /* ── CARDS / TABLES ── */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .card-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .card-header h2 { font-size:14px; font-weight:600; }
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .filter-row input, .filter-row select { padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:inherit; outline:none; background:var(--grey-lt); }
+  .filter-row input:focus, .filter-row select:focus { border-color:var(--accent); background:#fff; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); background:var(--grey-lt); border-bottom:1px solid var(--border); white-space:nowrap; }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr.clickable:hover td { background:var(--accent-lt); cursor:pointer; }
+  .empty-row td { text-align:center; color:var(--muted); padding:32px; font-style:italic; }
+
+  /* ── PILLS ── */
+  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+  .pill-open      { background:var(--yellow-lt); color:var(--yellow); }
+  .pill-closed    { background:var(--green-lt);  color:var(--green); }
+  .pill-cancelled { background:var(--grey-lt);   color:var(--muted); }
+
+  /* ── BUTTONS ── */
+  .btn { padding:7px 14px; border-radius:var(--radius); cursor:pointer; font-size:13px; font-family:inherit; font-weight:500; border:1px solid transparent; transition:opacity .15s; }
+  .btn-sm { padding:4px 10px; font-size:12px; }
+  .btn-accent  { background:var(--accent); color:#fff; }
+  .btn-accent:hover  { opacity:.88; }
+  .btn-outline { background:transparent; border-color:var(--border); color:var(--text); }
+  .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger  { background:var(--red); color:#fff; }
+  .btn-danger:hover  { opacity:.88; }
+  .btn-green   { background:var(--green); color:#fff; }
+
+  /* ── MODAL ── */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+  .modal-backdrop.open { display:flex; }
+  .modal { background:var(--surface); border-radius:10px; width:100%; max-width:720px; box-shadow:0 16px 48px rgba(0,0,0,.22); margin:auto; }
+  .modal-header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .modal-header h2 { font-size:16px; font-weight:600; }
+  .modal-body { padding:24px; }
+  .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+  .close-btn { background:none; border:none; cursor:pointer; font-size:20px; color:var(--muted); line-height:1; padding:0 4px; }
+  .close-btn:hover { color:var(--text); }
+
+  /* ── FORM ── */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-grid .full { grid-column:1/-1; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  .form-group label { font-size:12px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .form-group input, .form-group select, .form-group textarea { padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:inherit; outline:none; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--accent); }
+  .form-group textarea { resize:vertical; min-height:72px; }
+  .form-section { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--accent); margin:20px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--accent-lt); grid-column:1/-1; }
+
+  /* ── TASK ROWS ── */
+  .task-edit-row { display:grid; grid-template-columns:2fr 1.2fr 1fr 1fr auto; gap:8px; align-items:center; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; background:var(--grey-lt); }
+  .task-edit-row input, .task-edit-row select { padding:5px 8px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:inherit; width:100%; background:#fff; }
+  .add-task-btn { display:flex; align-items:center; gap:6px; background:none; border:1px dashed var(--border); border-radius:var(--radius); padding:8px 14px; cursor:pointer; color:var(--muted); font-size:13px; font-family:inherit; width:100%; margin-top:4px; transition:border-color .15s; }
+  .add-task-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ── DETAIL MODAL ── */
+  .detail-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; margin-bottom:16px; }
+  .meta-chip { font-size:12px; color:var(--muted); background:var(--grey-lt); padding:3px 10px; border-radius:20px; }
+  .detail-task-row { display:grid; grid-template-columns:2fr 1.2fr 1fr 1fr; gap:10px; align-items:start; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; background:var(--grey-lt); }
+  .detail-task-row.overdue { border-color:var(--red); background:var(--red-lt); }
+  .detail-task-row input, .detail-task-row select { padding:5px 8px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:inherit; width:100%; background:#fff; }
+  .task-name-cell .task-num { font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; margin-bottom:2px; }
+  .task-name-cell .task-name { font-size:13px; font-weight:500; margin-bottom:6px; }
+
+  /* ── SETTINGS ── */
+  .settings-card { max-width:640px; }
+  .settings-row { display:flex; flex-direction:column; gap:5px; margin-bottom:16px; }
+  .settings-row label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .settings-row input { padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:inherit; outline:none; }
+  .settings-row input:focus { border-color:var(--accent); }
+  .settings-note { font-size:12px; color:var(--muted); margin-top:4px; line-height:1.6; }
+  .settings-section { font-size:13px; font-weight:600; color:var(--accent); margin:24px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--accent-lt); }
+
+  /* ── IMPORT ── */
+  .import-area { border:2px dashed var(--border); border-radius:var(--radius); padding:28px; text-align:center; cursor:pointer; transition:border-color .15s; margin-bottom:12px; }
+  .import-area:hover { border-color:var(--accent); }
+  .import-area input { display:none; }
+  .import-area p { color:var(--muted); font-size:13px; }
+  .import-area strong { color:var(--accent); }
+
+  /* ── TOAST ── */
+  #toast { position:fixed; bottom:20px; right:20px; padding:11px 18px; border-radius:var(--radius); font-size:13px; font-weight:500; z-index:400; display:none; align-items:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,.2); max-width:360px; }
+  #toast.show { display:flex; }
+  #toast.success { background:var(--green); color:#fff; }
+  #toast.error   { background:var(--red); color:#fff; }
+  #toast.info    { background:var(--accent); color:#fff; }
+  #toast.warning { background:var(--yellow); color:#fff; }
+
+  /* ── LOADING OVERLAY ── */
+  #loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.75); z-index:500; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+  #loading-overlay.show { display:flex; }
+  .spinner-lg { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── SHEET STATUS ── */
+  .sheet-status { display:flex; align-items:center; gap:6px; font-size:12px; }
+  .sheet-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); }
+  .sheet-dot.connected { background:var(--green); }
+  .sheet-dot.syncing { background:var(--yellow); animation:pulse 1s infinite; }
+  .sheet-dot.error { background:var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:700px){
+    .form-grid { grid-template-columns:1fr; }
+    .kpi-row { grid-template-columns:1fr 1fr; }
+    .task-edit-row { grid-template-columns:1fr 1fr; }
+    .detail-task-row { grid-template-columns:1fr 1fr; }
+    main { padding:14px; }
+    header { padding:0 14px; }
+    nav { padding:0 8px; overflow-x:auto; }
+    .nav-tab { padding:12px 10px; white-space:nowrap; }
+    .dash-grid { grid-template-columns:1fr !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN (first time only) -->
+<div id="setup-screen">
+  <div class="setup-box">
+    <div class="site-badge">Savannah Site · MOC System</div>
+    <h1>First-Time Setup</h1>
+    <p>Connect your Google Sheet to get started. You only need to do this once.</p>
+
+    <div class="setup-step">
+      <label>Google OAuth Client ID</label>
+      <input type="text" id="setup-client-id" placeholder="123456789-abc…apps.googleusercontent.com">
+      <div class="hint">
+        Create at <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> →
+        APIs &amp; Services → Credentials → OAuth 2.0 Client ID (Web application).
+        Add <strong>this file's URL</strong> as an Authorized JavaScript Origin.
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <label>Google Sheets API Key</label>
+      <input type="text" id="setup-api-key" placeholder="AIzaSy…">
+      <div class="hint">Same Google Cloud project → Credentials → API Key. Enable <strong>Google Sheets API</strong>.</div>
+    </div>
+
+    <div class="setup-step">
+      <label>Spreadsheet ID</label>
+      <input type="text" id="setup-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+      <div class="hint">From your Sheet URL: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit. Share the sheet with anyone who will use this app.</div>
+    </div>
+
+    <div class="setup-step">
+      <label>Sheet Tab Name</label>
+      <input type="text" id="setup-sheet-name" placeholder="MOCData">
+      <div class="hint">The exact name of the tab in your Google Sheet. Create a tab with this name if it doesn't exist.</div>
+    </div>
+
+    <button class="btn-primary" onclick="saveSetup()">Save &amp; Continue</button>
+    <div id="setup-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none;"></div>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Already configured? <a href="#" onclick="loadSetupFromStorage();return false;" style="color:var(--accent);">Load saved settings</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="site-badge">Savannah Site · MOC System</div>
+    <h1>Sign In</h1>
+    <p>Sign in with Google, then select your role.</p>
+
+    <div id="google-signed-in-info" style="display:none;"></div>
+    <button class="google-btn" id="google-signin-btn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+
+    <div class="divider">then select your role</div>
+
+    <label>Your Name</label>
+    <input type="text" id="login-name" placeholder="e.g. Patrick Birmingham">
+    <label>Role</label>
+    <select id="login-role">
+      <option value="">— Select role —</option>
+      <option value="admin">Admin (full access)</option>
+      <option value="qa">QA Manager</option>
+      <option value="assignee">Assignee</option>
+      <option value="manager">Manager (read-only)</option>
+    </select>
+    <label>Role Passcode</label>
+    <input type="password" id="login-pass" placeholder="Enter passcode">
+    <button class="btn-primary" onclick="doLogin()" style="margin-top:4px;">Enter App</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <h1>MOC Manager</h1>
+      <span>Savannah Site</span>
+    </div>
+    <div class="user-badge">
+      <div class="sheet-status">
+        <div class="sheet-dot" id="sheet-dot"></div>
+        <span id="sheet-status-txt" style="opacity:.7;font-size:11px;"></span>
+      </div>
+      <img id="hdr-avatar" src="" style="display:none;">
+      <span id="hdr-name"></span>
+      <span class="role-pill" id="hdr-role"></span>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+  <nav>
+    <div class="nav-tab active" onclick="showTab('dashboard')">Dashboard</div>
+    <div class="nav-tab" onclick="showTab('mocs')">MOC List</div>
+    <div class="nav-tab" id="tab-settings-btn" onclick="showTab('settings')">Settings</div>
+  </nav>
+  <main>
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="dash-grid">
+        <div class="card">
+          <div class="card-header"><h2>Open MOCs</h2></div>
+          <table><thead><tr><th>MOC</th><th>Title</th><th>Open Tasks</th><th>Target Close</th></tr></thead>
+          <tbody id="dash-open-body"></tbody></table>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Overdue Tasks</h2></div>
+          <table><thead><tr><th>Task</th><th>MOC</th><th>Assignee</th><th>Due</th></tr></thead>
+          <tbody id="dash-overdue-body"></tbody></table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><h2>My Open Tasks</h2></div>
+        <table><thead><tr><th>Task #</th><th>MOC</th><th>Task</th><th>Status</th><th>Due Date</th></tr></thead>
+        <tbody id="my-tasks-body"></tbody></table>
+      </div>
+    </div>
+
+    <!-- MOC LIST -->
+    <div id="tab-mocs" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <h2>All MOCs</h2>
+          <div class="filter-row">
+            <input type="text" id="filter-search" placeholder="Search…" oninput="renderMOCList()">
+            <select id="filter-status" onchange="renderMOCList()">
+              <option value="">All Statuses</option>
+              <option value="OPEN">Open</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+            <select id="filter-dept" onchange="renderMOCList()">
+              <option value="">All Depts</option>
+              <option value="M&E">M&amp;E</option>
+              <option value="QA">QA</option>
+              <option value="HSSE">HSSE</option>
+              <option value="SC">SC</option>
+              <option value="MM">MM</option>
+              <option value="OPS">OPS</option>
+            </select>
+            <button class="btn btn-accent" id="btn-new-moc" onclick="openMOCModal()">+ New MOC</button>
+            <button class="btn btn-outline" onclick="loadFromSheet()">↻ Refresh</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>MOC #</th><th>Title</th><th>Status</th><th>Risk</th><th>Tasks</th><th>Target Close</th><th>Review Date</th><th>Actions</th></tr></thead>
+          <tbody id="moc-list-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" style="display:none;">
+      <div class="card settings-card">
+        <div class="card-header"><h2>Google Sheets Configuration</h2></div>
+        <div class="modal-body">
+          <div class="settings-section">Connection</div>
+          <div class="settings-row"><label>OAuth Client ID</label><input type="text" id="cfg-client-id"><div class="settings-note">From Google Cloud Console → Credentials → OAuth 2.0 Client ID</div></div>
+          <div class="settings-row"><label>API Key</label><input type="text" id="cfg-api-key"><div class="settings-note">From Google Cloud Console → Credentials → API Key (Sheets API must be enabled)</div></div>
+          <div class="settings-row"><label>Spreadsheet ID</label><input type="text" id="cfg-sheet-id"><div class="settings-note">The long ID in your Sheet URL between /d/ and /edit</div></div>
+          <div class="settings-row"><label>Sheet Tab Name</label><input type="text" id="cfg-sheet-name"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-accent" onclick="saveConfigFromSettings()">Save Configuration</button>
+            <button class="btn btn-outline" onclick="testSheetConnection()">Test Connection</button>
+          </div>
+          <div id="conn-result" style="margin-top:10px;font-size:13px;"></div>
+
+          <div class="settings-section">Role Passcodes</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="settings-row"><label>Admin</label><input type="text" id="pc-admin"></div>
+            <div class="settings-row"><label>QA Manager</label><input type="text" id="pc-qa"></div>
+            <div class="settings-row"><label>Assignee</label><input type="text" id="pc-assignee"></div>
+            <div class="settings-row"><label>Manager</label><input type="text" id="pc-manager"></div>
+          </div>
+          <button class="btn btn-outline" onclick="savePasscodes()">Save Passcodes</button>
+          <div class="settings-note" style="margin-top:6px;">Default passcodes: admin123 / qa123 / assign123 / mgr123</div>
+
+          <div class="settings-section">Import Existing Spreadsheet</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Upload a CSV export of your existing MOC tracking spreadsheet. This will write all records to your Google Sheet.</p>
+          <div class="import-area" onclick="document.getElementById('csv-import').click()">
+            <input type="file" id="csv-import" accept=".csv" onchange="importCSV(event)">
+            <p><strong>Click to upload CSV</strong><br>Export your spreadsheet as .csv then upload here</p>
+          </div>
+          <div id="import-result" style="font-size:13px;margin-top:8px;"></div>
+
+          <div class="settings-section">Sheet Column Guide</div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.8;">
+            Your Google Sheet tab should have these columns in row 1:<br>
+            <code style="background:var(--grey-lt);padding:2px 6px;border-radius:3px;font-size:11px;">ID | Task# | MOC | MOC_Status | MOC_Closure | Proposed_Closure | Assignee | Review_Date | Due_Date | Task | Overdue | Department | Task_Status | Notes</code>
+          </p>
+          <button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="createSheetHeaders()">Auto-Create Headers in Sheet</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MOC MODAL -->
+<div class="modal-backdrop" id="moc-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="moc-modal-title">New MOC</h2>
+      <button class="close-btn" onclick="closeMOCModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-section">MOC Details</div>
+        <div class="form-group"><label>MOC ID</label><input type="text" id="f-moc-id" placeholder="e.g. 5275352"></div>
+        <div class="form-group"><label>MOC Title</label><input type="text" id="f-moc-title" placeholder="e.g. New Conveyor Belt"></div>
+        <div class="form-group"><label>MOC Status</label>
+          <select id="f-moc-status"><option value="OPEN">Open</option><option value="CLOSED">Closed</option></select>
+        </div>
+        <div class="form-group"><label>Change Type</label>
+          <select id="f-change-type"><option value="Minor">Minor</option><option value="Major">Major</option><option value="Emergency">Emergency</option></select>
+        </div>
+        <div class="form-group"><label>Risk Level</label>
+          <select id="f-risk"><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select>
+        </div>
+        <div class="form-group"><label>Department</label>
+          <select id="f-dept"><option value="M&E">M&amp;E</option><option value="QA">QA</option><option value="HSSE">HSSE</option><option value="SC">SC</option><option value="MM">MM</option><option value="OPS">OPS</option></select>
+        </div>
+        <div class="form-group"><label>Review Date</label><input type="date" id="f-review-date"></div>
+        <div class="form-group"><label>Proposed Closure Date</label><input type="date" id="f-closure-date"></div>
+        <div class="form-group"><label>MOC Closure (Actual)</label><input type="date" id="f-moc-closure"></div>
+        <div class="form-group full"><label>Change Description</label><textarea id="f-description" placeholder="Describe the change…"></textarea></div>
+        <div class="form-group full"><label>Reason / Motivation</label><textarea id="f-reason"></textarea></div>
+        <div class="form-section">Tasks</div>
+      </div>
+      <div id="task-list-edit"></div>
+      <button class="add-task-btn" onclick="addTaskRow()">+ Add Task</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMOCModal()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-moc" onclick="deleteMOC()" style="display:none;">Delete MOC</button>
+      <button class="btn btn-accent" onclick="saveMOC()">Save to Sheet</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK DETAIL MODAL -->
+<div class="modal-backdrop" id="task-modal">
+  <div class="modal" style="max-width:820px;">
+    <div class="modal-header">
+      <h2 id="task-modal-title">MOC Detail</h2>
+      <button class="close-btn" onclick="closeTaskModal()">×</button>
+    </div>
+    <div class="modal-body" id="task-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeTaskModal()">Close</button>
+      <button class="btn btn-accent" id="task-save-btn" onclick="saveTaskUpdates()">Save Changes to Sheet</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="spinner-lg"></div>
+  <div id="loading-msg" style="font-size:14px;color:var(--muted);">Loading…</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════════════════════════
+const CFG_KEY = 'moc_cfg_v2';
+const PC_KEY  = 'moc_pc_v2';
+
+let cfg = { clientId:'', apiKey:'', sheetId:'', sheetName:'MOCData' };
+let passcodes = { admin:'admin123', qa:'qa123', assignee:'assign123', manager:'mgr123' };
+let currentUser = null;
+let db = { mocs:[] };          // local cache of Sheet data
+let tokenClient = null;
+let accessToken = null;
+let googleUser = null;         // { name, email, picture }
+let editingMOCId = null;
+let detailMOCId  = null;
+let taskRows = [];
+
+// Sheet columns (0-indexed)
+const COL = { ID:0, TASK_NUM:1, MOC:2, MOC_STATUS:3, MOC_CLOSURE:4, PROPOSED_CLOSURE:5,
+              ASSIGNEE:6, REVIEW_DATE:7, DUE_DATE:8, TASK:9, OVERDUE:10,
+              DEPARTMENT:11, TASK_STATUS:12, NOTES:13 };
+const NUM_COLS = 14;
+const HEADERS  = ['ID','Task#','MOC','MOC_Status','MOC_Closure','Proposed_Closure',
+                  'Assignee','Review_Date','Due_Date','Task','Overdue','Department','Task_Status','Notes'];
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+function init() {
+  try { cfg = { ...cfg, ...JSON.parse(localStorage.getItem(CFG_KEY)) }; } catch(e) {}
+  try { passcodes = { ...passcodes, ...JSON.parse(localStorage.getItem(PC_KEY)) }; } catch(e) {}
+  if (cfg.clientId && cfg.apiKey && cfg.sheetId) {
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+}
+
+function gapiLoaded() {
+  gapi.load('client', async () => {
+    if (cfg.apiKey) {
+      await gapi.client.init({ apiKey: cfg.apiKey, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════════════════════
+function saveSetup() {
+  const clientId  = document.getElementById('setup-client-id').value.trim();
+  const apiKey    = document.getElementById('setup-api-key').value.trim();
+  const sheetId   = document.getElementById('setup-sheet-id').value.trim();
+  const sheetName = document.getElementById('setup-sheet-name').value.trim() || 'MOCData';
+  const err = document.getElementById('setup-error');
+  if (!clientId || !apiKey || !sheetId) { err.style.display='block'; err.textContent='All fields are required.'; return; }
+  cfg = { clientId, apiKey, sheetId, sheetName };
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  initGoogleAuth();
+}
+
+function loadSetupFromStorage() {
+  if (cfg.clientId) {
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    initGoogleAuth();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE AUTH (OAuth 2.0 + token client)
+// ═══════════════════════════════════════════════════════════════
+function initGoogleAuth() {
+  if (!cfg.clientId) return;
+  // Initialize GIS token client
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: cfg.clientId,
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+    callback: handleTokenResponse,
+  });
+  // Also init gapi client for Sheets reads
+  gapi.load('client', async () => {
+    await gapi.client.init({ apiKey: cfg.apiKey, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+  });
+}
+
+function signInWithGoogle() {
+  if (!cfg.clientId) { showToast('Please complete setup first.', 'error'); return; }
+  if (!tokenClient) initGoogleAuth();
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+async function handleTokenResponse(resp) {
+  if (resp.error) { showToast('Google sign-in failed: ' + resp.error, 'error'); return; }
+  accessToken = resp.access_token;
+  // Fetch user info
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const info = await r.json();
+    googleUser = { name: info.name, email: info.email, picture: info.picture };
+    showGoogleUserInfo();
+  } catch(e) {}
+  // Pre-fill name from Google
+  if (googleUser && !document.getElementById('login-name').value) {
+    document.getElementById('login-name').value = googleUser.name;
+  }
+}
+
+function showGoogleUserInfo() {
+  if (!googleUser) return;
+  document.getElementById('google-signin-btn').style.display = 'none';
+  document.getElementById('google-signed-in-info').style.display = 'flex';
+  document.getElementById('google-signed-in-info').innerHTML = `
+    <div class="google-user-info">
+      <img src="${googleUser.picture}" alt="">
+      <div>
+        <div class="gname">✓ Signed in as ${googleUser.name}</div>
+        <div class="gemail">${googleUser.email}</div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP LOGIN
+// ═══════════════════════════════════════════════════════════════
+function doLogin() {
+  const name = document.getElementById('login-name').value.trim();
+  const role = document.getElementById('login-role').value;
+  const pass = document.getElementById('login-pass').value;
+  const err  = document.getElementById('login-error');
+  err.style.cssText = 'color:var(--red);font-size:13px;margin-top:8px;display:none;';
+
+  if (!accessToken) { err.style.display='block'; err.textContent='Please sign in with Google first.'; return; }
+  if (!name || !role || !pass) { err.style.display='block'; err.textContent='Please fill in all fields.'; return; }
+  if (pass !== passcodes[role]) { err.style.display='block'; err.textContent='Incorrect passcode for that role.'; return; }
+
+  currentUser = { name, role, googleName: googleUser?.name, picture: googleUser?.picture };
+  document.getElementById('login-screen').style.display  = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('hdr-name').textContent = name;
+  document.getElementById('hdr-role').textContent = role.toUpperCase();
+  if (googleUser?.picture) {
+    const av = document.getElementById('hdr-avatar');
+    av.src = googleUser.picture; av.style.display = '';
+  }
+  applyRoleUI();
+  loadFromSheet();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  init();
+});
+
+function doLogout() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null; googleUser = null; currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('google-signin-btn').style.display = '';
+  document.getElementById('google-signed-in-info').style.display = 'none';
+  document.getElementById('login-pass').value = '';
+  setSheetStatus('disconnected');
+}
+
+function applyRoleUI() {
+  const role = currentUser.role;
+  const canEdit = role==='admin'||role==='qa';
+  document.getElementById('btn-new-moc').style.display = canEdit ? '' : 'none';
+  document.getElementById('tab-settings-btn').style.display = role==='admin' ? '' : 'none';
+}
+
+function canEdit() { return currentUser && (currentUser.role==='admin'||currentUser.role==='qa'); }
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function showTab(tab) {
+  ['dashboard','mocs','settings'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-tab').forEach((el,i) => {
+    el.classList.toggle('active', ['dashboard','mocs','settings'][i]===tab);
+  });
+  if (tab==='dashboard') renderDashboard();
+  if (tab==='mocs') renderMOCList();
+  if (tab==='settings') loadSettingsUI();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHEET READ — parse rows into db.mocs
+// ═══════════════════════════════════════════════════════════════
+async function loadFromSheet() {
+  setSheetStatus('syncing', 'Loading…');
+  showLoading('Loading from Google Sheet…');
+  try {
+    await gapi.client.init({ apiKey: cfg.apiKey, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+    const resp = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: cfg.sheetId,
+      range: `${cfg.sheetName}!A2:N`,
+    });
+    const rows = resp.result.values || [];
+    db.mocs = rowsToMOCs(rows);
+    setSheetStatus('connected', `${db.mocs.length} MOCs loaded`);
+    renderDashboard();
+    renderMOCList();
+    showToast(`Loaded ${db.mocs.length} MOCs from Sheet`, 'success');
+  } catch(e) {
+    setSheetStatus('error', 'Load failed');
+    showToast('Failed to load Sheet: ' + (e.result?.error?.message || e.message || e), 'error');
+  } finally { hideLoading(); }
+}
+
+function rowsToMOCs(rows) {
+  const mocMap = {};
+  rows.forEach(row => {
+    const get = i => (row[i]||'').trim();
+    const rawId = get(COL.ID);
+    // ID column holds the MOC ID (e.g. 5244936) for first task row; Task# holds e.g. 5244936-1
+    const mocId = rawId || get(COL.TASK_NUM).split('-')[0] || '';
+    if (!mocId) return;
+    if (!mocMap[mocId]) {
+      mocMap[mocId] = {
+        id: mocId,
+        title: get(COL.MOC),
+        status: get(COL.MOC_STATUS) || 'OPEN',
+        mocClosure: get(COL.MOC_CLOSURE),
+        proposedClosure: get(COL.PROPOSED_CLOSURE),
+        reviewDate: get(COL.REVIEW_DATE),
+        department: get(COL.DEPARTMENT) || 'M&E',
+        changeType: 'Minor', risk: 'Low',
+        description: '', reason: '',
+        tasks: [],
+      };
+    }
+    const taskName = get(COL.TASK);
+    if (taskName) {
+      mocMap[mocId].tasks.push({
+        id: get(COL.TASK_NUM) || (mocId+'-'+mocMap[mocId].tasks.length),
+        taskNum: get(COL.TASK_NUM),
+        name: taskName,
+        assignee: get(COL.ASSIGNEE),
+        dueDate: get(COL.DUE_DATE),
+        status: get(COL.TASK_STATUS) || 'OPEN',
+        notes: get(COL.NOTES),
+        department: get(COL.DEPARTMENT),
+        overdue: get(COL.OVERDUE),
+      });
+    }
+  });
+  return Object.values(mocMap);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHEET WRITE — convert db.mocs back to rows and overwrite sheet
+// ═══════════════════════════════════════════════════════════════
+function mocToRows(moc) {
+  const today = new Date().toISOString().split('T')[0];
+  if (!moc.tasks || moc.tasks.length === 0) {
+    // MOC with no tasks — write a single placeholder row
+    return [[ moc.id, '', moc.title, moc.status, moc.mocClosure||'', moc.proposedClosure||'',
+              '', moc.reviewDate||'', '', '(no tasks)', '0', moc.department||'', '', '' ]];
+  }
+  return moc.tasks.map((t, i) => {
+    const overdue = (t.status==='OPEN' && t.dueDate && t.dueDate < today) ? '1' : '0';
+    return [
+      i===0 ? moc.id : '',          // ID only on first row
+      t.taskNum || `${moc.id}-${i+1}`,
+      i===0 ? moc.title : '',       // MOC title only on first row
+      i===0 ? moc.status : '',
+      i===0 ? (moc.mocClosure||'') : '',
+      i===0 ? (moc.proposedClosure||'') : '',
+      t.assignee||'',
+      i===0 ? (moc.reviewDate||'') : '',
+      t.dueDate||'',
+      t.name||'',
+      overdue,
+      t.department||moc.department||'',
+      t.status||'OPEN',
+      t.notes||'',
+    ];
+  });
+}
+
+async function writeAllToSheet() {
+  setSheetStatus('syncing', 'Saving…');
+  try {
+    // Collect all rows
+    const allRows = db.mocs.flatMap(m => mocToRows(m));
+    // Clear data range and rewrite
+    await sheetsRequest('PUT', `/${cfg.sheetId}/values/${encodeURIComponent(cfg.sheetName+'!A2:N')}?valueInputOption=RAW`, {
+      range: `${cfg.sheetName}!A2:N`,
+      majorDimension: 'ROWS',
+      values: allRows,
+    });
+    // If we shrank the data, clear trailing rows
+    const clearStart = allRows.length + 2;
+    await sheetsRequest('POST', `/${cfg.sheetId}/values/${encodeURIComponent(cfg.sheetName+'!A'+clearStart+':N1000')}:clear`, {});
+    setSheetStatus('connected', 'Saved');
+  } catch(e) {
+    setSheetStatus('error', 'Save failed');
+    throw e;
+  }
+}
+
+async function sheetsRequest(method, path, body) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets${path}`;
+  const resp = await fetch(url, {
+    method,
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: method !== 'GET' ? JSON.stringify(body) : undefined,
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || 'Sheets API error');
+  }
+  return resp.json();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const openMOCs   = db.mocs.filter(m => m.status==='OPEN');
+  const closedMOCs = db.mocs.filter(m => m.status==='CLOSED');
+  const allTasks   = db.mocs.flatMap(m => (m.tasks||[]).map(t => ({...t, mocId:m.id, mocTitle:m.title})));
+  const openTasks  = allTasks.filter(t => t.status==='OPEN');
+  const overdue    = openTasks.filter(t => t.dueDate && t.dueDate < today);
+
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi accent"><div class="kpi-val">${db.mocs.length}</div><div class="kpi-label">Total MOCs</div></div>
+    <div class="kpi yellow"><div class="kpi-val">${openMOCs.length}</div><div class="kpi-label">Open MOCs</div></div>
+    <div class="kpi green"><div class="kpi-val">${closedMOCs.length}</div><div class="kpi-label">Closed MOCs</div></div>
+    <div class="kpi red"><div class="kpi-val">${overdue.length}</div><div class="kpi-label">Overdue Tasks</div></div>
+    <div class="kpi accent"><div class="kpi-val">${openTasks.length}</div><div class="kpi-label">Open Tasks</div></div>
+  `;
+
+  const ob = document.getElementById('dash-open-body');
+  ob.innerHTML = openMOCs.length ? openMOCs.map(m => {
+    const op = (m.tasks||[]).filter(t=>t.status==='OPEN').length;
+    return `<tr class="clickable" onclick="openDetail('${esc(m.id)}')"><td><code>${esc(m.id)}</code></td><td>${esc(m.title)}</td><td><span class="pill pill-open">${op}</span></td><td>${m.proposedClosure||'—'}</td></tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="4">No open MOCs</td></tr>`;
+
+  const dv = document.getElementById('dash-overdue-body');
+  dv.innerHTML = overdue.length ? overdue.slice(0,10).map(t =>
+    `<tr class="clickable" onclick="openDetail('${esc(t.mocId)}')"><td>${esc(t.taskNum||t.id)}</td><td>${esc(t.mocTitle)}</td><td>${esc(t.assignee||'—')}</td><td style="color:var(--red);font-weight:500;">${t.dueDate}</td></tr>`
+  ).join('') : `<tr class="empty-row"><td colspan="4">No overdue tasks 🎉</td></tr>`;
+
+  const myTasks = allTasks.filter(t => t.status==='OPEN' && t.assignee &&
+    t.assignee.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0]));
+  const mb = document.getElementById('my-tasks-body');
+  mb.innerHTML = myTasks.length ? myTasks.map(t =>
+    `<tr class="clickable" onclick="openDetail('${esc(t.mocId)}')"><td>${esc(t.taskNum||'')}</td><td>${esc(t.mocTitle)}</td><td>${esc(t.name)}</td><td><span class="pill pill-open">Open</span></td><td>${t.dueDate||'—'}</td></tr>`
+  ).join('') : `<tr class="empty-row"><td colspan="5">No open tasks assigned to you</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOC LIST
+// ═══════════════════════════════════════════════════════════════
+function renderMOCList() {
+  const search = (document.getElementById('filter-search').value||'').toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  const dept   = document.getElementById('filter-dept').value;
+  const filtered = db.mocs.filter(m => {
+    if (status && m.status!==status) return false;
+    if (dept   && m.department!==dept) return false;
+    if (search && !m.id.toLowerCase().includes(search) && !m.title.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const riskColor = { Low:'green', Medium:'yellow', High:'red' };
+  const body = document.getElementById('moc-list-body');
+  body.innerHTML = filtered.length ? filtered.map(m => {
+    const open   = (m.tasks||[]).filter(t=>t.status==='OPEN').length;
+    const closed = (m.tasks||[]).filter(t=>t.status==='CLOSED').length;
+    const total  = (m.tasks||[]).length;
+    const rc = riskColor[m.risk]||'accent';
+    const editBtn = canEdit() ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openMOCModal('${esc(m.id)}')">Edit</button>` : '';
+    return `<tr class="clickable" onclick="openDetail('${esc(m.id)}')">
+      <td><code style="color:var(--accent);font-weight:500;">${esc(m.id)}</code></td>
+      <td><strong>${esc(m.title)}</strong></td>
+      <td><span class="pill pill-${m.status.toLowerCase()}">${m.status}</span></td>
+      <td><span style="font-size:12px;font-weight:600;color:var(--${rc});">${m.risk||'—'}</span></td>
+      <td style="font-size:12px;">${open} open / ${closed} done / ${total} total</td>
+      <td>${m.proposedClosure||'—'}</td>
+      <td>${m.reviewDate||'—'}</td>
+      <td>${editBtn}</td>
+    </tr>`;
+  }).join('') : `<tr class="empty-row"><td colspan="8">No MOCs found</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOC MODAL
+// ═══════════════════════════════════════════════════════════════
+function openMOCModal(mocId) {
+  editingMOCId = mocId||null;
+  const moc = mocId ? db.mocs.find(m=>m.id===mocId) : null;
+  document.getElementById('moc-modal-title').textContent = moc ? `Edit MOC: ${moc.id}` : 'New MOC';
+  document.getElementById('btn-delete-moc').style.display = moc&&currentUser.role==='admin' ? '' : 'none';
+  document.getElementById('f-moc-id').value         = moc ? moc.id : '';
+  document.getElementById('f-moc-title').value      = moc ? moc.title : '';
+  document.getElementById('f-moc-status').value     = moc ? moc.status : 'OPEN';
+  document.getElementById('f-change-type').value    = moc ? (moc.changeType||'Minor') : 'Minor';
+  document.getElementById('f-risk').value           = moc ? (moc.risk||'Low') : 'Low';
+  document.getElementById('f-dept').value           = moc ? (moc.department||'M&E') : 'M&E';
+  document.getElementById('f-review-date').value    = moc ? (moc.reviewDate||'') : '';
+  document.getElementById('f-closure-date').value   = moc ? (moc.proposedClosure||'') : '';
+  document.getElementById('f-moc-closure').value    = moc ? (moc.mocClosure||'') : '';
+  document.getElementById('f-description').value    = moc ? (moc.description||'') : '';
+  document.getElementById('f-reason').value         = moc ? (moc.reason||'') : '';
+  taskRows = moc ? JSON.parse(JSON.stringify(moc.tasks||[])) : [];
+  redrawTaskEditor();
+  document.getElementById('moc-modal').classList.add('open');
+}
+
+function closeMOCModal() { document.getElementById('moc-modal').classList.remove('open'); editingMOCId=null; }
+
+function redrawTaskEditor() {
+  const c = document.getElementById('task-list-edit');
+  if (!taskRows.length) { c.innerHTML='<p style="color:var(--muted);font-size:13px;margin-bottom:8px;">No tasks yet.</p>'; return; }
+  c.innerHTML = taskRows.map((t,i) => `
+    <div class="task-edit-row">
+      <input type="text" value="${esc(t.name||'')}" placeholder="Task name" oninput="taskRows[${i}].name=this.value">
+      <input type="text" value="${esc(t.assignee||'')}" placeholder="Assignee" oninput="taskRows[${i}].assignee=this.value">
+      <input type="date" value="${t.dueDate||''}" oninput="taskRows[${i}].dueDate=this.value">
+      <select onchange="taskRows[${i}].status=this.value">
+        <option value="OPEN" ${t.status==='OPEN'?'selected':''}>Open</option>
+        <option value="CLOSED" ${t.status==='CLOSED'?'selected':''}>Closed</option>
+        <option value="CANCELLED" ${t.status==='CANCELLED'?'selected':''}>Cancelled</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="taskRows.splice(${i},1);redrawTaskEditor()" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function addTaskRow() {
+  taskRows.push({ id: Date.now().toString(), name:'', assignee:'', dueDate:'', status:'OPEN', notes:'', department:'' });
+  redrawTaskEditor();
+}
+
+async function saveMOC() {
+  const id    = document.getElementById('f-moc-id').value.trim();
+  const title = document.getElementById('f-moc-title').value.trim();
+  if (!id||!title) { showToast('MOC ID and Title are required.','error'); return; }
+  const payload = {
+    id, title,
+    status:          document.getElementById('f-moc-status').value,
+    changeType:      document.getElementById('f-change-type').value,
+    risk:            document.getElementById('f-risk').value,
+    department:      document.getElementById('f-dept').value,
+    reviewDate:      document.getElementById('f-review-date').value,
+    proposedClosure: document.getElementById('f-closure-date').value,
+    mocClosure:      document.getElementById('f-moc-closure').value,
+    description:     document.getElementById('f-description').value,
+    reason:          document.getElementById('f-reason').value,
+    tasks:           taskRows.map((t,i) => ({...t, taskNum:`${id}-${i+1}`})),
+  };
+  const idx = db.mocs.findIndex(m=>m.id===editingMOCId);
+  if (idx>=0) db.mocs[idx] = payload;
+  else {
+    if (db.mocs.find(m=>m.id===id)) { showToast('A MOC with this ID already exists.','error'); return; }
+    db.mocs.push(payload);
+  }
+  closeMOCModal();
+  showLoading('Saving to Google Sheet…');
+  try {
+    await writeAllToSheet();
+    renderMOCList(); renderDashboard();
+    showToast('MOC saved to Google Sheet ✓','success');
+  } catch(e) { showToast('Save failed: '+e.message,'error'); }
+  finally { hideLoading(); }
+}
+
+async function deleteMOC() {
+  if (!editingMOCId||!confirm(`Delete MOC ${editingMOCId}? This cannot be undone.`)) return;
+  db.mocs = db.mocs.filter(m=>m.id!==editingMOCId);
+  closeMOCModal();
+  showLoading('Deleting…');
+  try { await writeAllToSheet(); renderMOCList(); renderDashboard(); showToast('MOC deleted','success'); }
+  catch(e) { showToast('Delete failed: '+e.message,'error'); }
+  finally { hideLoading(); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TASK DETAIL MODAL
+// ═══════════════════════════════════════════════════════════════
+function openDetail(mocId) {
+  detailMOCId = mocId;
+  const moc = db.mocs.find(m=>m.id===mocId);
+  if (!moc) return;
+  const today = new Date().toISOString().split('T')[0];
+  const riskColor = { Low:'green', Medium:'yellow', High:'red' }[moc.risk]||'accent';
+  document.getElementById('task-modal-title').textContent = `MOC ${moc.id}: ${moc.title}`;
+  document.getElementById('task-modal-body').innerHTML = `
+    <div>
+      <div class="detail-meta">
+        <span class="pill pill-${moc.status.toLowerCase()}">${moc.status}</span>
+        <span class="meta-chip" style="color:var(--${riskColor});font-weight:600;">${moc.risk||'—'} Risk</span>
+        <span class="meta-chip">${moc.changeType||'—'} Change</span>
+        <span class="meta-chip">Dept: ${esc(moc.department||'—')}</span>
+        <span class="meta-chip">Review: ${moc.reviewDate||'—'}</span>
+        <span class="meta-chip">Target Close: ${moc.proposedClosure||'—'}</span>
+        ${moc.mocClosure ? `<span class="meta-chip" style="color:var(--green);">Closed: ${moc.mocClosure}</span>` : ''}
+      </div>
+      ${moc.description ? `<p style="font-size:13px;color:var(--muted);margin-bottom:16px;">${esc(moc.description)}</p>` : ''}
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Tasks (${(moc.tasks||[]).length})</div>
+      ${(moc.tasks||[]).length ? (moc.tasks||[]).map((t,i) => {
+        const od = t.status==='OPEN' && t.dueDate && t.dueDate < today;
+        const edit = canEdit();
+        return `<div class="detail-task-row${od?' overdue':''}">
+          <div class="task-name-cell">
+            <div class="task-num">${esc(t.taskNum||'')}</div>
+            <div class="task-name">${esc(t.name)}</div>
+            ${edit ? `<input type="text" value="${esc(t.notes||'')}" placeholder="Notes…" oninput="updateDetailField(${i},'notes',this.value)" style="margin-top:5px;">` :
+              (t.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">${esc(t.notes)}</div>` : '')}
+          </div>
+          <div>${edit ? `<input type="text" value="${esc(t.assignee||'')}" placeholder="Assignee" oninput="updateDetailField(${i},'assignee',this.value)">` : esc(t.assignee||'—')}</div>
+          <div>${edit ? `<input type="date" value="${t.dueDate||''}" oninput="updateDetailField(${i},'dueDate',this.value)">` : (t.dueDate||'—')}</div>
+          <div>${edit ? `<select onchange="updateDetailField(${i},'status',this.value)">
+            <option value="OPEN" ${t.status==='OPEN'?'selected':''}>Open</option>
+            <option value="CLOSED" ${t.status==='CLOSED'?'selected':''}>Closed</option>
+            <option value="CANCELLED" ${t.status==='CANCELLED'?'selected':''}>Cancelled</option>
+          </select>` : `<span class="pill pill-${t.status.toLowerCase()}">${t.status}</span>`}</div>
+        </div>`;
+      }).join('') : '<p style="color:var(--muted);font-size:13px;">No tasks assigned.</p>'}
+    </div>`;
+  document.getElementById('task-save-btn').style.display = canEdit() ? '' : 'none';
+  document.getElementById('task-modal').classList.add('open');
+}
+
+function updateDetailField(i, field, value) {
+  const moc = db.mocs.find(m=>m.id===detailMOCId);
+  if (moc && moc.tasks[i]) moc.tasks[i][field] = value;
+}
+
+async function saveTaskUpdates() {
+  showLoading('Saving task updates…');
+  try {
+    await writeAllToSheet();
+    renderDashboard(); renderMOCList();
+    showToast('Tasks saved to Sheet ✓','success');
+    closeTaskModal();
+  } catch(e) { showToast('Save failed: '+e.message,'error'); }
+  finally { hideLoading(); }
+}
+
+function closeTaskModal() { document.getElementById('task-modal').classList.remove('open'); detailMOCId=null; }
+
+// ═══════════════════════════════════════════════════════════════
+// CSV IMPORT
+// ═══════════════════════════════════════════════════════════════
+function importCSV(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const lines = e.target.result.split('\n').filter(l=>l.trim());
+    if (!lines.length) return;
+    const headers = parseCSVLine(lines[0]);
+    const idx = h => headers.findIndex(x => x.toLowerCase().replace(/[^a-z]/g,'').includes(h));
+    const iId=idx('id'); const iMOC=idx('moc'); const iStat=idx('mocstatus');
+    const iClos=idx('mocclosure'); const iProp=idx('proposed'); const iAsgn=idx('assignee');
+    const iRevw=idx('review'); const iDue=idx('duedate'); const iTask=idx('task');
+    const iDept=idx('department'); const iTStat=idx('taskstatus'); const iNote=idx('notes');
+    const iTaskNum=idx('task#')||idx('tasknum');
+
+    const mocMap = {};
+    for (let i=1; i<lines.length; i++) {
+      const cols = parseCSVLine(lines[i]);
+      const rawId = clean(cols[iId]||'');
+      const taskNum = clean(cols[iTaskNum]||'');
+      const mocId = rawId || taskNum.split('-')[0] || '';
+      if (!mocId) continue;
+      if (!mocMap[mocId]) {
+        mocMap[mocId] = {
+          id: mocId, title: clean(cols[iMOC]||mocId),
+          status: clean(cols[iStat]||'OPEN'),
+          mocClosure: clean(cols[iClos]||''),
+          proposedClosure: clean(cols[iProp]||''),
+          reviewDate: fmtDate(clean(cols[iRevw]||'')),
+          department: clean(cols[iDept]||'M&E'),
+          changeType:'Minor', risk:'Low', description:'', reason:'', tasks:[],
+        };
+      }
+      const taskName = clean(cols[iTask]||'');
+      if (taskName) {
+        mocMap[mocId].tasks.push({
+          id: taskNum||Date.now().toString(),
+          taskNum,
+          name: taskName,
+          assignee: clean(cols[iAsgn]||''),
+          dueDate: fmtDate(clean(cols[iDue]||'')),
+          status: clean(cols[iTStat]||'OPEN'),
+          notes: clean(cols[iNote]||''),
+          department: clean(cols[iDept]||''),
+        });
+      }
+    }
+    db.mocs = Object.values(mocMap);
+    showLoading(`Writing ${db.mocs.length} MOCs to Sheet…`);
+    try {
+      await createSheetHeaders();
+      await writeAllToSheet();
+      renderDashboard(); renderMOCList();
+      document.getElementById('import-result').innerHTML = `<span style="color:var(--green)">✓ Imported ${db.mocs.length} MOCs to Google Sheet.</span>`;
+      showToast(`Imported ${db.mocs.length} MOCs ✓`,'success');
+    } catch(err) {
+      document.getElementById('import-result').innerHTML = `<span style="color:var(--red)">Error writing to Sheet: ${err.message}</span>`;
+    } finally { hideLoading(); event.target.value=''; }
+  };
+  reader.readAsText(file);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHEET HEADERS
+// ═══════════════════════════════════════════════════════════════
+async function createSheetHeaders() {
+  await sheetsRequest('PUT', `/${cfg.sheetId}/values/${encodeURIComponent(cfg.sheetName+'!A1:N1')}?valueInputOption=RAW`, {
+    range: `${cfg.sheetName}!A1:N1`,
+    majorDimension: 'ROWS',
+    values: [HEADERS],
+  });
+  showToast('Headers created in Sheet ✓','success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════
+function loadSettingsUI() {
+  document.getElementById('cfg-client-id').value  = cfg.clientId||'';
+  document.getElementById('cfg-api-key').value    = cfg.apiKey||'';
+  document.getElementById('cfg-sheet-id').value   = cfg.sheetId||'';
+  document.getElementById('cfg-sheet-name').value = cfg.sheetName||'MOCData';
+  document.getElementById('pc-admin').value    = passcodes.admin;
+  document.getElementById('pc-qa').value       = passcodes.qa;
+  document.getElementById('pc-assignee').value = passcodes.assignee;
+  document.getElementById('pc-manager').value  = passcodes.manager;
+}
+
+function saveConfigFromSettings() {
+  cfg.clientId   = document.getElementById('cfg-client-id').value.trim();
+  cfg.apiKey     = document.getElementById('cfg-api-key').value.trim();
+  cfg.sheetId    = document.getElementById('cfg-sheet-id').value.trim();
+  cfg.sheetName  = document.getElementById('cfg-sheet-name').value.trim()||'MOCData';
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  showToast('Configuration saved','success');
+}
+
+function savePasscodes() {
+  passcodes.admin    = document.getElementById('pc-admin').value||'admin123';
+  passcodes.qa       = document.getElementById('pc-qa').value||'qa123';
+  passcodes.assignee = document.getElementById('pc-assignee').value||'assign123';
+  passcodes.manager  = document.getElementById('pc-manager').value||'mgr123';
+  localStorage.setItem(PC_KEY, JSON.stringify(passcodes));
+  showToast('Passcodes saved','success');
+}
+
+async function testSheetConnection() {
+  const result = document.getElementById('conn-result');
+  result.innerHTML = '<span style="color:var(--muted)">Testing…</span>';
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(cfg.sheetName+'!A1:A1')}?key=${cfg.apiKey}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    result.innerHTML = '<span style="color:var(--green)">✓ Connection successful!</span>';
+  } catch(e) {
+    result.innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SHEET STATUS
+// ═══════════════════════════════════════════════════════════════
+function setSheetStatus(state, msg) {
+  const dot = document.getElementById('sheet-dot');
+  const txt = document.getElementById('sheet-status-txt');
+  dot.className = 'sheet-dot ' + (state==='connected'?'connected':state==='syncing'?'syncing':state==='error'?'error':'');
+  txt.textContent = msg||'';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function clean(s) { return (s||'').trim().replace(/^"|"$/g,''); }
+
+function fmtDate(s) {
+  if (!s) return '';
+  const p = s.split('/');
+  if (p.length===3) { const[m,d,y]=p; return `${y.length===2?'20'+y:y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+  return s;
+}
+
+function parseCSVLine(line) {
+  const res=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){res.push(cur);cur='';}
+    else{cur+=c;}
+  }
+  res.push(cur);
+  return res.map(s=>s.trim().replace(/^"|"$/g,''));
+}
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.className='', 4000);
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-msg').textContent = msg||'Loading…';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+// Close modals on backdrop click
+document.getElementById('moc-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeMOCModal(); });
+document.getElementById('task-modal').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeTaskModal(); });
+</script>
+</body>
+</html>
